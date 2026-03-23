@@ -5,6 +5,13 @@ It provides a clean architecture for Wi‑Fi provisioning, embedded web UI deliv
 
 This project is currently under active development and the internal structure may change as the framework evolves.
 
+## Why this exists
+
+ESP‑IDF is powerful but low‑level. Most real applications end up rewriting the same
+patterns: provisioning, embedded UI, API routing, credential storage, and runtime
+configuration. This framework provides a clean, modern foundation so you can focus
+on your application logic instead of boilerplate.
+
 ## Features
 
 - Wi‑Fi provisioning (AP → STA)
