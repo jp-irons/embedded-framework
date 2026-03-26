@@ -1,18 +1,54 @@
 #include "ProvisioningServer.hpp"
 #include "WiFiManager.hpp"  // for calling back via ctx.manager if needed
 #include "CredentialStore.hpp"
+
 #include "cJSON.h"
+#include "esp_log.h"
 
 
 namespace wifi_manager {
+
+static const char* TAG = "ProvisioningServer";
 
 ProvisioningServer::ProvisioningServer(WiFiContext& ctx)
     : ctx(ctx)
 {
 }
 
-void ProvisioningServer::start() {
-    // start HTTP/DNS provisioning server here
+bool ProvisioningServer::start()
+{
+    if (server) {
+        ESP_LOGW(TAG, "Provisioning server already running");
+        return true;
+    }
+
+    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.uri_match_fn = httpd_uri_match_wildcard;
+    config.server_port = 80;   // or your chosen port
+
+    esp_err_t err = httpd_start(&server, &config);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start provisioning server: %s", esp_err_to_name(err));
+        server = nullptr;
+        return false;
+    }
+
+    // --- Register /api/credentials/submit ---
+    httpd_uri_t submitCreds = {
+        .uri      = "/api/credentials/submit",
+        .method   = HTTP_POST,
+        .handler  = [](httpd_req_t* req) {
+            auto* self = static_cast<ProvisioningServer*>(req->user_ctx);
+            self->handleSubmitCredentials(req);
+            return ESP_OK;
+        },
+        .user_ctx = this
+    };
+
+    httpd_register_uri_handler(server, &submitCreds);
+
+    ESP_LOGI(TAG, "Provisioning server started");
+    return true;
 }
 
 void ProvisioningServer::stop() {
@@ -60,21 +96,8 @@ void ProvisioningServer::handleSubmitCredentials(httpd_req_t* req)
         return;
     }
 
-    credential_store::WifiCredential cred;
-    cred.ssid     = ssid->valuestring;
-    cred.password = password->valuestring;
-    cred.priority = 0;
-
-    bool ok = ctx.creds->add(cred);
+    handleCredentials(ssid->valuestring, password->valuestring);
     cJSON_Delete(root);
-
-    if (!ok) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save");
-        return;
-    }
-
-    // Notify WiFiManager
-    ctx.manager->onProvisioningComplete();
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, "{\"status\":\"ok\"}");

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "WiFiContext.hpp"
-#include "ProvisioningState.hpp"
 
 namespace wifi_manager {
 
@@ -20,26 +19,12 @@ public:
 
 private:
     WiFiContext& ctx;
+	WiFiState state;
 
-    void transitionTo(ProvisioningState newState);
+    void transitionTo(WiFiState newState);
+	
+	void connectSTAWithStoredCredentials();
 
-    // State handlers
-    void handleStartingProvisioning();
-    void handleProvisioning();
-    void handleProvisioningComplete();
-    void handleStartingSTA();
-    void handleConnectingSTA();
-    void handleSTAConnected();
-    void handleStartingRuntime();
-    void handleRuntime();
-
-    // WiFi actions (stubs for now)
-    void startAP();
-    void stopAP();
-    void startSTA();
-    void stopSTA();
-    void startRuntimeServer();
-    void stopRuntimeServer();
 };
 
 // Factory

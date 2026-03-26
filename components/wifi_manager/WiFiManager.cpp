@@ -1,8 +1,11 @@
 #include "WiFiManager.hpp"
 #include "ProvisioningServer.hpp"
 #include "RuntimeServer.hpp"
+#include "WiFiState.hpp"
 
 #include "esp_log.h"
+#include "esp_wifi.h"
+#include "esp_wifi_types.h"
 
 namespace wifi_manager {
 
@@ -11,136 +14,89 @@ static const char* TAG = "WiFiManager";
 WiFiManager::WiFiManager(WiFiContext& ctx)
     : ctx(ctx)
 {
-    ctx.state = ProvisioningState::Idle;
+	WiFiState state = WiFiState::UNPROVISIONED_AP;
 }
 
 void WiFiManager::startProvisioning() {
-    transitionTo(ProvisioningState::StartingProvisioning);
+    transitionTo(WiFiState::UNPROVISIONED_AP);
 }
 
-void WiFiManager::onProvisioningComplete() {
-    transitionTo(ProvisioningState::ProvisioningComplete);
+void WiFiManager::onProvisioningComplete()
+{
+    ESP_LOGI(TAG, "Provisioning complete → testing STA");
+    transitionTo(WiFiState::PROVISIONING_STA_TEST);
 }
 
 void WiFiManager::onProvisioningFailed() {
-    transitionTo(ProvisioningState::StartingProvisioning);
+    transitionTo(WiFiState::PROVISIONING_FAILED);
 }
 
 void WiFiManager::onSTAConnected() {
-    transitionTo(ProvisioningState::STAConnected);
+    transitionTo(WiFiState::RUNTIME_STA);
 }
 
 void WiFiManager::onSTADisconnected() {
-    transitionTo(ProvisioningState::StartingProvisioning);
+    transitionTo(WiFiState::RUNTIME_STA);
 }
 
-void WiFiManager::transitionTo(ProvisioningState newState) {
-    ESP_LOGI(TAG, "State: %d → %d",
-             static_cast<int>(ctx.state),
-             static_cast<int>(newState));
+void WiFiManager::transitionTo(WiFiState newState)
+{
+    ESP_LOGI(TAG, "WiFiManager: %s → %s",
+             toString(state).c_str(),
+             toString(newState).c_str());
 
-    ctx.state = newState;
+    state = newState;
+
+    switch (state) {
+
+    case WiFiState::UNPROVISIONED_AP:
+        ctx.runtime->stop();
+        ctx.provisioning->start();
+        break;
+
+	case WiFiState::PROVISIONING_STA_TEST:
+		ctx.provisioning->stop();
+		connectSTAWithStoredCredentials();
+		break;
+
+    case WiFiState::PROVISIONING_FAILED:
+        ctx.runtime->stop();
+        ctx.provisioning->start();
+        break;
+
+    case WiFiState::RUNTIME_STA:
+		ctx.provisioning->stop();  // stops AP + provisioning HTTP
+		ctx.runtime->start();      // starts runtime HTTP
+        break;
+    }
+}
+
+void WiFiManager::connectSTAWithStoredCredentials()
+{
+    std::vector<credential_store::WifiCredential> creds;
+
+    if (!ctx.creds->loadAll(creds) || creds.empty()) {
+        ESP_LOGW(TAG, "No stored credentials → returning to AP mode");
+        transitionTo(WiFiState::UNPROVISIONED_AP);
+        return;
+    }
+
+    // For now: use the first credential
+    const auto& c = creds[0];
+
+    ESP_LOGI(TAG, "Connecting STA to SSID: %s", c.ssid.c_str());
+
+    wifi_config_t cfg = {};
+    strncpy((char*)cfg.sta.ssid, c.ssid.c_str(), sizeof(cfg.sta.ssid));
+    strncpy((char*)cfg.sta.password, c.password.c_str(), sizeof(cfg.sta.password));
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &cfg));
+    ESP_ERROR_CHECK(esp_wifi_connect());
 }
 
 void WiFiManager::loop() {
-    switch (ctx.state) {
-        case ProvisioningState::Idle: break;
-        case ProvisioningState::StartingProvisioning: handleStartingProvisioning(); break;
-        case ProvisioningState::Provisioning: handleProvisioning(); break;
-        case ProvisioningState::ProvisioningComplete: handleProvisioningComplete(); break;
-        case ProvisioningState::StartingSTA: handleStartingSTA(); break;
-        case ProvisioningState::ConnectingSTA: handleConnectingSTA(); break;
-        case ProvisioningState::STAConnected: handleSTAConnected(); break;
-        case ProvisioningState::StartingRuntime: handleStartingRuntime(); break;
-        case ProvisioningState::Runtime: handleRuntime(); break;
-    }
-}
-
-// ---------------- State Handlers ----------------
-
-void WiFiManager::handleStartingProvisioning() {
-    ESP_LOGI(TAG, "Starting provisioning…");
-
-    stopSTA();
-    startAP();
-
-    if (ctx.provisioning) {
-        ctx.provisioning->start();
-    }
-
-    transitionTo(ProvisioningState::Provisioning);
-}
-
-void WiFiManager::handleProvisioning() {
-    // Nothing to do — ProvisioningServer will call onProvisioningComplete()
-}
-
-void WiFiManager::handleProvisioningComplete() {
-    ESP_LOGI(TAG, "Provisioning complete");
-
-    if (ctx.provisioning) {
-        ctx.provisioning->stop();
-    }
-
-    stopAP();
-    transitionTo(ProvisioningState::StartingSTA);
-}
-
-void WiFiManager::handleStartingSTA() {
-    ESP_LOGI(TAG, "Starting STA…");
-
-    startSTA();
-    transitionTo(ProvisioningState::ConnectingSTA);
-}
-
-void WiFiManager::handleConnectingSTA() {
-    // Nothing here — STA events will call onSTAConnected() or onSTADisconnected()
-}
-
-void WiFiManager::handleSTAConnected() {
-    ESP_LOGI(TAG, "STA connected");
-
-    transitionTo(ProvisioningState::StartingRuntime);
-}
-
-void WiFiManager::handleStartingRuntime() {
-    ESP_LOGI(TAG, "Starting runtime server…");
-
-    if (ctx.runtime) {
-        ctx.runtime->start();
-    }
-
-    transitionTo(ProvisioningState::Runtime);
-}
-
-void WiFiManager::handleRuntime() {
-    // Runtime server handles everything
-}
-
-// ---------------- WiFi Actions (stubs) ----------------
-
-void WiFiManager::startAP() {
-    ESP_LOGI(TAG, "startAP() stub");
-}
-
-void WiFiManager::stopAP() {
-    ESP_LOGI(TAG, "stopAP() stub");
-}
-
-void WiFiManager::startSTA() {
-    ESP_LOGI(TAG, "startSTA() stub");
-}
-
-void WiFiManager::stopSTA() {
-    ESP_LOGI(TAG, "stopSTA() stub");
-}
-
-void WiFiManager::startRuntimeServer() {
-    ESP_LOGI(TAG, "startRuntimeServer() stub");
-}
-
-void WiFiManager::stopRuntimeServer() {
-    ESP_LOGI(TAG, "stopRuntimeServer() stub");
+//possibly needed in future
 }
 
 // ---------------- Factory ----------------

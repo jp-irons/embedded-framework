@@ -9,7 +9,7 @@ class ProvisioningServer {
 public:
     explicit ProvisioningServer(WiFiContext& ctx);
 
-    void start();
+    bool start();
     void stop();
 
     // Called by HTTP handlers or internal logic
@@ -18,6 +18,7 @@ public:
 
 private:
     WiFiContext& ctx;
+	httpd_handle_t server = nullptr;   // <-- store it here
 };
 
 } // namespace wifi_manager

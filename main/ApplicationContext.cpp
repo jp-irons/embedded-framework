@@ -5,9 +5,10 @@
 using namespace wifi_manager;
 
 ApplicationContext::ApplicationContext()
-    : creds("wifi_creds") {
-    // Wire WiFi subsystem
-    wifiManager = create(wifiCtx);
+    : creds("wifi_creds")
+{
+    wifiCtx.creds = &creds;           // <-- critical
+    wifiManager = wifi_manager::create(wifiCtx);
 }
 
 ApplicationContext::~ApplicationContext() {

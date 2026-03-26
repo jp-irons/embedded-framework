@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         WiFiManager.cpp
+        WiFiState.cpp
         ProvisioningServer.cpp
         RuntimeServer.cpp
    INCLUDE_DIRS
