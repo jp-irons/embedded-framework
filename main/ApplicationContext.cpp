@@ -1,27 +1,18 @@
 #include "ApplicationContext.hpp"
-#include "WiFiManager.hpp"
-#include "RuntimeServer.hpp"
 #include "ProvisioningServer.hpp"
-#include <esp_log.h>
+#include "RuntimeServer.hpp"
 
-using wifi_manager::WiFiManager;
-
-static const char* TAG = "ApplicationServer";
+using namespace wifi_manager;
 
 ApplicationContext::ApplicationContext()
-    : credentialStore()
-{
-    ESP_LOGI("ApplicationServer", "constructing");
-    runtimeServer      = std::make_unique<RuntimeServer>(*this);
-    provisioningServer = std::make_unique<ProvisioningServer>(*this);
-    wifiManager        = std::make_unique<wifi_manager::WiFiManager>(*this);
+    : creds("wifi_creds") {
+    // Wire WiFi subsystem
+    wifiManager = create(wifiCtx);
 }
 
-ApplicationContext::~ApplicationContext() = default;
-
-void ApplicationContext::start()
-{
-    ESP_LOGI(TAG, "starting");
-    credentialStore.begin();      // opens NVS namespace
-    wifiManager->begin();          // starts Wi-Fi
+ApplicationContext::~ApplicationContext() {
+    // Clean up if needed
+    delete wifiCtx.provisioning;
+    delete wifiCtx.runtime;
+    delete wifiManager;
 }

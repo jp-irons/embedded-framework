@@ -10,7 +10,7 @@ static const char* TAG = "app_main";
 extern "C" void app_main(void)
 {
     // Logging
-    esp_log_level_set("*", ESP_LOG_INFO);
+    esp_log_level_set(TAG, ESP_LOG_INFO);
 
     esp_log_level_set("ApplicationContext", ESP_LOG_DEBUG);
     esp_log_level_set("RuntimeServer", ESP_LOG_DEBUG);
@@ -22,7 +22,7 @@ extern "C" void app_main(void)
     esp_log_level_set("CredentialApiHandler", ESP_LOG_DEBUG);
     esp_log_level_set("WiFiApiHandler", ESP_LOG_DEBUG);
 
-    ESP_LOGI(TAG, "Booting…");
+    ESP_LOGI("app_main", "Booting…");
 
     // Core ESP-IDF init
     ESP_ERROR_CHECK(esp_netif_init());
@@ -35,9 +35,17 @@ extern "C" void app_main(void)
         ESP_ERROR_CHECK(nvs_flash_init());
     }
 
-    static ApplicationContext ctx;
-    ctx.start();
+    // Create the application context (owns everything)
+    static ApplicationContext app;
+
+    // Start WiFi provisioning (or runtime later)
+    app.wifiManager->startProvisioning();
 
     ESP_LOGI("app_main", "System initialised");
-    
+
+    // Main loop
+    while (true) {
+        app.wifiManager->loop();
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
 }

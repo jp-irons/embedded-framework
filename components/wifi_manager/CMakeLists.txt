@@ -1,15 +1,17 @@
 idf_component_register(
     SRCS
-        "WiFiManager.cpp"
+        WiFiManager.cpp
+        ProvisioningServer.cpp
+        RuntimeServer.cpp
    INCLUDE_DIRS
         "."
-    PRIV_INCLUDE_DIRS
-        "${PROJECT_DIR}/main"
-    REQUIRES
+   REQUIRES
         esp_wifi
         esp_event
         esp_netif
         esp_http_server
         nvs_flash
         esp_timer
+        cjson
+        credential_store
 )
