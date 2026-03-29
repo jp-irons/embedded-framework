@@ -1,8 +1,62 @@
-# We'll use defaults from the LLVM style, but with some modifications so that it's close to the CDT K&R style.
+# ============================
+# Jon's ESP32 Framework Style
+# K&R braces, compact, modern C++
+# ============================
+
 BasedOnStyle: LLVM
-UseTab: Always
+
+# --- Brace style (K&R) ---
+BreakBeforeBraces: Attach
+
+# --- Indentation ---
 IndentWidth: 4
 TabWidth: 4
-BreakConstructorInitializers: AfterColon
-IndentAccessModifiers: false
-AccessModifierOffset: -4
+UseTab: Never
+ContinuationIndentWidth: 4
+
+# --- Column width ---
+ColumnLimit: 120
+
+# --- Namespace / class formatting ---
+NamespaceIndentation: None
+IndentCaseLabels: true
+IndentGotoLabels: false
+
+# --- Spaces ---
+SpaceBeforeParens: ControlStatements
+SpaceAfterCStyleCast: true
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInAngles: false
+SpaceBeforeAssignmentOperators: true
+
+# --- Pointer & reference alignment ---
+PointerAlignment: Right
+ReferenceAlignment: Right
+
+# --- Includes ---
+SortIncludes: true
+IncludeBlocks: Regroup
+
+# --- Line breaks ---
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# --- Comments ---
+ReflowComments: false
+
+# --- C++ specifics ---
+DerivePointerAlignment: false
+Cpp11BracedListStyle: true
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 4
+
+# --- Disable aggressive formatting ---
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignConsecutiveMacros: false
+AlignTrailingComments: false
+
+# --- Keep your intentional vertical rhythm ---
+KeepEmptyLinesAtTheStartOfBlocks: true

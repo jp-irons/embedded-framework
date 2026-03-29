@@ -1,32 +1,30 @@
 #pragma once
 
-#include "esp_http_server.h"
 #include "WiFiContext.hpp"
+#include "esp_http_server.h"
 
 namespace wifi_manager {
 
 class ProvisioningServer {
-public:
-    explicit ProvisioningServer(WiFiContext* ctx);
+  public:
+    explicit ProvisioningServer(WiFiContext *ctx);
 
     // Explicit lifecycle
-    bool start();   // start HTTP server
-    void stop();    // stop HTTP server
+    bool start(); // start HTTP server
+    void stop(); // stop HTTP server
 
-private:
-    WiFiContext* ctx;          // non-owning shared state
-    httpd_handle_t server;     // HTTP server instance
+  private:
+    WiFiContext *ctx; // non-owning shared state
+    httpd_handle_t server; // HTTP server instance
 
     bool registerHandlers();
 
     // Static HTTP handlers (C-style)
-    static esp_err_t handleRoot(httpd_req_t* req);
-    static esp_err_t handleSubmit(httpd_req_t* req);
-    static esp_err_t handleStatus(httpd_req_t* req);
-    static esp_err_t handleScan(httpd_req_t* req);
+    static esp_err_t dispatchApi(httpd_req_t *req);
+    static esp_err_t handleStaticFile(httpd_req_t *req);
 
     // Helper to extract instance pointer
-    static ProvisioningServer* fromReq(httpd_req_t* req);
+    static ProvisioningServer *fromReq(httpd_req_t *req);
 };
 
 } // namespace wifi_manager
