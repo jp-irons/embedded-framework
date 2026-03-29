@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 namespace wifi_manager {
 
 enum class ProvisioningState {
