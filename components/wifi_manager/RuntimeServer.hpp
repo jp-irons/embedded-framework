@@ -1,24 +1,29 @@
 #pragma once
 
-#include "WiFiContext.hpp"
 #include "esp_http_server.h"
+#include "WiFiContext.hpp"
 
 namespace wifi_manager {
 
 class RuntimeServer {
 public:
-	explicit RuntimeServer(WiFiContext* ctx);
+    explicit RuntimeServer(WiFiContext* ctx);
 
-    void start();
-    void stop();
-
-    void handleStatusRequest();
+    bool start();   // start HTTP server
+    void stop();    // stop HTTP server
 
 private:
-	WiFiContext* ctx;
-	httpd_handle_t server = nullptr;
-	
-	bool registerHandlers();
+    WiFiContext* ctx;          // non-owning shared state
+    httpd_handle_t server;     // HTTP server instance
+
+    bool registerHandlers();
+
+    // Static HTTP handlers
+    static esp_err_t handleRoot(httpd_req_t* req);
+    static esp_err_t handleInfo(httpd_req_t* req);
+
+    // Helper to extract instance pointer
+    static RuntimeServer* fromReq(httpd_req_t* req);
 };
 
 } // namespace wifi_manager

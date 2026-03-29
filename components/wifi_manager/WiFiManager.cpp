@@ -1,14 +1,9 @@
 #include "WiFiManager.hpp"
-#include "ProvisioningServer.hpp"   // ← REQUIRED
-#include "RuntimeServer.hpp"        // ← REQUIRED
-#include "CredentialStore.hpp"
+#include "ProvisioningServer.hpp"
+#include "RuntimeServer.hpp"
 
-#include "esp_log.h"
 #include "esp_wifi.h"
-#include "esp_event_base.h"
-
-
-using namespace wifi_manager;
+#include "esp_log.h"
 
 namespace wifi_manager {
 
@@ -17,110 +12,12 @@ static const char* TAG = "WiFiManager";
 WiFiManager::WiFiManager(WiFiContext* ctx)
     : ctx(ctx)
 {
-}
+    // Register WiFi + IP event handlers
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(
+        WIFI_EVENT, ESP_EVENT_ANY_ID, &WiFiManager::wifiEventHandler, this, nullptr));
 
-void WiFiManager::transitionTo(WiFiState s)
-{
-    ESP_LOGI(TAG, "State -> %d", static_cast<int>(s));
-    ctx->state = s;
-}
-
-void WiFiManager::start()
-{
-    transitionTo(WiFiState::UNPROVISIONED_AP);
-}
-
-void WiFiManager::tick()
-{
-    switch (ctx->state) {
-        case WiFiState::UNPROVISIONED_AP:       handleUnprovisionedAP(); break;
-        case WiFiState::PROVISIONING_STA_TEST:  handleProvisioningStaTest(); break;
-        case WiFiState::PROVISIONING_FAILED:    handleProvisioningFailed(); break;
-        case WiFiState::RUNTIME_STA:            handleRuntimeSta(); break;
-    }
-}
-
-void WiFiManager::handleProvisioningStaTest()
-{
-	ctx->loadedCreds.clear();
-	ctx->creds->loadAll(ctx->loadedCreds);
-	ctx->currentCredIndex = 0;
-
-	if (ctx->loadedCreds.empty()) {
-	    ESP_LOGW(TAG, "No credentials → returning to AP");
-	    transitionTo(WiFiState::UNPROVISIONED_AP);
-	    return;
-	}
-	tryNextCredential();
-}
-
-void WiFiManager::tryNextCredential()
-{
-    if (ctx->currentCredIndex >= ctx->loadedCreds.size()) {
-        ESP_LOGW(TAG, "All credentials failed");
-        transitionTo(WiFiState::PROVISIONING_FAILED);
-        return;
-    }
-
-    const auto& cred = ctx->loadedCreds[ctx->currentCredIndex];
-
-    wifi_config_t cfg = {};
-    strncpy((char*)cfg.sta.ssid, cred.ssid.c_str(), sizeof(cfg.sta.ssid));
-    strncpy((char*)cfg.sta.password, cred.password.c_str(), sizeof(cfg.sta.password));
-
-    ESP_LOGI(TAG, "Trying credential %zu: SSID='%s'",
-             ctx->currentCredIndex, cred.ssid.c_str());
-
-    esp_wifi_set_mode(WIFI_MODE_STA);
-    esp_wifi_set_config(WIFI_IF_STA, &cfg);
-    esp_wifi_start();
-    esp_wifi_connect();
-}
-
-
-
-void WiFiManager::wifiEventHandler(void* arg,
-                                   esp_event_base_t base,
-                                   int32_t id,
-                                   void* data)
-{
-    auto* self = static_cast<WiFiManager*>(arg);
-
-	if (id == WIFI_EVENT_STA_DISCONNECTED) {
-	    ESP_LOGW(TAG, "Credential %zu failed", self->ctx->currentCredIndex);
-	    self->ctx->currentCredIndex++;
-	    self->tryNextCredential();
-	}
-	if (id == IP_EVENT_STA_GOT_IP) {
-	    ESP_LOGI(TAG, "Connected using credential %zu", self->ctx->currentCredIndex);
-	    self->transitionTo(WiFiState::RUNTIME_STA);
-	}
-
-
-}
-
-void WiFiManager::ipEventHandler(void* arg,
-                                 esp_event_base_t base,
-                                 int32_t id,
-                                 void* data)
-{
-    auto* self = static_cast<WiFiManager*>(arg);
-
-    if (id == IP_EVENT_STA_GOT_IP) {
-        self->transitionTo(WiFiState::RUNTIME_STA);
-    }
-}
-
-void WiFiManager::handleProvisioningFailed()
-{
-    // Go back to AP mode
-    esp_wifi_stop();
-    transitionTo(WiFiState::UNPROVISIONED_AP);
-}
-
-void WiFiManager::handleRuntimeSta()
-{
-    ctx->runtime->start();
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(
+        IP_EVENT, IP_EVENT_STA_GOT_IP, &WiFiManager::ipEventHandler, this, nullptr));
 }
 
 WiFiManager* create(WiFiContext& ctx)
@@ -130,13 +27,197 @@ WiFiManager* create(WiFiContext& ctx)
     return mgr;
 }
 
-void WiFiManager::loop()
+void WiFiManager::start()
 {
-    // No logic here. Only heart beat, metrics, watchdog  
-    static uint32_t hb = 0;
-    if ((hb++ % 200) == 0) {
-        ESP_LOGD(TAG, "[HB] WiFiManager alive, state=%d", (int)ctx->state);
+    ESP_LOGI(TAG, "WiFiManager start");
+
+    // Basic WiFi init
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    esp_netif_create_default_wifi_sta();
+    esp_netif_create_default_wifi_ap();
+
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    loadCredentials();
+
+    if (ctx->loadedCreds.empty()) {
+        transitionTo(WiFiState::UNPROVISIONED_AP);
+    } else {
+        ctx->currentCredIndex = 0;
+        transitionTo(WiFiState::PROVISIONING_STA_TEST);
     }
 }
 
+void WiFiManager::loop()
+{
+    static uint32_t hb = 0;
+    if ((hb++ % 200) == 0) {
+        ESP_LOGD(TAG, "[HB] state=%s, credIndex=%zu",
+                 toString(ctx->state).c_str(),
+                 ctx->currentCredIndex);
+    }
 }
+
+void WiFiManager::loadCredentials()
+{
+    ctx->loadedCreds.clear();
+    ctx->creds->loadAll(ctx->loadedCreds);
+
+    ESP_LOGI(TAG, "Loaded %zu credential(s)", ctx->loadedCreds.size());
+}
+
+void WiFiManager::transitionTo(WiFiState s)
+{
+    ESP_LOGI(TAG, "Transition %s → %s",
+             toString(ctx->state).c_str(),
+             toString(s).c_str());
+
+    switch (s) {
+
+	case WiFiState::UNPROVISIONED_AP:
+		stopSta();
+		if (ctx->runtime)      ctx->runtime->stop();
+		startAp();
+		if (ctx->provisioning) ctx->provisioning->start();
+		break;
+
+		
+		
+	case WiFiState::PROVISIONING_STA_TEST:
+		stopAp();
+		if (ctx->provisioning) ctx->provisioning->stop();
+		if (ctx->runtime)      ctx->runtime->stop();
+		startStaWithCurrent();
+		break;
+
+    case WiFiState::PROVISIONING_FAILED:
+		stopSta();
+		stopAp();
+		if (ctx->provisioning) ctx->provisioning->stop();
+		if (ctx->runtime)      ctx->runtime->stop();
+		break;
+
+    case WiFiState::RUNTIME_STA:
+		stopAp();
+		if (ctx->provisioning) ctx->provisioning->stop();
+		if (ctx->runtime)      ctx->runtime->start();
+		break;
+
+    }
+
+    ctx->state = s;
+}
+
+void WiFiManager::startAp()
+{
+    ESP_LOGI(TAG, "Starting AP for provisioning");
+
+    wifi_config_t ap_cfg = {};
+    strcpy((char*)ap_cfg.ap.ssid, "esp-provision");
+    ap_cfg.ap.ssid_len = strlen("esp-provision");
+    ap_cfg.ap.channel = 1;
+    ap_cfg.ap.max_connection = 4;
+    ap_cfg.ap.authmode = WIFI_AUTH_OPEN;
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
+    ESP_ERROR_CHECK(esp_wifi_start());
+}
+
+void WiFiManager::stopAp()
+{
+    wifi_mode_t mode;
+    if (esp_wifi_get_mode(&mode) == ESP_OK && (mode & WIFI_MODE_AP)) {
+        ESP_LOGI(TAG, "Stopping AP");
+        ESP_ERROR_CHECK(esp_wifi_stop());
+    }
+}
+
+void WiFiManager::startStaWithCurrent()
+{
+    if (ctx->loadedCreds.empty() ||
+        ctx->currentCredIndex >= ctx->loadedCreds.size()) {
+        transitionTo(WiFiState::UNPROVISIONED_AP);
+        return;
+    }
+
+    const auto& cred = ctx->loadedCreds[ctx->currentCredIndex];
+
+    ESP_LOGI(TAG, "Testing STA credential SSID='%s'", cred.ssid.c_str());
+
+    wifi_config_t sta_cfg = {};
+    strncpy((char*)sta_cfg.sta.ssid, cred.ssid.c_str(), sizeof(sta_cfg.sta.ssid) - 1);
+    strncpy((char*)sta_cfg.sta.password, cred.password.c_str(), sizeof(sta_cfg.sta.password) - 1);
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
+    ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_ERROR_CHECK(esp_wifi_connect());
+}
+
+void WiFiManager::stopSta()
+{
+    wifi_mode_t mode;
+    if (esp_wifi_get_mode(&mode) == ESP_OK && (mode & WIFI_MODE_STA)) {
+        ESP_LOGI(TAG, "Stopping STA");
+        esp_wifi_disconnect();
+        esp_wifi_stop();
+    }
+}
+
+void WiFiManager::tryNextCredential()
+{
+    ctx->currentCredIndex++;
+
+    if (ctx->currentCredIndex >= ctx->loadedCreds.size()) {
+        ESP_LOGW(TAG, "All credentials failed");
+        transitionTo(WiFiState::PROVISIONING_FAILED);
+        transitionTo(WiFiState::UNPROVISIONED_AP);
+        return;
+    }
+
+    ESP_LOGI(TAG, "Trying next credential index=%zu", ctx->currentCredIndex);
+    transitionTo(WiFiState::PROVISIONING_STA_TEST);
+}
+
+// -------------------------
+// Event handlers
+// -------------------------
+
+void WiFiManager::wifiEventHandler(void* arg,
+                                   esp_event_base_t base,
+                                   int32_t id,
+                                   void* data)
+{
+    auto* self = static_cast<WiFiManager*>(arg);
+
+    if (base == WIFI_EVENT) {
+        switch (id) {
+
+        case WIFI_EVENT_STA_DISCONNECTED:
+            ESP_LOGW(TAG, "STA disconnected");
+            self->tryNextCredential();
+            break;
+
+        default:
+            break;
+        }
+    }
+}
+
+void WiFiManager::ipEventHandler(void* arg,
+                                 esp_event_base_t base,
+                                 int32_t id,
+                                 void* data)
+{
+    auto* self = static_cast<WiFiManager*>(arg);
+
+    if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
+        ESP_LOGI(TAG, "Got IP — entering runtime");
+        self->transitionTo(WiFiState::RUNTIME_STA);
+    }
+}
+
+} // namespace wifi_manager
