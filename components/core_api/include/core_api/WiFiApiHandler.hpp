@@ -1,13 +1,16 @@
 #pragma once
 
-class WiFiManager;
-
 namespace http {
     class HttpRequest;
     class HttpResponse;
 }
 
+namespace wifi_manager {
+	class WiFiManager;
+}
+
 using namespace http;
+using namespace wifi_manager;
 
 
 namespace core_api {

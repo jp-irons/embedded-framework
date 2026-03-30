@@ -4,6 +4,7 @@
 #include "wifi_manager/WiFiManager.hpp"
 
 using namespace http;
+using namespace wifi_manager;
 
 
 namespace core_api {
