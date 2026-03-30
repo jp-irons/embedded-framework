@@ -1,5 +1,4 @@
 #include "framework/FrameworkContext.hpp"
-#include "credential_store/CredentialStore.hpp"
 #include "wifi_manager/ProvisioningStateMachine.hpp"
 #include "core_api/CredentialApiHandler.hpp"
 #include "core_api/ProvisioningApiHandler.hpp"
