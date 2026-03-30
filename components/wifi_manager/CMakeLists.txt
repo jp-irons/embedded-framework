@@ -4,8 +4,8 @@ idf_component_register(
         WiFiState.cpp
         ProvisioningServer.cpp
         RuntimeServer.cpp
-   INCLUDE_DIRS
-        "."
+    INCLUDE_DIRS
+        "include"
    REQUIRES
         esp_wifi
         esp_event

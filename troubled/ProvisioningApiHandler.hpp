@@ -4,7 +4,7 @@
 #include <string>
 
 class ApplicationContext; 
-class WifiManager;
+class WiFiManager;
 
 class ProvisioningApiHandler {
 public:

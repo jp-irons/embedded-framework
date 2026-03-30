@@ -1,6 +1,6 @@
 #include "ApplicationContext.hpp"
-#include "ProvisioningServer.hpp"
-#include "RuntimeServer.hpp"
+#include "wifi_manager/ProvisioningServer.hpp"
+#include "wifi_manager/RuntimeServer.hpp"
 
 using namespace wifi_manager;
 

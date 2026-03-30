@@ -1,8 +1,8 @@
 #pragma once
 
-#include "WiFiContext.hpp"
-#include "WiFiManager.hpp"
-#include "CredentialStore.hpp"
+#include "wifi_manager/WiFiContext.hpp"
+#include "wifi_manager/WiFiManager.hpp"
+#include "credential_store/CredentialStore.hpp"
 
 class ApplicationContext {
 public:

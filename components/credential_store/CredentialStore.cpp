@@ -1,4 +1,4 @@
-#include "CredentialStore.hpp"
+#include "credential_store/CredentialStore.hpp"
 #include "esp_log.h"
 #include <cstring>
 #include <algorithm>

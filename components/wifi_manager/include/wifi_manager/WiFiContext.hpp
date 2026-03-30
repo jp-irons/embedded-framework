@@ -1,7 +1,7 @@
 #pragma once
 
-#include "CredentialStore.hpp"
-#include "WiFiState.hpp"   // Needed because WiFiContext stores a ProvisioningState
+#include "credential_store/CredentialStore.hpp"
+#include "wifi_manager/WiFiState.hpp"   // Needed because WiFiContext stores a ProvisioningState
 
 namespace credential_store {
     class CredentialStore;   // ← forward declare instead of include

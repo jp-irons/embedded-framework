@@ -1,6 +1,6 @@
-#include "WiFiManager.hpp"
-#include "ProvisioningServer.hpp"
-#include "RuntimeServer.hpp"
+#include "wifi_manager/WiFiManager.hpp"
+#include "wifi_manager/ProvisioningServer.hpp"
+#include "wifi_manager/RuntimeServer.hpp"
 
 #include "esp_wifi.h"
 #include "esp_log.h"

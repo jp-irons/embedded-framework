@@ -84,7 +84,7 @@ esp_err_t CredentialApiHandler::handleClear(httpd_req_t* req) {
 }
 
 // ---------------------------------------------------------
-// /api/credentials/delete?ssid=MyWifi
+// /api/credentials/delete?ssid=MyWiFi
 // ---------------------------------------------------------
 esp_err_t CredentialApiHandler::handleDelete(httpd_req_t* req) {
     std::string ssid = getQueryParam(req, "ssid");
