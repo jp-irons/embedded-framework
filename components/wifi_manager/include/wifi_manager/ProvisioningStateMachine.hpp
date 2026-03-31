@@ -1,8 +1,8 @@
 #pragma once
 
+#include <string>
 #include "wifi_manager/ProvisioningState.hpp"
 #include "wifi_manager/ProvisioningError.hpp"
-#include <string>
 
 namespace credential_store {
 class CredentialStore;
@@ -10,21 +10,23 @@ class CredentialStore;
 
 namespace wifi_manager {
 
-class WiFiManager;     // forward declaration
-struct WiFiContext;    // forward declaration
+class WiFiManager;
+struct WiFiContext;
 
 class ProvisioningStateMachine {
 public:
     ProvisioningStateMachine(WiFiManager& wifi,
+                             WiFiContext& ctx,
                              credential_store::CredentialStore& store);
 
     ProvisioningState state() const { return currentState; }
 
+    // External triggers
     void startProvisioning();
     void credentialsReceived(const std::string& ssid,
                              const std::string& password);
     void wifiConnected();
-    void wifiConnectionFailed(ProvisioningError);
+    void wifiConnectionFailed(ProvisioningError err);
     void startRuntime();
     void reset();
 
@@ -33,7 +35,9 @@ private:
 
 private:
     WiFiManager& wifi;
+    WiFiContext& ctx;
     credential_store::CredentialStore& store;
+
     ProvisioningState currentState = ProvisioningState::Idle;
 };
 

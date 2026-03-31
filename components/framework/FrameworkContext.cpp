@@ -38,7 +38,7 @@ FrameworkContext::FrameworkContext()
     // 4. Create ProvisioningStateMachine
     //
     provisioningStateMachine =
-        new wifi_manager::ProvisioningStateMachine(*wifiManager, credentialStore);
+        new wifi_manager::ProvisioningStateMachine(*wifiManager, wifiCtx, credentialStore);
 
     wifiCtx.stateMachine = provisioningStateMachine;
 
