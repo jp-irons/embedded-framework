@@ -1,35 +1,27 @@
 #pragma once
 
-#include "credential_store/CredentialStore.hpp"
-#include "wifi_manager/WiFiState.hpp"   // Needed because WiFiContext stores a ProvisioningState
-
 namespace credential_store {
-    class CredentialStore;   // ← forward declare instead of include
+class CredentialStore;
 }
 
 namespace wifi_manager {
 
-// Forward declarations
 class WiFiManager;
+class ProvisioningStateMachine;
 class ProvisioningServer;
 class RuntimeServer;
 
-enum class ProvisioningState;
+enum class WiFiState;
 
 struct WiFiContext {
-    WiFiState state = WiFiState::UNPROVISIONED_AP;
-
-    WiFiManager* manager = nullptr;
-    ProvisioningServer* provisioning = nullptr;
-    RuntimeServer* runtime = nullptr;
-
+    ProvisioningServer* provisioningServer = nullptr;
+    RuntimeServer* runtimeServer = nullptr;
     credential_store::CredentialStore* creds = nullptr;
-	
-	std::vector<credential_store::WiFiCredential> loadedCreds;
-	size_t currentCredIndex = 0;
 
+    WiFiManager* wifiManager = nullptr;
+    ProvisioningStateMachine* stateMachine = nullptr;
+
+    WiFiState wifiState;
 };
-
-
 
 } // namespace wifi_manager

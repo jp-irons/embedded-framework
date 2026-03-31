@@ -2,31 +2,39 @@
 
 #include "wifi_manager/ProvisioningState.hpp"
 #include "wifi_manager/ProvisioningError.hpp"
-#include "wifi_manager/WiFiManager.hpp"
-#include "credential_store/CredentialStore.hpp"
+#include <string>
+
+namespace credential_store {
+class CredentialStore;
+}
 
 namespace wifi_manager {
+
+class WiFiManager;     // forward declaration
+struct WiFiContext;    // forward declaration
 
 class ProvisioningStateMachine {
 public:
     ProvisioningStateMachine(WiFiManager& wifi,
                              credential_store::CredentialStore& store);
 
-    ProvisioningState state() const;
-    ProvisioningError error() const;
+    ProvisioningState state() const { return currentState; }
 
-    void start();
-    void submitCredentials(const std::string& ssid,
-                           const std::string& password);
-    void complete();
-    void fail(ProvisioningError err);
+    void startProvisioning();
+    void credentialsReceived(const std::string& ssid,
+                             const std::string& password);
+    void wifiConnected();
+    void wifiConnectionFailed(ProvisioningError);
+    void startRuntime();
+    void reset();
+
+private:
+    void transitionTo(ProvisioningState newState);
 
 private:
     WiFiManager& wifi;
     credential_store::CredentialStore& store;
-
     ProvisioningState currentState = ProvisioningState::Idle;
-    ProvisioningError lastError = ProvisioningError::None;
 };
 
 } // namespace wifi_manager

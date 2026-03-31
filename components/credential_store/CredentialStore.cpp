@@ -138,4 +138,35 @@ bool CredentialStore::clear() {
     return err == ESP_OK;
 }
 
+bool CredentialStore::store(const WiFiCredential& cred)
+{
+    std::vector<WiFiCredential> list;
+    if (!loadAll(list)) {
+        return false;
+    }
+
+    // Update if SSID already exists
+    bool updated = false;
+    for (auto& existing : list) {
+        if (existing.ssid == cred.ssid) {
+            existing = cred;
+            updated = true;
+            break;
+        }
+    }
+
+    // Otherwise add new
+    if (!updated) {
+        list.push_back(cred);
+    }
+
+    // Sort by priority (lower = higher priority)
+    std::sort(list.begin(), list.end(),
+              [](const WiFiCredential& a, const WiFiCredential& b) {
+                  return a.priority < b.priority;
+              });
+
+    return saveAll(list);
+}
+
 } // namespace credential_store

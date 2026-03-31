@@ -15,30 +15,36 @@ FrameworkContext::FrameworkContext()
     instance = this;
 
     //
-    // 1. Wire WiFiContext
+    // 1. Wire WiFiContext (static pointers only)
     //
     wifiCtx.creds = &credentialStore;
 
     //
-    // 2. Create servers (internal to wifi_manager)
+    // 2. Create servers (AP + Runtime HTTP)
     //
     provisioningServer = new wifi_manager::ProvisioningServer(&wifiCtx);
     runtimeServer      = new wifi_manager::RuntimeServer(&wifiCtx);
 
-    wifiCtx.provisioning = provisioningServer;
-    wifiCtx.runtime      = runtimeServer;
+    wifiCtx.provisioningServer = provisioningServer;
+    wifiCtx.runtimeServer      = runtimeServer;
 
     //
-    // 3. Create WiFiManager last (factory)
+    // 3. Create WiFiManager
     //
-    wifiManager = wifi_manager::create(wifiCtx);
+    wifiManager = new wifi_manager::WiFiManager(&wifiCtx);
+    wifiCtx.wifiManager = wifiManager;
 
     //
-    // 4. Framework-level components
+    // 4. Create ProvisioningStateMachine
     //
     provisioningStateMachine =
         new wifi_manager::ProvisioningStateMachine(*wifiManager, credentialStore);
 
+    wifiCtx.stateMachine = provisioningStateMachine;
+
+    //
+    // 5. Create API handlers
+    //
     credentialApi =
         new core_api::CredentialApiHandler(credentialStore, *provisioningStateMachine);
 
@@ -47,9 +53,7 @@ FrameworkContext::FrameworkContext()
 
     wifiApi =
         new core_api::WiFiApiHandler(*wifiManager);
-}
-
-FrameworkContext::~FrameworkContext()
+}FrameworkContext::~FrameworkContext()
 {
     stop();
 

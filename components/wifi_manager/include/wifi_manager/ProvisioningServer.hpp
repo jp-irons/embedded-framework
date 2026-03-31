@@ -1,9 +1,10 @@
 #pragma once
 
-#include "WiFiContext.hpp"
 #include "esp_http_server.h"
 
 namespace wifi_manager {
+	
+struct WiFiContext;
 
 class ProvisioningServer {
   public:

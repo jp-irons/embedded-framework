@@ -1,7 +1,7 @@
+#include "wifi_manager/WiFiManager.hpp"
 #include "wifi_manager/RuntimeServer.hpp"
-
+#include "wifi_manager/ProvisioningStateMachine.hpp"
 #include "esp_log.h"
-#include <string>
 
 namespace wifi_manager {
 
@@ -95,17 +95,24 @@ esp_err_t RuntimeServer::handleInfo(httpd_req_t* req)
 {
     auto* self = fromReq(req);
     auto* ctx  = self->ctx;
+	
+	auto* wifi = ctx->wifiManager;
+	auto* sm   = ctx->stateMachine;
 
-    char json[256];
-    snprintf(json, sizeof(json),
-             "{"
-             "\"state\": %d,"
-             "\"currentCred\": %zu,"
-             "\"ssid\": \"%s\""
-             "}",
-             static_cast<int>(ctx->state),
-             ctx->currentCredIndex,
-             ctx->loadedCreds.empty() ? "" : ctx->loadedCreds[ctx->currentCredIndex].ssid.c_str());
+	int state = static_cast<int>(sm->state());
+	int index = wifi->getCurrentCredentialIndex();
+	const char* ssid = wifi->getCurrentSSID();
+
+	char json[256];
+	snprintf(json, sizeof(json),
+	         "{"
+	         "\"state\": %d,"
+	         "\"currentCred\": %d,"
+	         "\"ssid\": \"%s\""
+	         "}",
+	         state,
+	         index,
+	         ssid);
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);

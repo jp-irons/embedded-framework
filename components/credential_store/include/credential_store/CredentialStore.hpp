@@ -19,8 +19,10 @@ public:
     bool saveAll(const std::vector<WiFiCredential>& entries);
 
     bool add(const WiFiCredential& entry);
-    bool erase(const std::string& ssid);
-    bool clear();
+	bool store(const WiFiCredential& cred);
+	std::vector<WiFiCredential> loadAllSortedByPriority();
+	bool erase(const std::string& ssid);
+	bool clear();
 
 private:
     const char* ns;
