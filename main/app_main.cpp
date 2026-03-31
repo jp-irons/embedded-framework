@@ -14,9 +14,11 @@ extern "C" void app_main(void)
 
 	esp_log_level_set("app_main", ESP_LOG_DEBUG);
 	esp_log_level_set("ApplicationContext", ESP_LOG_DEBUG);
+	esp_log_level_set("HttpServer", ESP_LOG_DEBUG);
     esp_log_level_set("RuntimeServer", ESP_LOG_DEBUG);
-    esp_log_level_set("ProvisioningServer", ESP_LOG_DEBUG);
     esp_log_level_set("ProvisioningApiHandler", ESP_LOG_DEBUG);
+    esp_log_level_set("ProvisioningServer", ESP_LOG_DEBUG);
+	esp_log_level_set("ProvisioningStateMachine", ESP_LOG_DEBUG);
     esp_log_level_set("serveEmbedded", ESP_LOG_DEBUG);
     esp_log_level_set("EmbeddedFiles", ESP_LOG_DEBUG);
     esp_log_level_set("ApplicationContext", ESP_LOG_DEBUG);

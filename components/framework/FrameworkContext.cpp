@@ -1,17 +1,20 @@
 #include "framework/FrameworkContext.hpp"
-#include "wifi_manager/ProvisioningStateMachine.hpp"
+
 #include "core_api/CredentialApiHandler.hpp"
 #include "core_api/ProvisioningApiHandler.hpp"
 #include "core_api/WiFiApiHandler.hpp"
+#include "esp_log.h"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
+#include "wifi_manager/ProvisioningStateMachine.hpp"
 
 namespace framework {
 
-FrameworkContext* FrameworkContext::instance = nullptr;
+static const char *TAG = "FrameworkContext";
 
-FrameworkContext::FrameworkContext()
-{
+FrameworkContext *FrameworkContext::instance = nullptr;
+
+FrameworkContext::FrameworkContext() {
     instance = this;
 
     //
@@ -23,10 +26,10 @@ FrameworkContext::FrameworkContext()
     // 2. Create servers (AP + Runtime HTTP)
     //
     provisioningServer = new wifi_manager::ProvisioningServer(&wifiCtx);
-    runtimeServer      = new wifi_manager::RuntimeServer(&wifiCtx);
+    runtimeServer = new wifi_manager::RuntimeServer(&wifiCtx);
 
     wifiCtx.provisioningServer = provisioningServer;
-    wifiCtx.runtimeServer      = runtimeServer;
+    wifiCtx.runtimeServer = runtimeServer;
 
     //
     // 3. Create WiFiManager
@@ -37,24 +40,21 @@ FrameworkContext::FrameworkContext()
     //
     // 4. Create ProvisioningStateMachine
     //
-    provisioningStateMachine =
-        new wifi_manager::ProvisioningStateMachine(*wifiManager, wifiCtx, credentialStore);
+    provisioningStateMachine = new wifi_manager::ProvisioningStateMachine(*wifiManager, wifiCtx, credentialStore);
 
     wifiCtx.stateMachine = provisioningStateMachine;
 
     //
     // 5. Create API handlers
     //
-    credentialApi =
-        new core_api::CredentialApiHandler(credentialStore, *provisioningStateMachine);
+    credentialApi = new core_api::CredentialApiHandler(credentialStore, *provisioningStateMachine);
 
-    provisioningApi =
-        new core_api::ProvisioningApiHandler(*provisioningStateMachine);
+    provisioningApi = new core_api::ProvisioningApiHandler(*provisioningStateMachine);
 
-    wifiApi =
-        new core_api::WiFiApiHandler(*wifiManager);
-}FrameworkContext::~FrameworkContext()
-{
+    wifiApi = new core_api::WiFiApiHandler(*wifiManager);
+}
+
+FrameworkContext::~FrameworkContext() {
     stop();
 
     delete wifiApi;
@@ -68,36 +68,30 @@ FrameworkContext::FrameworkContext()
     delete provisioningServer;
 }
 
-void FrameworkContext::start()
-{
+void FrameworkContext::start() {
+    ESP_LOGD(TAG, "start");
+    provisioningStateMachine->startProvisioning();
     wifiManager->start();
-    httpServer.start();
-
-    httpServer.registerHandler(
-        "/api",
-        HTTP_GET,
-        &FrameworkContext::dispatchTrampoline
-    );
 }
 
-void FrameworkContext::stop()
-{
+void FrameworkContext::stop() {
     httpServer.stop();
 }
 
-esp_err_t FrameworkContext::dispatchTrampoline(httpd_req_t* req)
-{
+esp_err_t FrameworkContext::dispatchTrampoline(httpd_req_t *req) {
     return instance->dispatch(req);
 }
 
-esp_err_t FrameworkContext::dispatch(httpd_req_t* req)
-{
+esp_err_t FrameworkContext::dispatch(httpd_req_t *req) {
     http::HttpRequest request(req);
     http::HttpResponse response(req);
 
-    if (credentialApi->handle(request, response)) return ESP_OK;
-    if (provisioningApi->handle(request, response)) return ESP_OK;
-    if (wifiApi->handle(request, response)) return ESP_OK;
+    if (credentialApi->handle(request, response))
+        return ESP_OK;
+    if (provisioningApi->handle(request, response))
+        return ESP_OK;
+    if (wifiApi->handle(request, response))
+        return ESP_OK;
 
     response.jsonStatus("not_found");
     return ESP_OK;

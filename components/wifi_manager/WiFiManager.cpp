@@ -34,7 +34,16 @@ WiFiManager::WiFiManager(WiFiContext* ctx)
 
 void WiFiManager::start()
 {
-    // Currently no explicit startup logic; FrameworkContext drives provisioning.
+	ESP_LOGD("WiFiManager", "start");
+
+	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+	ESP_ERROR_CHECK(esp_wifi_start());
+
+	ESP_LOGI("WiFiManager", "AP started");
+
 }
 
 void WiFiManager::loop()
