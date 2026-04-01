@@ -14,56 +14,86 @@ static const char *TAG = "WiFiStateMachine";
 // ---------------------------------------------------------
 WiFiStateMachine::WiFiStateMachine(WiFiContext &ctx)
     : ctx(ctx) {
-    ESP_LOGD(TAG, "dispatchApi");
+    ESP_LOGD(TAG, "Constructor");
 }
 
 // ---------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------
-void WiFiStateMachine::start() {}
+void WiFiStateMachine::start() {
+    ESP_LOGD(TAG, "start");
+}
 
-void WiFiStateMachine::reset() {}
+void WiFiStateMachine::reset() {
+    ESP_LOGD(TAG, "reset");
+}
 
-void WiFiStateMachine::startRuntime() {}
+void WiFiStateMachine::startRuntime() {
+    ESP_LOGD(TAG, "startRuntime");
+}
 
 // ---------------------------------------------------------
 // Driver lifecycle events
 // ---------------------------------------------------------
-void WiFiStateMachine::onDriverStarted() {}
+void WiFiStateMachine::onDriverStarted() {
+    ESP_LOGD(TAG, "onDriverStarted");
+}
 
-void WiFiStateMachine::onDriverStopped() {}
+void WiFiStateMachine::onDriverStopped() {
+    ESP_LOGD(TAG, "onDriverStopped");
+}
 
 // ---------------------------------------------------------
 // AP events
 // ---------------------------------------------------------
-void WiFiStateMachine::onApStarted() {}
+void WiFiStateMachine::onApStarted() {
+    ESP_LOGD(TAG, "onApStarted");
+}
 
-void WiFiStateMachine::onApStopped() {}
+void WiFiStateMachine::onApStopped() {
+    ESP_LOGD(TAG, "onApStopped");
+}
 
 // ---------------------------------------------------------
 // STA events
 // ---------------------------------------------------------
-void WiFiStateMachine::onStaConnecting() {}
+void WiFiStateMachine::onStaConnecting() {
+    ESP_LOGD(TAG, "onStaConnecting");
+}
 
-void WiFiStateMachine::onStaConnected() {}
+void WiFiStateMachine::onStaConnected() {
+    ESP_LOGD(TAG, "onStaConnected");
+}
 
-void WiFiStateMachine::onStaGotIp(const ip_event_got_ip_t *ip) {}
+void WiFiStateMachine::onStaGotIp(const ip_event_got_ip_t *ip) {
+    ESP_LOGD(TAG, "onStaGotIp");
+}
 
-void WiFiStateMachine::onStaDisconnected(WiFiError reason) {}
+void WiFiStateMachine::onStaDisconnected(WiFiError reason) {
+    ESP_LOGD(TAG, "onStaDisconnected");
+}
 
 // ---------------------------------------------------------
 // Provisioning events
 // ---------------------------------------------------------
-void WiFiStateMachine::onProvisioningRequestReceived() {}
+void WiFiStateMachine::onProvisioningRequestReceived() {
+    ESP_LOGD(TAG, "onProvisioningRequestReceive");
+}
 
-void WiFiStateMachine::onProvisioningCredentialsReceived(const credential_store::WiFiCredential &creds) {}
+void WiFiStateMachine::onProvisioningCredentialsReceived(const credential_store::WiFiCredential &creds) {
+    ESP_LOGD(TAG, "onProvisioningCredentialsReceived");
+}
 
-void WiFiStateMachine::onProvisioningTestResult(bool success) {}
+void WiFiStateMachine::onProvisioningTestResult(bool success) {
+    ESP_LOGD(TAG, "onProvisioningTestResult");
+}
 
 // ---------------------------------------------------------
 // Error handling
 // ---------------------------------------------------------
-void WiFiStateMachine::onError(WiFiError error) {}
+void WiFiStateMachine::onError(WiFiError error) {
+    ESP_LOGD(TAG, "onError");
+}
 
 // ---------------------------------------------------------
 // State queries

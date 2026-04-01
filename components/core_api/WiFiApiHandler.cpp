@@ -1,5 +1,6 @@
 #include "core_api/WiFiApiHandler.hpp"
 
+#include "esp_log.h"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
 #include "wifi_manager/WiFiContext.hpp"
@@ -9,8 +10,12 @@ using namespace wifi_manager;
 
 namespace core_api {
 
+static const char *TAG = "WiFiApiHandler";
+
 WiFiApiHandler::WiFiApiHandler(WiFiContext &w)
-    : wifiCtx(w) {}
+    : wifiCtx(w) {
+    ESP_LOGD(TAG, "constructor");
+}
 
 bool WiFiApiHandler::handle(const HttpRequest &req, HttpResponse &res) {
     const std::string &path = req.path();

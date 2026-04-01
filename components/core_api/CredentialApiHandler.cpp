@@ -1,21 +1,24 @@
 #include "core_api/CredentialApiHandler.hpp"
+
+#include "credential_store/CredentialStore.hpp"
+#include "esp_log.h"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
-#include "credential_store/CredentialStore.hpp"
 
 using namespace http;
 using namespace credential_store;
 
 namespace core_api {
 
-CredentialApiHandler::CredentialApiHandler(credential_store::CredentialStore& s)
-    : store(s)
-{
+static const char *TAG = "CredentialApiHandler";
+
+CredentialApiHandler::CredentialApiHandler(credential_store::CredentialStore &s)
+    : store(s) {
+    ESP_LOGD(TAG, "constructor");
 }
 
-bool CredentialApiHandler::handle(const HttpRequest& req, HttpResponse& res)
-{
-    const std::string& path = req.path();
+bool CredentialApiHandler::handle(const HttpRequest &req, HttpResponse &res) {
+    const std::string &path = req.path();
 
     if (path == "/api/credentials/list") {
         handleList(res);
@@ -37,23 +40,19 @@ bool CredentialApiHandler::handle(const HttpRequest& req, HttpResponse& res)
     return false;
 }
 
-void CredentialApiHandler::handleList(HttpResponse& res)
-{
+void CredentialApiHandler::handleList(HttpResponse &res) {
     res.jsonStatus("not_implemented");
 }
 
-void CredentialApiHandler::handleSubmit(const HttpRequest& req, HttpResponse& res)
-{
+void CredentialApiHandler::handleSubmit(const HttpRequest &req, HttpResponse &res) {
     res.jsonStatus("not_implemented");
 }
 
-void CredentialApiHandler::handleDelete(const HttpRequest& req, HttpResponse& res)
-{
+void CredentialApiHandler::handleDelete(const HttpRequest &req, HttpResponse &res) {
     res.jsonStatus("not_implemented");
 }
 
-void CredentialApiHandler::handleClear(HttpResponse& res)
-{
+void CredentialApiHandler::handleClear(HttpResponse &res) {
     res.jsonStatus("not_implemented");
 }
 

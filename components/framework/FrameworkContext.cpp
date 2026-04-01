@@ -12,10 +12,8 @@ namespace framework {
 
 static const char *TAG = "FrameworkContext";
 
-FrameworkContext *FrameworkContext::instance = nullptr;
-
 FrameworkContext::FrameworkContext() {
-    instance = this;
+	ESP_LOGD(TAG, "constructor");
 
     //
     // 1. Wire WiFiContext (static pointers only)

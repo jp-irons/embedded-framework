@@ -16,6 +16,7 @@ static const char* TAG = "WiFiManager";
 WiFiInterface::WiFiInterface(WiFiContext& ctx)
     : ctx(ctx)
 {
+	ESP_LOGD(TAG, "constructor");
     // Register WiFi event handler
     ESP_ERROR_CHECK(esp_event_handler_instance_register(
         WIFI_EVENT,

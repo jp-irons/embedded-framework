@@ -11,7 +11,7 @@ static const char *TAG = "ProvisioningServer";
 ProvisioningServer::ProvisioningServer(WiFiContext &ctx)
     : ctx(ctx)
     , server(nullptr) {
-    // Intentionally empty: no side effects in constructor.
+    ESP_LOGD(TAG, "constructor");
 }
 
 bool ProvisioningServer::start() {
@@ -55,7 +55,7 @@ bool ProvisioningServer::registerHandlers() {
                          .user_ctx = this};
     httpd_register_uri_handler(server, &api_get);
     httpd_register_uri_handler(server, &files);
-//    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &files));
+    //    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &files));
 
     return true;
 }

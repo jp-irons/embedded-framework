@@ -1,19 +1,21 @@
 #include "credential_store/CredentialStore.hpp"
+
 #include "esp_log.h"
-#include <cstring>
-#include <algorithm>
 #include "nvs.h"
+
+#include <algorithm>
+#include <cstring>
 
 namespace credential_store {
 
-static const char* TAG = "CredentialStore";
+static const char *TAG = "CredentialStore";
 
-CredentialStore::CredentialStore(const char* nvsNamespace)
-    : ns(nvsNamespace)
-{
+CredentialStore::CredentialStore(const char *nvsNamespace)
+    : ns(nvsNamespace) {
+    ESP_LOGD(TAG, "constructor");
 }
 
-bool CredentialStore::loadAll(std::vector<WiFiCredential>& out) {
+bool CredentialStore::loadAll(std::vector<WiFiCredential> &out) {
     nvs_handle_t handle;
     esp_err_t err = nvs_open(ns, NVS_READONLY, &handle);
     if (err != ESP_OK) {
@@ -37,21 +39,22 @@ bool CredentialStore::loadAll(std::vector<WiFiCredential>& out) {
     }
 
     out.clear();
-    const uint8_t* p = buf.data();
-    const uint8_t* end = p + size;
+    const uint8_t *p = buf.data();
+    const uint8_t *end = p + size;
 
     while (p < end) {
         uint8_t ssidLen = *p++;
         uint8_t passLen = *p++;
         int8_t priority = *p++;
 
-        if (p + ssidLen + passLen > end) break;
+        if (p + ssidLen + passLen > end)
+            break;
 
         WiFiCredential c;
-        c.ssid.assign((const char*)p, ssidLen);
+        c.ssid.assign((const char *) p, ssidLen);
         p += ssidLen;
 
-        c.password.assign((const char*)p, passLen);
+        c.password.assign((const char *) p, passLen);
         p += passLen;
 
         c.priority = priority;
@@ -62,22 +65,22 @@ bool CredentialStore::loadAll(std::vector<WiFiCredential>& out) {
     return true;
 }
 
-bool CredentialStore::saveAll(const std::vector<WiFiCredential>& entries) {
+bool CredentialStore::saveAll(const std::vector<WiFiCredential> &entries) {
     // Compute size
     size_t size = 0;
-    for (auto& e : entries) {
+    for (auto &e : entries) {
         size += 1 + 1 + 1; // ssidLen, passLen, priority
         size += e.ssid.size();
         size += e.password.size();
     }
 
     std::vector<uint8_t> buf(size);
-    uint8_t* p = buf.data();
+    uint8_t *p = buf.data();
 
-    for (auto& e : entries) {
-        *p++ = (uint8_t)e.ssid.size();
-        *p++ = (uint8_t)e.password.size();
-        *p++ = (int8_t)e.priority;
+    for (auto &e : entries) {
+        *p++ = (uint8_t) e.ssid.size();
+        *p++ = (uint8_t) e.password.size();
+        *p++ = (int8_t) e.priority;
 
         memcpy(p, e.ssid.data(), e.ssid.size());
         p += e.ssid.size();
@@ -88,21 +91,23 @@ bool CredentialStore::saveAll(const std::vector<WiFiCredential>& entries) {
 
     nvs_handle_t handle;
     esp_err_t err = nvs_open(ns, NVS_READWRITE, &handle);
-    if (err != ESP_OK) return false;
+    if (err != ESP_OK)
+        return false;
 
     err = nvs_set_blob(handle, "entries", buf.data(), size);
-    if (err == ESP_OK) err = nvs_commit(handle);
+    if (err == ESP_OK)
+        err = nvs_commit(handle);
 
     nvs_close(handle);
     return err == ESP_OK;
 }
 
-bool CredentialStore::add(const WiFiCredential& entry) {
+bool CredentialStore::add(const WiFiCredential &entry) {
     std::vector<WiFiCredential> entries;
     loadAll(entries);
 
     // Replace if SSID exists
-    for (auto& e : entries) {
+    for (auto &e : entries) {
         if (e.ssid == entry.ssid) {
             e = entry;
             return saveAll(entries);
@@ -113,15 +118,13 @@ bool CredentialStore::add(const WiFiCredential& entry) {
     return saveAll(entries);
 }
 
-bool CredentialStore::erase(const std::string& ssid) {
+bool CredentialStore::erase(const std::string &ssid) {
     std::vector<WiFiCredential> entries;
     loadAll(entries);
 
     entries.erase(
-        std::remove_if(entries.begin(), entries.end(),
-                       [&](const WiFiCredential& e) { return e.ssid == ssid; }),
-        entries.end()
-    );
+        std::remove_if(entries.begin(), entries.end(), [&](const WiFiCredential &e) { return e.ssid == ssid; }),
+        entries.end());
 
     return saveAll(entries);
 }
@@ -129,17 +132,18 @@ bool CredentialStore::erase(const std::string& ssid) {
 bool CredentialStore::clear() {
     nvs_handle_t handle;
     esp_err_t err = nvs_open(ns, NVS_READWRITE, &handle);
-    if (err != ESP_OK) return false;
+    if (err != ESP_OK)
+        return false;
 
     err = nvs_erase_key(handle, "entries");
-    if (err == ESP_OK) err = nvs_commit(handle);
+    if (err == ESP_OK)
+        err = nvs_commit(handle);
 
     nvs_close(handle);
     return err == ESP_OK;
 }
 
-bool CredentialStore::store(const WiFiCredential& cred)
-{
+bool CredentialStore::store(const WiFiCredential &cred) {
     std::vector<WiFiCredential> list;
     if (!loadAll(list)) {
         return false;
@@ -147,7 +151,7 @@ bool CredentialStore::store(const WiFiCredential& cred)
 
     // Update if SSID already exists
     bool updated = false;
-    for (auto& existing : list) {
+    for (auto &existing : list) {
         if (existing.ssid == cred.ssid) {
             existing = cred;
             updated = true;
@@ -162,9 +166,7 @@ bool CredentialStore::store(const WiFiCredential& cred)
 
     // Sort by priority (lower = higher priority)
     std::sort(list.begin(), list.end(),
-              [](const WiFiCredential& a, const WiFiCredential& b) {
-                  return a.priority < b.priority;
-              });
+              [](const WiFiCredential &a, const WiFiCredential &b) { return a.priority < b.priority; });
 
     return saveAll(list);
 }

@@ -1,21 +1,20 @@
 #include "ApplicationContext.hpp"
+
 #include "esp_log.h"
 
-static const char* TAG = "ApplicationContext";
+static const char *TAG = "ApplicationContext";
 
 ApplicationContext::ApplicationContext()
-    : framework()
-{
+    : framework() {
+    ESP_LOGD(TAG, "constructor");
 }
 
-void ApplicationContext::start()
-{
-	ESP_LOGD(TAG, "start");
+void ApplicationContext::start() {
+    ESP_LOGD(TAG, "start");
     framework.start();
 }
 
-void ApplicationContext::loop()
-{
+void ApplicationContext::loop() {
     // Optional: forward to WiFiManager loop if needed
     // framework.loop();  // if you add one later
 }

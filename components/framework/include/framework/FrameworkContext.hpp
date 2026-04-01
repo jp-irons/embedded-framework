@@ -36,7 +36,6 @@ private:
     core_api::CredentialApiHandler* credentialApi = nullptr;
     core_api::WiFiApiHandler* wifiApi = nullptr;
 
-    static FrameworkContext* instance;
 };
 
 } // namespace framework
