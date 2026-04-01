@@ -1,13 +1,14 @@
-#include "wifi_manager/WiFiManager.hpp"
 #include "wifi_manager/RuntimeServer.hpp"
-#include "wifi_manager/ProvisioningStateMachine.hpp"
 #include "esp_log.h"
+#include "wifi_manager/WiFiContext.hpp"
+#include "wifi_manager/WiFiStateMachine.hpp"
+#include "wifi_manager/WiFiTypes.hpp"
 
 namespace wifi_manager {
 
 static const char* TAG = "RuntimeServer";
 
-RuntimeServer::RuntimeServer(WiFiContext* ctx)
+RuntimeServer::RuntimeServer(WiFiContext &ctx)
     : ctx(ctx),
       server(nullptr)
 {
@@ -94,25 +95,23 @@ esp_err_t RuntimeServer::handleRoot(httpd_req_t* req)
 esp_err_t RuntimeServer::handleInfo(httpd_req_t* req)
 {
     auto* self = fromReq(req);
-    auto* ctx  = self->ctx;
+    WiFiContext ctx  = self->ctx;
 	
-	auto* wifi = ctx->wifiManager;
-	auto* sm   = ctx->stateMachine;
 
-	int state = static_cast<int>(sm->state());
-	int index = wifi->getCurrentCredentialIndex();
-	const char* ssid = wifi->getCurrentSSID();
+	std::string state = toString(ctx.stateMachine->getState());
+	size_t index = ctx.stateMachine->getCredentialIndex();
+	std::string ssid = ctx.stateMachine->getCurrentSSID();
 
 	char json[256];
 	snprintf(json, sizeof(json),
 	         "{"
-	         "\"state\": %d,"
+	         "\"state\": %s,"
 	         "\"currentCred\": %d,"
 	         "\"ssid\": \"%s\""
 	         "}",
-	         state,
+	         state.c_str(),
 	         index,
-	         ssid);
+	         ssid.c_str());
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);

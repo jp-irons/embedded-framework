@@ -1,12 +1,12 @@
 #include "framework/FrameworkContext.hpp"
 
 #include "core_api/CredentialApiHandler.hpp"
-#include "core_api/ProvisioningApiHandler.hpp"
 #include "core_api/WiFiApiHandler.hpp"
 #include "esp_log.h"
-#include "http/HttpRequest.hpp"
-#include "http/HttpResponse.hpp"
-#include "wifi_manager/ProvisioningStateMachine.hpp"
+#include "wifi_manager/ProvisioningServer.hpp"
+#include "wifi_manager/RuntimeServer.hpp"
+#include "wifi_manager/WiFiInterface.hpp"
+#include "wifi_manager/WiFiStateMachine.hpp"
 
 namespace framework {
 
@@ -25,8 +25,8 @@ FrameworkContext::FrameworkContext() {
     //
     // 2. Create servers (AP + Runtime HTTP)
     //
-    provisioningServer = new wifi_manager::ProvisioningServer(&wifiCtx);
-    runtimeServer = new wifi_manager::RuntimeServer(&wifiCtx);
+    provisioningServer = new wifi_manager::ProvisioningServer(wifiCtx);
+    runtimeServer = new wifi_manager::RuntimeServer(wifiCtx);
 
     wifiCtx.provisioningServer = provisioningServer;
     wifiCtx.runtimeServer = runtimeServer;
@@ -34,67 +34,41 @@ FrameworkContext::FrameworkContext() {
     //
     // 3. Create WiFiManager
     //
-    wifiManager = new wifi_manager::WiFiManager(&wifiCtx);
-    wifiCtx.wifiManager = wifiManager;
+    wifiInterface = new wifi_manager::WiFiInterface(wifiCtx);
+    wifiCtx.wifiInterface = wifiInterface;
 
     //
-    // 4. Create ProvisioningStateMachine
+    // 4. Create WiFiStateMachine
     //
-    provisioningStateMachine = new wifi_manager::ProvisioningStateMachine(*wifiManager, wifiCtx, credentialStore);
-
-    wifiCtx.stateMachine = provisioningStateMachine;
+    wifiStateMachine = new wifi_manager::WiFiStateMachine(wifiCtx);
+    wifiCtx.stateMachine = wifiStateMachine;
 
     //
     // 5. Create API handlers
     //
-    credentialApi = new core_api::CredentialApiHandler(credentialStore, *provisioningStateMachine);
-
-    provisioningApi = new core_api::ProvisioningApiHandler(*provisioningStateMachine);
-
-    wifiApi = new core_api::WiFiApiHandler(*wifiManager);
+    credentialApi = new core_api::CredentialApiHandler(credentialStore);
+    wifiApi = new core_api::WiFiApiHandler(wifiCtx);
 }
 
 FrameworkContext::~FrameworkContext() {
     stop();
 
     delete wifiApi;
-    delete provisioningApi;
     delete credentialApi;
 
-    delete provisioningStateMachine;
+    delete wifiStateMachine;
 
-    delete wifiManager;
+    delete wifiInterface;
     delete runtimeServer;
     delete provisioningServer;
 }
 
 void FrameworkContext::start() {
     ESP_LOGD(TAG, "start");
-    provisioningStateMachine->startProvisioning();
-    wifiManager->start();
+    wifiStateMachine->start();
 }
 
 void FrameworkContext::stop() {
-    httpServer.stop();
-}
-
-esp_err_t FrameworkContext::dispatchTrampoline(httpd_req_t *req) {
-    return instance->dispatch(req);
-}
-
-esp_err_t FrameworkContext::dispatch(httpd_req_t *req) {
-    http::HttpRequest request(req);
-    http::HttpResponse response(req);
-
-    if (credentialApi->handle(request, response))
-        return ESP_OK;
-    if (provisioningApi->handle(request, response))
-        return ESP_OK;
-    if (wifiApi->handle(request, response))
-        return ESP_OK;
-
-    response.jsonStatus("not_found");
-    return ESP_OK;
 }
 
 } // namespace framework

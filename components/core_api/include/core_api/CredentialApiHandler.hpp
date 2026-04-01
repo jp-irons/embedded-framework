@@ -1,9 +1,8 @@
 #pragma once
 
-#include "credential_store/CredentialStore.hpp"
-#include "wifi_manager/ProvisioningStateMachine.hpp"
-class CredentialStore;
-class ProvisioningStateMachine;
+namespace credential_store {
+    class CredentialStore;
+}
 
 namespace http {
     class HttpRequest;
@@ -14,8 +13,7 @@ namespace core_api {
 
 class CredentialApiHandler {
 public:
-    CredentialApiHandler(credential_store::CredentialStore& store,
-                         wifi_manager::ProvisioningStateMachine& provisioning);
+    CredentialApiHandler(credential_store::CredentialStore& store);
 
     bool handle(const http::HttpRequest& req, http::HttpResponse& res);
 
@@ -26,7 +24,6 @@ private:
     void handleClear(http::HttpResponse& res);
 
     credential_store::CredentialStore& store;
-    wifi_manager::ProvisioningStateMachine& provisioning;
 };
 
 } // namespace core_api

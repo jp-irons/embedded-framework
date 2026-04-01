@@ -8,7 +8,7 @@ namespace wifi_manager {
 
 static const char *TAG = "ProvisioningServer";
 
-ProvisioningServer::ProvisioningServer(WiFiContext *ctx)
+ProvisioningServer::ProvisioningServer(WiFiContext &ctx)
     : ctx(ctx)
     , server(nullptr) {
     // Intentionally empty: no side effects in constructor.

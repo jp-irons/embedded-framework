@@ -2,17 +2,14 @@
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
 #include "credential_store/CredentialStore.hpp"
-#include "wifi_manager/ProvisioningStateMachine.hpp"
 
 using namespace http;
 using namespace credential_store;
-using namespace wifi_manager;
 
 namespace core_api {
 
-CredentialApiHandler::CredentialApiHandler(credential_store::CredentialStore& s,
-                                           wifi_manager::ProvisioningStateMachine& p)
-    : store(s), provisioning(p)
+CredentialApiHandler::CredentialApiHandler(credential_store::CredentialStore& s)
+    : store(s)
 {
 }
 

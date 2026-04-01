@@ -1,31 +1,37 @@
 #pragma once
 
-#include <vector>
 #include "credential_store/CredentialStore.hpp"
 
 #include "esp_event_base.h"
-#include "wifi_manager/WiFiState.hpp"
+#include "WiFiTypes.hpp"
 
 namespace wifi_manager {
 
 struct WiFiContext;                 // forward declaration
-class ProvisioningStateMachine;     // forward declaration
+class WiFiStateMachine;     // forward declaration
 
-class WiFiManager {
+class WiFiInterface {
 public:
-    explicit WiFiManager(WiFiContext* ctx);
+    explicit WiFiInterface(WiFiContext& ctx);
 
-    void start();
-    void loop();
-    void startSTAWithFallback();
-	WiFiState getState() const;
-	int getCurrentCredentialIndex() const;
-	const std::vector<credential_store::WiFiCredential>& getLoadedCredentials() const;
-	const char* getCurrentSSID() const;
+	void startDriver();
+	void stopDriver();
+
+	void startAp(const ApConfig& cfg);
+	void stopAp();
+
+	void connectSta(const StaConfig& cfg);
+	void disconnectSta();
+
+	void startProvisioningServer();
+	void stopProvisioningServer();
+
+	void startRuntimeServer();
+	void stopRuntimeServer();
 	
-
-
 private:
+    WiFiContext &ctx;
+	
     static void wifiEventHandler(void* arg,
                                  esp_event_base_t base,
                                  int32_t id,
@@ -44,17 +50,11 @@ private:
                        int32_t id,
                        void* data);
 
-    void tryNextCredential();
     void connectTo(const credential_store::WiFiCredential& cred);
 
     void onSTAConnected();
     void onSTADisconnected(uint8_t reason);
 
-private:
-    WiFiContext* ctx;
-    std::vector<credential_store::WiFiCredential> credentials;
-    size_t currentIndex = 0;
-    WiFiState state = WiFiState::UNPROVISIONED_AP;
 };
 
 } // namespace wifi_manager

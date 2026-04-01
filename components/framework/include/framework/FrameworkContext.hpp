@@ -1,19 +1,15 @@
 #pragma once
 
 #include "wifi_manager/WiFiContext.hpp"
-#include "wifi_manager/WiFiManager.hpp"
-#include "wifi_manager/ProvisioningServer.hpp"
-#include "wifi_manager/RuntimeServer.hpp"
-
 #include "credential_store/CredentialStore.hpp"
-#include "wifi_manager/ProvisioningStateMachine.hpp"
-
-#include "http/HttpServer.hpp"
 
 namespace core_api {
     class CredentialApiHandler;
-    class ProvisioningApiHandler;
     class WiFiApiHandler;
+}
+
+namespace credential_store {
+    class CredentialStore;
 }
 
 namespace framework {
@@ -27,25 +23,18 @@ public:
     void stop();
 
 private:
-    // Dispatcher
-    static esp_err_t dispatchTrampoline(httpd_req_t* req);
-    esp_err_t dispatch(httpd_req_t* req);
-
     // WiFi subsystem (internal to wifi_manager)
     wifi_manager::WiFiContext wifiCtx;
     wifi_manager::ProvisioningServer* provisioningServer = nullptr;
     wifi_manager::RuntimeServer* runtimeServer = nullptr;
-    wifi_manager::WiFiManager* wifiManager = nullptr;
+    wifi_manager::WiFiInterface* wifiInterface = nullptr;
 
     // Framework-level components
     credential_store::CredentialStore credentialStore;
-    wifi_manager::ProvisioningStateMachine* provisioningStateMachine = nullptr;
+    wifi_manager::WiFiStateMachine* wifiStateMachine = nullptr;
 
     core_api::CredentialApiHandler* credentialApi = nullptr;
-    core_api::ProvisioningApiHandler* provisioningApi = nullptr;
     core_api::WiFiApiHandler* wifiApi = nullptr;
-
-    http::HttpServer httpServer;
 
     static FrameworkContext* instance;
 };

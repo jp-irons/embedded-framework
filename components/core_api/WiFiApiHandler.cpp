@@ -1,22 +1,19 @@
 #include "core_api/WiFiApiHandler.hpp"
+
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
-#include "wifi_manager/WiFiManager.hpp"
+#include "wifi_manager/WiFiContext.hpp"
 
 using namespace http;
 using namespace wifi_manager;
 
-
 namespace core_api {
 
-WiFiApiHandler::WiFiApiHandler(wifi_manager::WiFiManager& w)
-    : wifi(w)
-{
-}
+WiFiApiHandler::WiFiApiHandler(WiFiContext &w)
+    : wifiCtx(w) {}
 
-bool WiFiApiHandler::handle(const HttpRequest& req, HttpResponse& res)
-{
-    const std::string& path = req.path();
+bool WiFiApiHandler::handle(const HttpRequest &req, HttpResponse &res) {
+    const std::string &path = req.path();
 
     if (path == "/api/wifi/scan") {
         handleScan(res);
@@ -38,23 +35,19 @@ bool WiFiApiHandler::handle(const HttpRequest& req, HttpResponse& res)
     return false;
 }
 
-void WiFiApiHandler::handleScan(HttpResponse& res)
-{
+void WiFiApiHandler::handleScan(HttpResponse &res) {
     res.jsonStatus("not_implemented");
 }
 
-void WiFiApiHandler::handleStatus(HttpResponse& res)
-{
+void WiFiApiHandler::handleStatus(HttpResponse &res) {
     res.jsonStatus("not_implemented");
 }
 
-void WiFiApiHandler::handleConnect(const HttpRequest& req, HttpResponse& res)
-{
+void WiFiApiHandler::handleConnect(const HttpRequest &req, HttpResponse &res) {
     res.jsonStatus("not_implemented");
 }
 
-void WiFiApiHandler::handleDisconnect(HttpResponse& res)
-{
+void WiFiApiHandler::handleDisconnect(HttpResponse &res) {
     res.jsonStatus("not_implemented");
 }
 

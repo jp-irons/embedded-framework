@@ -6,8 +6,8 @@ class CredentialStore;
 
 namespace wifi_manager {
 
-class WiFiManager;
-class ProvisioningStateMachine;
+class WiFiInterface;
+class WiFiStateMachine;
 class ProvisioningServer;
 class RuntimeServer;
 
@@ -18,10 +18,8 @@ struct WiFiContext {
     RuntimeServer* runtimeServer = nullptr;
     credential_store::CredentialStore* creds = nullptr;
 
-    WiFiManager* wifiManager = nullptr;
-    ProvisioningStateMachine* stateMachine = nullptr;
-
-    WiFiState wifiState;
+    WiFiInterface* wifiInterface = nullptr;
+    WiFiStateMachine* stateMachine = nullptr;
 };
 
 } // namespace wifi_manager

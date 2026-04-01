@@ -8,14 +8,14 @@ struct WiFiContext;
 
 class ProvisioningServer {
   public:
-    explicit ProvisioningServer(WiFiContext *ctx);
+    explicit ProvisioningServer(WiFiContext &ctx);
 
     // Explicit lifecycle
     bool start(); // start HTTP server
     void stop(); // stop HTTP server
 
   private:
-    WiFiContext *ctx; // non-owning shared state
+    WiFiContext &ctx; // non-owning shared state
     httpd_handle_t server; // HTTP server instance
 
     bool registerHandlers();

@@ -1,19 +1,19 @@
 idf_component_register(
     SRCS
-        WiFiManager.cpp
-        WiFiState.cpp
-        ProvisioningStateMachine.cpp
         ProvisioningServer.cpp
         RuntimeServer.cpp
+        WiFiInterface.cpp
+        WiFiStateMachine.cpp
+        WiFiTypes.cpp
     INCLUDE_DIRS
         "include"
    REQUIRES
         esp_wifi
         esp_event
         esp_netif
-        esp_http_server
         nvs_flash
         esp_timer
         cjson
+        http
         credential_store
 )

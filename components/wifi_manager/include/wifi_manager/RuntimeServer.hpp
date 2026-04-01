@@ -9,13 +9,13 @@ struct WiFiContext;
 
 class RuntimeServer {
 public:
-    explicit RuntimeServer(WiFiContext* ctx);
+    explicit RuntimeServer(WiFiContext& ctx);
 
     bool start();   // start HTTP server
     void stop();    // stop HTTP server
 
 private:
-    WiFiContext* ctx;          // non-owning shared state
+    WiFiContext &ctx;          // non-owning shared state
     httpd_handle_t server;     // HTTP server instance
 
     bool registerHandlers();
