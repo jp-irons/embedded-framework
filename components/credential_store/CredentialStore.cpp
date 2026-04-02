@@ -15,8 +15,17 @@ CredentialStore::CredentialStore(const char *nvsNamespace)
     ESP_LOGD(TAG, "constructor");
 }
 
+// TODO[CredentialStore::count]: Replace loadAll() with header-only count()
+size_t CredentialStore::count() {
+    std::vector<WiFiCredential> entries;
+    if (!loadAll(entries)) {
+        return 0;
+    }
+    return entries.size();
+}
+
 bool CredentialStore::loadAll(std::vector<WiFiCredential> &out) {
-	ESP_LOGD(TAG, "loadAll");
+    ESP_LOGD(TAG, "loadAll");
     nvs_handle_t handle;
     esp_err_t err = nvs_open(ns, NVS_READONLY, &handle);
     if (err != ESP_OK) {
@@ -67,7 +76,7 @@ bool CredentialStore::loadAll(std::vector<WiFiCredential> &out) {
 }
 
 bool CredentialStore::saveAll(const std::vector<WiFiCredential> &entries) {
-	ESP_LOGD(TAG, "saveAll");
+    ESP_LOGD(TAG, "saveAll");
     // Compute size
     size_t size = 0;
     for (auto &e : entries) {
@@ -105,7 +114,7 @@ bool CredentialStore::saveAll(const std::vector<WiFiCredential> &entries) {
 }
 
 bool CredentialStore::add(const WiFiCredential &entry) {
-	ESP_LOGD(TAG, "add");
+    ESP_LOGD(TAG, "add");
     std::vector<WiFiCredential> entries;
     loadAll(entries);
 
@@ -122,7 +131,7 @@ bool CredentialStore::add(const WiFiCredential &entry) {
 }
 
 bool CredentialStore::erase(const std::string &ssid) {
-	ESP_LOGD(TAG, "erase");
+    ESP_LOGD(TAG, "erase");
     std::vector<WiFiCredential> entries;
     loadAll(entries);
 
@@ -134,7 +143,7 @@ bool CredentialStore::erase(const std::string &ssid) {
 }
 
 bool CredentialStore::clear() {
-	ESP_LOGD(TAG, "clear");
+    ESP_LOGD(TAG, "clear");
     nvs_handle_t handle;
     esp_err_t err = nvs_open(ns, NVS_READWRITE, &handle);
     if (err != ESP_OK)

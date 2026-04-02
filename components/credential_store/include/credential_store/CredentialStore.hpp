@@ -14,6 +14,8 @@ struct WiFiCredential {
 class CredentialStore {
 public:
     CredentialStore(const char* nvsNamespace = "wifi_creds");
+	
+	std::size_t count();
 
     bool loadAll(std::vector<WiFiCredential>& out);
     bool saveAll(const std::vector<WiFiCredential>& entries);

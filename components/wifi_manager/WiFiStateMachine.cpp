@@ -36,15 +36,14 @@ void WiFiStateMachine::start() {
     // Initialise WiFi driver
     ctx.wifiInterface->startDriver();
 
-	ESP_LOGD(TAG, "start not implemented yet");
     // Decide provisioning vs runtime
-//    if (ctx.credentialStore.count() == 0) {
-//        ESP_LOGI(TAG, "No credentials found — entering provisioning AP mode");
-//        enterState(WiFiState::UNPROVISIONED_AP);
-//    } else {
-//        ESP_LOGI(TAG, "Credentials found — entering runtime STA mode");
-//        enterState(WiFiState::STA_CONNECTING);
-//    }
+    if (ctx.credentialStore->count() == 0) {
+        ESP_LOGD(TAG, "No credentials found - entering provisioning AP mode");
+        enterState(WiFiState::UNPROVISIONED_AP);
+    } else {
+        ESP_LOGD(TAG, "Credentials found — entering runtime STA mode");
+        enterState(WiFiState::STA_CONNECTING);
+    }
 }
 
 
@@ -159,6 +158,7 @@ credential_store::WiFiCredential WiFiStateMachine::getCredential(size_t index) c
 // Internal helpers
 // ---------------------------------------------------------
 void WiFiStateMachine::enterState(WiFiState newState) {
+	ESP_LOGD(TAG, "enterState");
     if (currentState == newState) {
         return;
     }
