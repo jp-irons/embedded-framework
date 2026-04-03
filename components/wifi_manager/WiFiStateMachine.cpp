@@ -41,7 +41,7 @@ void WiFiStateMachine::start() {
         ESP_LOGD(TAG, "No credentials found - entering provisioning AP mode");
         enterState(WiFiState::UNPROVISIONED_AP);
     } else {
-        ESP_LOGD(TAG, "Credentials found — entering runtime STA mode");
+        ESP_LOGD(TAG, "Credentials found -> entering runtime STA mode");
         enterState(WiFiState::STA_CONNECTING);
     }
 }
@@ -214,12 +214,15 @@ void WiFiStateMachine::tryNextCredential() {
     ESP_LOGD(TAG, "tryNextCredential Not Implemented");
 }
 
-void WiFiStateMachine::startProvisioningAp() {
-    ESP_LOGD(TAG, "startProvisioningAp not implemented");
-//    ctx.runtimeServer->stop();
-//    ctx.wifiInterface->stopSta();
-//    ctx.wifiInterface->startAp();
-//    ctx.provisioningServer->start();
+void WiFiStateMachine::startProvisioningAp()
+{
+    ESP_LOGD(TAG, "startProvisioningAp");
+
+    ctx.runtimeServer->stop();          // stop runtime server if running
+    ctx.wifiInterface->disconnectSta(); // correct name
+	ESP_LOGD(TAG, "start AP %s", ctx.apConfig.ssid.c_str());
+    ctx.wifiInterface->startAp(ctx.apConfig); // must pass config
+    ctx.provisioningServer->start();
 }
 
 void WiFiStateMachine::startProvisioningTestSta() {

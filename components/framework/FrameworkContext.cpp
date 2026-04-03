@@ -2,6 +2,7 @@
 
 #include "core_api/CredentialApiHandler.hpp"
 #include "core_api/WiFiApiHandler.hpp"
+#include "credential_store/CredentialStore.hpp"
 #include "esp_log.h"
 #include "wifi_manager/ProvisioningServer.hpp"
 #include "wifi_manager/RuntimeServer.hpp"
@@ -12,38 +13,30 @@ namespace framework {
 
 static const char *TAG = "FrameworkContext";
 
-FrameworkContext::FrameworkContext() {
-	ESP_LOGD(TAG, "constructor");
+FrameworkContext::FrameworkContext(
+    const wifi_manager::ApConfig& apCfg)
+{
+ 	ESP_LOGD(TAG, "constructor");
 
-    //
-    // 1. Wire WiFiContext (static pointers only)
-    //
-    wifiCtx.credentialStore = &credentialStore;
+	ESP_LOGD(TAG, "AP SSID %s", apCfg.ssid.c_str());
+    wifiCtx.apConfig = apCfg;
+    wifiCtx.credentialStore = new credential_store::CredentialStore("wifi");
 
-    //
-    // 2. Create servers (AP + Runtime HTTP)
-    //
+	// 2. Create servers (AP + Runtime HTTP)
     provisioningServer = new wifi_manager::ProvisioningServer(wifiCtx);
     runtimeServer = new wifi_manager::RuntimeServer(wifiCtx);
-
     wifiCtx.provisioningServer = provisioningServer;
     wifiCtx.runtimeServer = runtimeServer;
 
-    //
-    // 3. Create WiFiManager
-    //
+    // 3. Create WiFiInterface
     wifiInterface = new wifi_manager::WiFiInterface(wifiCtx);
     wifiCtx.wifiInterface = wifiInterface;
 
-    //
-    // 4. Create WiFiStateMachine
-    //
+     // 4. Create WiFiStateMachine
     wifiStateMachine = new wifi_manager::WiFiStateMachine(wifiCtx);
     wifiCtx.stateMachine = wifiStateMachine;
 
-    //
     // 5. Create API handlers
-    //
     credentialApi = new core_api::CredentialApiHandler(credentialStore);
     wifiApi = new core_api::WiFiApiHandler(wifiCtx);
 }

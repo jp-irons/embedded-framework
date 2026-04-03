@@ -5,7 +5,7 @@
 static const char *TAG = "ApplicationContext";
 
 ApplicationContext::ApplicationContext()
-    : framework() {
+    : framework(apConfig) {
     ESP_LOGD(TAG, "constructor");
 }
 

@@ -49,20 +49,41 @@ void WiFiInterface::stopDriver() {
 /**
  * AP MODE
  */
-void WiFiInterface::startAp(const ApConfig &cfg) {
-    ESP_LOGI(TAG, "Starting SoftAP: %s", cfg.ssid.c_str());
-
+void WiFiInterface::startAp(const ApConfig &config) {
+    ESP_LOGI(TAG, "Starting SoftAP: %s", config.ssid.c_str());
+    /*        ***********************   */
     wifi_config_t ap_cfg = {};
-    strncpy((char *) ap_cfg.ap.ssid, cfg.ssid.c_str(), sizeof(ap_cfg.ap.ssid));
-    ap_cfg.ap.ssid_len = cfg.ssid.length();
-    ap_cfg.ap.channel = cfg.channel;
-    ap_cfg.ap.max_connection = cfg.maxConnections;
-    ap_cfg.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
-    strncpy((char *) ap_cfg.ap.password, cfg.password.c_str(), sizeof(ap_cfg.ap.password));
+    strncpy((char *) ap_cfg.ap.ssid, config.ssid.c_str(), sizeof(ap_cfg.ap.ssid));
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
-    ESP_ERROR_CHECK(esp_wifi_start());
+    bool useOpenAp = false;
+
+    if (config.password.empty()) {
+        useOpenAp = true;
+    } else if (config.password.length() < 8) {
+        ESP_LOGW(TAG, "AP password '%s' is too short (%d chars). Falling back to OPEN AP.", config.password.c_str(),
+                 (int) config.password.length());
+        useOpenAp = true;
+    }
+
+	if (useOpenAp) {
+	    ap_cfg.ap.authmode = WIFI_AUTH_OPEN;
+	    ap_cfg.ap.password[0] = '\0';  // ensure empty
+	} else {
+	    ap_cfg.ap.authmode = WIFI_AUTH_WPA2_PSK;
+	    strncpy((char*)ap_cfg.ap.password, config.password.c_str(), sizeof(ap_cfg.ap.password));
+	}
+
+	ap_cfg.ap.channel = config.channel;
+	ap_cfg.ap.max_connection = config.maxConnections;
+
+	ESP_LOGI(TAG, "Starting SoftAP: %s (authmode=%s)",
+	    config.ssid.c_str(),
+	    useOpenAp ? "OPEN" : "WPA2"
+	);
+
+	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
+	ESP_ERROR_CHECK(esp_wifi_start());
 }
 
 void WiFiInterface::stopAp() {

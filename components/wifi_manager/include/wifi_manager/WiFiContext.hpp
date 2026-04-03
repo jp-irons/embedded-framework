@@ -1,5 +1,6 @@
 #pragma once
 
+#include "wifi_manager/WiFiTypes.hpp"
 namespace credential_store {
 class CredentialStore;
 }
@@ -20,6 +21,10 @@ struct WiFiContext {
 
     WiFiInterface* wifiInterface = nullptr;
     WiFiStateMachine* stateMachine = nullptr;
+	
+	ApConfig apConfig;
+	StaConfig testStaConfig;
+	StaConfig currentStaConfig;
 };
 
 } // namespace wifi_manager
