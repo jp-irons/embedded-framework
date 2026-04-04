@@ -27,7 +27,6 @@ class FrameworkContext {
     wifi_manager::ProvisioningServer &getProvisioningServer() const;
     wifi_manager::RuntimeServer &getRuntimeServer() const;
 
-
     void start();
     void stop();
 

@@ -7,30 +7,35 @@
 
 static const char* TAG = "app_main";
 
-extern "C" void app_main(void)
-{
-    // Logging
-//    esp_log_level_set(TAG, ESP_LOG_INFO);
-
-	esp_log_level_set("app_main", ESP_LOG_DEBUG);
-	esp_log_level_set("ApplicationContext", ESP_LOG_DEBUG);
-	esp_log_level_set("CredentialApiHandler", ESP_LOG_DEBUG);
-	esp_log_level_set("CredentialStore", ESP_LOG_DEBUG);
-	esp_log_level_set("FrameworkContext", ESP_LOG_DEBUG);
-	esp_log_level_set("HttpServer", ESP_LOG_DEBUG);
-    esp_log_level_set("ProvisioningServer", ESP_LOG_DEBUG);
-    esp_log_level_set("RuntimeServer", ESP_LOG_DEBUG);
-	esp_log_level_set("WiFiApiHandler", ESP_LOG_DEBUG);
-	esp_log_level_set("WiFiInterface", ESP_LOG_DEBUG);
-	esp_log_level_set("WiFiStateMachine", ESP_LOG_DEBUG);
-	
-    esp_log_level_set("serveEmbedded", ESP_LOG_DEBUG);
-    esp_log_level_set("EmbeddedFiles", ESP_LOG_DEBUG);
-	
+extern "C" void setupLogging() {
+    esp_log_level_set("app_main", ESP_LOG_DEBUG);
+    esp_log_level_set("ApplicationContext", ESP_LOG_DEBUG);
+    // core_api API Handlers
     esp_log_level_set("CredentialApiHandler", ESP_LOG_DEBUG);
     esp_log_level_set("WiFiApiHandler", ESP_LOG_DEBUG);
+    // credential_store
+    esp_log_level_set("CredentialStore", ESP_LOG_DEBUG);
+    // framework
+    esp_log_level_set("FrameworkContext", ESP_LOG_DEBUG);
+    // http
+    esp_log_level_set("HttpServer", ESP_LOG_DEBUG);
+    // wifi_manager
+    esp_log_level_set("ProvisioningServer", ESP_LOG_DEBUG);
+    esp_log_level_set("RuntimeServer", ESP_LOG_DEBUG);
+    esp_log_level_set("WiFiInterface", ESP_LOG_DEBUG);
+    esp_log_level_set("WiFiStateMachine", ESP_LOG_DEBUG);
+    // static_assets
+    esp_log_level_set("ContentType", ESP_LOG_DEBUG);
+    esp_log_level_set("EmbeddedAssetTable", ESP_LOG_DEBUG);
+    esp_log_level_set("StaticFileRouter", ESP_LOG_DEBUG);
+}
 
-	// 1. Initialize NVS
+extern "C" void app_main(void) {
+    // Logging
+	// main
+    setupLogging();
+
+    // 1. Initialize NVS
 	ESP_LOGD(TAG, "nvs_flash_init");
 	esp_err_t ret = nvs_flash_init();
 	if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {

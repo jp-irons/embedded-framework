@@ -49,10 +49,13 @@ esp_err_t StaticFileRouter::handle(httpd_req_t* req)
         return ESP_OK;
     }
 
-    // 2. Try filesystem (optional)
-    if (serveFilesystem(req, path) == ESP_OK) {
-        return ESP_OK;
-    }
+//    // 2. Try filesystem (optional)
+//    if (serveFilesystem(req, path) == ESP_OK) {
+//        return ESP_OK;
+//    }
+//	
+	ESP_LOGD(TAG, "Asset '%s' not found", path);
+
 
     // 3. Fallback
     return serveNotFound(req);

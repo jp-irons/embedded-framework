@@ -13,16 +13,14 @@ namespace framework {
 
 static const char *TAG = "FrameworkContext";
 
-FrameworkContext::FrameworkContext(
-    const wifi_manager::ApConfig& apCfg)
-{
- 	ESP_LOGD(TAG, "constructor");
+FrameworkContext::FrameworkContext(const wifi_manager::ApConfig &apCfg) {
+    ESP_LOGD(TAG, "constructor");
 
-	ESP_LOGD(TAG, "AP SSID %s", apCfg.ssid.c_str());
+    ESP_LOGD(TAG, "AP SSID %s", apCfg.ssid.c_str());
     wifiCtx.apConfig = apCfg;
     wifiCtx.credentialStore = new credential_store::CredentialStore("wifi");
 
-	// 2. Create servers (AP + Runtime HTTP)
+    // 2. Create servers (AP + Runtime HTTP)
     provisioningServer = new wifi_manager::ProvisioningServer(wifiCtx);
     runtimeServer = new wifi_manager::RuntimeServer(wifiCtx);
     wifiCtx.provisioningServer = provisioningServer;
@@ -32,7 +30,7 @@ FrameworkContext::FrameworkContext(
     wifiInterface = new wifi_manager::WiFiInterface(wifiCtx);
     wifiCtx.wifiInterface = wifiInterface;
 
-     // 4. Create WiFiStateMachine
+    // 4. Create WiFiStateMachine
     wifiStateMachine = new wifi_manager::WiFiStateMachine(wifiCtx);
     wifiCtx.stateMachine = wifiStateMachine;
 
@@ -59,7 +57,6 @@ void FrameworkContext::start() {
     wifiStateMachine->start();
 }
 
-void FrameworkContext::stop() {
-}
+void FrameworkContext::stop() {}
 
 } // namespace framework
