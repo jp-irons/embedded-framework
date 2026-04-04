@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS
+        "StaticFileRouter.cpp"
+        "EmbeddedAssetTable.cpp"
+        "ContentType.cpp"
+    INCLUDE_DIRS
+        "include"
+     REQUIRES
+        esp_http_server
+    EMBED_FILES
+        assets/index.html
+        assets/app.js
+        assets/style.css
+)
