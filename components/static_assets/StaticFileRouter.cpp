@@ -1,4 +1,5 @@
 #include "static_assets/StaticFileRouter.hpp"
+#include "static_assets/ContentType.hpp"
 #include "esp_log.h"
 #include <cstring>
 

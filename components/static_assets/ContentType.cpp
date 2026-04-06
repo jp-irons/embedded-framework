@@ -6,7 +6,7 @@ using namespace static_assets;
 
 namespace static_assets {
 
-static const char *TAG = "ContentType";
+//static const char *TAG = "ContentType";
 
 const char *ContentType::fromPath(const char *path) {
     if (strstr(path, ".html"))
