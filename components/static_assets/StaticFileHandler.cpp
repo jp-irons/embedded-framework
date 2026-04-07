@@ -17,7 +17,6 @@ void StaticFileHandler::handle(http::HttpRequest &request, http::HttpResponse &r
 	
 	// TODO review logging - probably over the top.
     // Convert string_view → string safely
-	ESP_LOGD(TAG, "uri '%.*s'", (int)request.uri().size(), request.uri().data());
     std::string resolved = resolvePath(request.uri());
 
 	ESP_LOGD(TAG, "resolved path %s", resolved.c_str());
@@ -39,7 +38,7 @@ std::string StaticFileHandler::resolvePath(std::string_view uri) const {
 	ESP_LOGD(TAG, "resolvePath");
     // Convert string_view → string
     std::string path(uri.data(), uri.size());
-	ESP_LOGD(TAG, "base='%s' (len=%zu)", base.c_str(), base.size());
+//	ESP_LOGD(TAG, "base='%s' (len=%zu)", base.c_str(), base.size());
 	ESP_LOGD(TAG, "path='%s'", path.c_str());
 
     // Must start with base

@@ -32,14 +32,13 @@ void HttpServer::stop() {
 void HttpServer::addRoute(const std::string &path, HttpHandler *handler) {
     ESP_LOGD(TAG, "addRoute '%s'", path.c_str());
     httpd_uri_t uri = {
-        .uri = path.c_str(), .method = HTTP_GET, .handler = &HttpServer::handlerThunk, .user_ctx = handler};
+        .uri = path.c_str(), .method = HTTP_GET, .handler = &HttpServer::handlerAdapter, .user_ctx = handler};
 
     httpd_register_uri_handler(server, &uri);
 }
 
-esp_err_t HttpServer::handlerThunk(httpd_req_t *req) {
-	ESP_LOGD(TAG, "handlerThunk");
-	ESP_LOGD(TAG, "URI '%s'", req->uri);
+esp_err_t HttpServer::handlerAdapter(httpd_req_t *req) {
+	ESP_LOGD(TAG, "handlerAdapter '%s'", req->uri);
     auto *handler = static_cast<http::HttpHandler *>(req->user_ctx);
     http::HttpRequest request(req);
     http::HttpResponse response(req);

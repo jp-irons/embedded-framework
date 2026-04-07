@@ -38,22 +38,11 @@ bool ProvisioningServer::start() {
     if (!routesRegistered) {
         ESP_LOGD(TAG, "start() registering routes");
         server.addRoute("/provision/*", &staticHandler);
-		server.addRoute("/api/*", &wifiHandler);
+		server.addRoute("/api/framework/wifi/*", &wifiHandler);
 		server.addRoute("/*", &fallbackHandler);
         // TODO implement handler for below
-        //		server.addRoute("/api/wifi/*", &wifiHandler);
-        //		server.addRoute("/api/credentials/*", &credentialHandler);
+        //		server.addRoute("/api/framework/credentials/*", &credentialHandler);
 
-        // TODO Remove these legacy registrations
-        //        server.registerHandler(http::HttpMethod::Get, "/provision/*", this, &ProvisioningServer::handleStaticFile);
-        //
-        //        server.registerHandler(http::HttpMethod::Post, "/provision/submit", this, &ProvisioningServer::handleSubmit);
-        //
-        //        server.registerHandler(http::HttpMethod::Get, "/provision/status", this, &ProvisioningServer::handleStatus);
-        //
-        //        server.registerHandler(http::HttpMethod::Get, "/provision/scan", this, &ProvisioningServer::handleScan);
-        //
-		
         routesRegistered = true;
     }
 
