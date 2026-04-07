@@ -1,6 +1,10 @@
 idf_component_register(
-    SRCS "CredentialStore.cpp"
+    SRCS 
+    	CredentialStore.cpp
+		CredentialApiHandler.cpp
     INCLUDE_DIRS
-        "include"
-    REQUIRES nvs_flash
+        include
+    REQUIRES 
+    	nvs_flash
+    	http
 )

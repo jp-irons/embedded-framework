@@ -8,11 +8,6 @@
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiStateMachine.hpp"
 
-//static_assert(std::is_base_of<http::HttpHandler, static_assets::StaticFileHandler>::value, "mismatch");
-//static_assert(std::is_trivially_destructible<static_assets::StaticFileHandler>::value == false, "just to force instantiation");
-//
-
-
 namespace wifi_manager {
 
 static const char *TAG = "ProvisioningServer";
@@ -20,12 +15,11 @@ static const char *TAG = "ProvisioningServer";
 ProvisioningServer::ProvisioningServer(WiFiContext &ctx)
     : ctx(ctx)
     , server()
-	// TODO sort this out properly?
+    // TODO sort this out properly?
     , staticHandler("/provision", "index.html")
-	, fallbackHandler("/", "index.html")
+    , fallbackHandler("/", "index.html")
     , wifiHandler(ctx)
-//    , credentialHandler(*ctx.credentialStore) 
-	{}
+    , credentialHandler(*ctx.credentialStore) {}
 
 ProvisioningServer::~ProvisioningServer() {
     stop();
@@ -39,10 +33,9 @@ bool ProvisioningServer::start() {
     if (!routesRegistered) {
         ESP_LOGD(TAG, "start() registering routes");
         server.addRoute("/provision/*", &staticHandler);
+        server.addRoute("/api/framework/credentials/*", &credentialHandler);
 		server.addRoute("/api/framework/wifi/*", &wifiHandler);
 		server.addRoute("/*", &fallbackHandler);
-        // TODO implement handler for below
-        //		server.addRoute("/api/framework/credentials/*", &credentialHandler);
 
         routesRegistered = true;
     }
