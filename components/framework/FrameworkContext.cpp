@@ -1,6 +1,5 @@
 #include "framework/FrameworkContext.hpp"
 
-#include "core_api/CredentialApiHandler.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "credential_store/CredentialStore.hpp"
 #include "wifi_manager/ProvisioningServer.hpp"
@@ -58,7 +57,6 @@ FrameworkContext::FrameworkContext(const wifi_manager::ApConfig &apCfg) {
     wifiCtx.stateMachine = wifiStateMachine;
 
     // 5. Create API handlers
-    credentialApi = new core_api::CredentialApiHandler(credentialStore);
     wifiApi = new wifi_manager::WiFiApiHandler(wifiCtx);
 }
 
@@ -66,7 +64,8 @@ FrameworkContext::~FrameworkContext() {
     stop();
 
     delete wifiApi;
-    delete credentialApi;
+	// TODO delete credentialApi
+//    delete credentialApi;
 
     delete wifiStateMachine;
 

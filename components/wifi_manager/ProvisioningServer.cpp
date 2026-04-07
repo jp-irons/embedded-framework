@@ -24,7 +24,8 @@ ProvisioningServer::ProvisioningServer(WiFiContext &ctx)
     , staticHandler("/provision", "index.html")
 	, fallbackHandler("/", "index.html")
     , wifiHandler(ctx)
-    , credentialHandler(*ctx.credentialStore) {}
+//    , credentialHandler(*ctx.credentialStore) 
+	{}
 
 ProvisioningServer::~ProvisioningServer() {
     stop();

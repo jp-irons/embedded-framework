@@ -16,7 +16,6 @@ idf_component_register(
         esp_timer
         cjson
         credential_store
-        core_api        
         http
         static_assets
 )

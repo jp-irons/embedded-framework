@@ -5,10 +5,6 @@
 #include "wifi_manager/WiFiContext.hpp"
 //#include "wifi_manager/WiFiApiHandler.hpp"
 
-namespace core_api {
-class CredentialApiHandler;
-} // namespace core_api
-
 namespace credential_store {
 class CredentialStore;
 }
@@ -21,7 +17,6 @@ class FrameworkContext {
     ~FrameworkContext();
 
     credential_store::CredentialStore &getCredentialStore() const;
-    core_api::CredentialApiHandler &getCredentialApi() const;
     wifi_manager::WiFiContext &getWiFiContext() const;
     wifi_manager::WiFiStateMachine &getWiFiStateMachine() const;
     wifi_manager::ProvisioningServer &getProvisioningServer() const;
@@ -42,7 +37,6 @@ class FrameworkContext {
     credential_store::CredentialStore credentialStore;
     wifi_manager::WiFiStateMachine *wifiStateMachine = nullptr;
 
-    core_api::CredentialApiHandler *credentialApi = nullptr;
     wifi_manager::WiFiApiHandler *wifiApi = nullptr;
 };
 

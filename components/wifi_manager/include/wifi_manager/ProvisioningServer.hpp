@@ -1,6 +1,5 @@
 #pragma once
 
-#include "core_api/CredentialApiHandler.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "http/HttpHandler.hpp"
 #include "http/HttpServer.hpp"
@@ -32,7 +31,7 @@ private:
 	static_assets::StaticFileHandler staticHandler;
 	static_assets::StaticFileHandler fallbackHandler;
 	wifi_manager::WiFiApiHandler wifiHandler;
-	core_api::CredentialApiHandler credentialHandler;
+// TODO re-add this	core_api::CredentialApiHandler credentialHandler;
 
     bool routesRegistered = false;
 };

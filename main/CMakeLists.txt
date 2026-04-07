@@ -4,7 +4,6 @@ idf_component_register(
         ApplicationContext.cpp
     REQUIRES
         credential_store
-        core_api        
         wifi_manager
         http
         static_assets
