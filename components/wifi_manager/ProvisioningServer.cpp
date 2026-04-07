@@ -38,6 +38,7 @@ bool ProvisioningServer::start() {
     if (!routesRegistered) {
         ESP_LOGD(TAG, "start() registering routes");
         server.addRoute("/provision/*", &staticHandler);
+		server.addRoute("/api/*", &wifiHandler);
 		server.addRoute("/*", &fallbackHandler);
         // TODO implement handler for below
         //		server.addRoute("/api/wifi/*", &wifiHandler);

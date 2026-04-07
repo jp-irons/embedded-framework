@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         ProvisioningServer.cpp
         RuntimeServer.cpp
+        WiFiApiHandler.cpp
         WiFiInterface.cpp
         WiFiStateMachine.cpp
         WiFiTypes.cpp

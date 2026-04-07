@@ -1,7 +1,7 @@
 #include "framework/FrameworkContext.hpp"
 
 #include "core_api/CredentialApiHandler.hpp"
-#include "core_api/WiFiApiHandler.hpp"
+#include "wifi_manager/WiFiApiHandler.hpp"
 #include "credential_store/CredentialStore.hpp"
 #include "wifi_manager/ProvisioningServer.hpp"
 #include "wifi_manager/RuntimeServer.hpp"
@@ -59,7 +59,7 @@ FrameworkContext::FrameworkContext(const wifi_manager::ApConfig &apCfg) {
 
     // 5. Create API handlers
     credentialApi = new core_api::CredentialApiHandler(credentialStore);
-    wifiApi = new core_api::WiFiApiHandler(wifiCtx);
+    wifiApi = new wifi_manager::WiFiApiHandler(wifiCtx);
 }
 
 FrameworkContext::~FrameworkContext() {

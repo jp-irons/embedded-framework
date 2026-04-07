@@ -1,11 +1,12 @@
 #pragma once
 
 #include "credential_store/CredentialStore.hpp"
+#include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiContext.hpp"
+//#include "wifi_manager/WiFiApiHandler.hpp"
 
 namespace core_api {
 class CredentialApiHandler;
-class WiFiApiHandler;
 } // namespace core_api
 
 namespace credential_store {
@@ -21,11 +22,11 @@ class FrameworkContext {
 
     credential_store::CredentialStore &getCredentialStore() const;
     core_api::CredentialApiHandler &getCredentialApi() const;
-    core_api::WiFiApiHandler &getWiFiApi() const;
     wifi_manager::WiFiContext &getWiFiContext() const;
     wifi_manager::WiFiStateMachine &getWiFiStateMachine() const;
     wifi_manager::ProvisioningServer &getProvisioningServer() const;
     wifi_manager::RuntimeServer &getRuntimeServer() const;
+    wifi_manager::WiFiApiHandler &getWiFiApi() const;
 
     void start();
     void stop();
@@ -42,7 +43,7 @@ class FrameworkContext {
     wifi_manager::WiFiStateMachine *wifiStateMachine = nullptr;
 
     core_api::CredentialApiHandler *credentialApi = nullptr;
-    core_api::WiFiApiHandler *wifiApi = nullptr;
+    wifi_manager::WiFiApiHandler *wifiApi = nullptr;
 };
 
 } // namespace framework
