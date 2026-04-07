@@ -13,7 +13,7 @@ StaticFileHandler::StaticFileHandler(std::string basePath, std::string defaultFi
 {}
 
 void StaticFileHandler::handle(http::HttpRequest &request, http::HttpResponse &response) {
-    ESP_LOGD(TAG, "handle");
+    ESP_LOGD(TAG, "handle '%s'", request.path());
 	
 	// TODO review logging - probably over the top.
     // Convert string_view → string safely
@@ -35,11 +35,10 @@ void StaticFileHandler::handle(http::HttpRequest &request, http::HttpResponse &r
 }
 
 std::string StaticFileHandler::resolvePath(std::string_view uri) const {
-	ESP_LOGD(TAG, "resolvePath");
     // Convert string_view → string
     std::string path(uri.data(), uri.size());
 //	ESP_LOGD(TAG, "base='%s' (len=%zu)", base.c_str(), base.size());
-	ESP_LOGD(TAG, "path='%s'", path.c_str());
+//	ESP_LOGD(TAG, "path='%s'", path.c_str());
 
     // Must start with base
     if (!path.starts_with(base)) {

@@ -20,19 +20,19 @@ void CredentialApiHandler::handle(http::HttpRequest& req,
 	ESP_LOGD(TAG, "handle");
     const std::string &path = req.path();
 
-    if (path == "/api/credentials/list") {
+    if (path == "/api/framework/credentials/list") {
         handleList(res);
         return;
     }
-    if (path == "/api/credentials/submit") {
+    if (path == "/api/framework/credentials/submit") {
         handleSubmit(req, res);
         return;
     }
-    if (path == "/api/credentials/delete") {
+    if (path == "/api/framework/credentials/delete") {
         handleDelete(req, res);
         return;
     }
-    if (path == "/api/credentials/clear") {
+    if (path == "/api/framework/credentials/clear") {
         handleClear(res);
         return;
     }
