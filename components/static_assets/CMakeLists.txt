@@ -10,4 +10,5 @@ idf_component_register(
         assets/index.html
         assets/app.js
         assets/style.css
+        assets/favicon.ico
 )

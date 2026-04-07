@@ -20,6 +20,9 @@ extern const uint8_t _binary_app_js_end[] asm("_binary_app_js_end");
 extern const uint8_t _binary_style_css_start[] asm("_binary_style_css_start");
 extern const uint8_t _binary_style_css_end[] asm("_binary_style_css_end");
 
+extern const uint8_t _binary_favicon_ico_start[] asm("_binary_favicon_ico_start");
+extern const uint8_t _binary_favicon_ico_end[] asm("_binary_favicon_ico_end");
+
 // ------------------------------------------------------------
 // Static table of embedded assets
 // ------------------------------------------------------------
@@ -33,6 +36,7 @@ static const AssetEntry assets[] = {
     {"/index.html", _binary_index_html_start, _binary_index_html_end},
     {"/app.js", _binary_app_js_start, _binary_app_js_end},
     {"/style.css", _binary_style_css_start, _binary_style_css_end},
+	{"/favicon.ico", _binary_favicon_ico_start, _binary_favicon_ico_end},
 };
 
 // ------------------------------------------------------------
