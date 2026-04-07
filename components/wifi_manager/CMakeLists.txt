@@ -7,7 +7,6 @@ idf_component_register(
         WiFiTypes.cpp
     INCLUDE_DIRS
         include
-        ../static_assets/include
    REQUIRES
         esp_wifi
         esp_event
@@ -17,9 +16,6 @@ idf_component_register(
         cjson
         credential_store
         core_api        
-        wifi_manager
         http
         static_assets
-        framework
-        
 )
