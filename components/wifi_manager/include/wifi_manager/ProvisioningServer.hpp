@@ -4,7 +4,6 @@
 #include "core_api/WiFiApiHandler.hpp"
 #include "http/HttpHandler.hpp"
 #include "http/HttpServer.hpp"
-#include "framework/Result.hpp"
 #include "static_assets/StaticFileHandler.hpp"
 
 namespace http {
@@ -31,6 +30,7 @@ private:
 
     http::HttpServer server;
 	static_assets::StaticFileHandler staticHandler;
+	static_assets::StaticFileHandler fallbackHandler;
 	core_api::WiFiApiHandler wifiHandler;
 	core_api::CredentialApiHandler credentialHandler;
 

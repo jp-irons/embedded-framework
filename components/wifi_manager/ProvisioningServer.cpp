@@ -4,14 +4,13 @@
 #include "esp_log.h"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
-//#include "static_assets/StaticFileHandler.hpp"
+#include "static_assets/StaticFileHandler.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiStateMachine.hpp"
 
-#include "static_assets/StaticFileHandler.hpp"
-static_assert(std::is_base_of<http::HttpHandler, static_assets::StaticFileHandler>::value, "mismatch");
-static_assert(std::is_trivially_destructible<static_assets::StaticFileHandler>::value == false, "just to force instantiation");
-
+//static_assert(std::is_base_of<http::HttpHandler, static_assets::StaticFileHandler>::value, "mismatch");
+//static_assert(std::is_trivially_destructible<static_assets::StaticFileHandler>::value == false, "just to force instantiation");
+//
 
 
 namespace wifi_manager {
@@ -22,7 +21,8 @@ ProvisioningServer::ProvisioningServer(WiFiContext &ctx)
     : ctx(ctx)
     , server()
 	// TODO sort this out properly?
-    , staticHandler("/assets", "index.html")
+    , staticHandler("/provision", "index.html")
+	, fallbackHandler("/", "index.html")
     , wifiHandler(ctx)
     , credentialHandler(*ctx.credentialStore) {}
 
@@ -37,7 +37,8 @@ bool ProvisioningServer::start() {
 
     if (!routesRegistered) {
         ESP_LOGD(TAG, "start() registering routes");
-        server.addRoute("/assets/*", &staticHandler);
+        server.addRoute("/provision/*", &staticHandler);
+		server.addRoute("/*", &fallbackHandler);
         // TODO implement handler for below
         //		server.addRoute("/api/wifi/*", &wifiHandler);
         //		server.addRoute("/api/credentials/*", &credentialHandler);
@@ -51,6 +52,7 @@ bool ProvisioningServer::start() {
         //
         //        server.registerHandler(http::HttpMethod::Get, "/provision/scan", this, &ProvisioningServer::handleScan);
         //
+		
         routesRegistered = true;
     }
 

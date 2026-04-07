@@ -48,6 +48,11 @@ std::string StaticFileHandler::resolvePath(std::string_view uri) const {
     // Strip base prefix
     std::string sub = path.substr(base.size());
 
+	// Must start with base
+	if (!sub.starts_with("/")) {
+	    sub = "/" + sub;
+	}
+
     // If empty or "/", serve default file
     if (sub.empty() || sub == "/") {
         return "/" + defaultFile;
