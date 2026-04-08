@@ -10,4 +10,5 @@ idf_component_register(
         http
         static_assets
         wifi_manager
+        shared
 )
