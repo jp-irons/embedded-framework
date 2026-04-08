@@ -19,8 +19,10 @@ WiFiApiHandler::WiFiApiHandler(WiFiContext &w)
 
 // handle requests not handled elsewhere
 void WiFiApiHandler::handle(http::HttpRequest &req, http::HttpResponse &res) {
-    const std::string &path = req.path();
 	ESP_LOGD(TAG, "handle");
+	const std::string &path = req.path();
+	std::string action = extractAction(req.path());
+	ESP_LOGD(TAG, "action '%s'", action.c_str());
 
 //    if (path == "/provision/status") {
 //        return handleStatus(req, res);
@@ -53,6 +55,15 @@ void WiFiApiHandler::handle(http::HttpRequest &req, http::HttpResponse &res) {
 //    }
 //
 //    return false;
+}
+
+std::string WiFiApiHandler::extractAction(const char *uri) {
+    std::string path(uri);
+    auto pos = path.find_last_of('/');
+    if (pos == std::string::npos || pos == path.length() - 1) {
+        return {};  // no action found
+    }
+    return path.substr(pos + 1);
 }
 
 void WiFiApiHandler::handleScan(HttpResponse &res) {

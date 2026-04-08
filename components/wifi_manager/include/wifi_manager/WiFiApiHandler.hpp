@@ -19,12 +19,13 @@ class WiFiApiHandler : public http::HttpHandler {
     void handle(http::HttpRequest &req, http::HttpResponse &res) override;
 
   private:
+    wifi_manager::WiFiContext &wifiCtx;
     void handleScan(http::HttpResponse &res);
     void handleStatus(http::HttpResponse &res);
     void handleConnect(const http::HttpRequest &req, http::HttpResponse &res);
     void handleDisconnect(http::HttpResponse &res);
+	std::string extractAction(const char *uri);
 
-    wifi_manager::WiFiContext &wifiCtx;
 };
 
 } // namespace wifi_manager
