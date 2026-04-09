@@ -1,6 +1,6 @@
 #include "credential_store/CredentialStore.hpp"
 
-#include "esp_log.h"
+#include "logger/Logger.hpp"
 #include "nvs.h"
 
 #include <algorithm>
@@ -8,11 +8,11 @@
 
 namespace credential_store {
 
-static const char *TAG = "CredentialStore";
+static logger::Logger log{"CredentialStore"};
 
 CredentialStore::CredentialStore(const char *nvsNamespace)
     : ns(nvsNamespace) {
-    ESP_LOGD(TAG, "constructor");
+    log.debug("constructor");
 }
 
 // TODO[CredentialStore::count]: Replace loadAll() with header-only count()
@@ -25,11 +25,11 @@ size_t CredentialStore::count() {
 }
 
 bool CredentialStore::loadAll(std::vector<WiFiCredential> &out) {
-    ESP_LOGD(TAG, "loadAll");
+    log.debug("loadAll");
     nvs_handle_t handle;
     esp_err_t err = nvs_open(ns, NVS_READONLY, &handle);
     if (err != ESP_OK) {
-        ESP_LOGW(TAG, "No credentials found");
+        log.warn("No credentials found");
         return false;
     }
 
@@ -76,7 +76,7 @@ bool CredentialStore::loadAll(std::vector<WiFiCredential> &out) {
 }
 
 bool CredentialStore::saveAll(const std::vector<WiFiCredential> &entries) {
-    ESP_LOGD(TAG, "saveAll");
+    log.debug("saveAll");
     // Compute size
     size_t size = 0;
     for (auto &e : entries) {
@@ -114,7 +114,7 @@ bool CredentialStore::saveAll(const std::vector<WiFiCredential> &entries) {
 }
 
 bool CredentialStore::add(const WiFiCredential &entry) {
-    ESP_LOGD(TAG, "add");
+    log.debug("add");
     std::vector<WiFiCredential> entries;
     loadAll(entries);
 
@@ -131,7 +131,7 @@ bool CredentialStore::add(const WiFiCredential &entry) {
 }
 
 bool CredentialStore::erase(const std::string &ssid) {
-    ESP_LOGD(TAG, "erase");
+    log.debug("erase");
     std::vector<WiFiCredential> entries;
     loadAll(entries);
 
@@ -143,7 +143,7 @@ bool CredentialStore::erase(const std::string &ssid) {
 }
 
 bool CredentialStore::clear() {
-    ESP_LOGD(TAG, "clear");
+    log.debug("clear");
     nvs_handle_t handle;
     esp_err_t err = nvs_open(ns, NVS_READWRITE, &handle);
     if (err != ESP_OK)
@@ -158,7 +158,7 @@ bool CredentialStore::clear() {
 }
 
 bool CredentialStore::store(const WiFiCredential &cred) {
-    ESP_LOGD(TAG, "store");
+    log.debug("store");
     std::vector<WiFiCredential> list;
     if (!loadAll(list)) {
         return false;

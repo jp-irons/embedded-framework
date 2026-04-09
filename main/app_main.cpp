@@ -1,23 +1,29 @@
 #include "ApplicationContext.hpp"
-#include "esp_log.h"
+#include "logger/EspIdfLogSink.hpp"
+#include "logger/LogSinkRegistry.hpp"
+#include "logger/Logger.hpp"
 
 extern "C" {
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 }
 
-extern "C" void setupLogging();
+using namespace logger;
 
-static const char *TAG = "app_main";
+extern "C" void setupLogging();
+static Logger log{"app_main"};
 
 extern "C" void app_main(void) {
     // Logging
     setupLogging();
+	Logger log{"app_main"};
+
     // Create the application context (owns everything)
-    ESP_LOGD(TAG, "creating app context");
+    log.info("bringing system up");
+    log.debug("creating app context");
     static ApplicationContext app;
     app.start();
-    ESP_LOGI(TAG, "System initialised");
+    log.info("System initialised");
 
     // Main loop
     while (true) {
@@ -27,25 +33,33 @@ extern "C" void app_main(void) {
 }
 
 extern "C" void setupLogging() {
-    esp_log_level_set("app_main", ESP_LOG_DEBUG);
-    esp_log_level_set("ApplicationContext", ESP_LOG_DEBUG);
-    // core_api API Handlers
-    esp_log_level_set("CredentialApiHandler", ESP_LOG_DEBUG);
-    esp_log_level_set("WiFiApiHandler", ESP_LOG_DEBUG);
-    // credential_store
-    esp_log_level_set("CredentialStore", ESP_LOG_DEBUG);
-    // framework
-    esp_log_level_set("FrameworkContext", ESP_LOG_DEBUG);
-    // http
-    esp_log_level_set("HttpServer", ESP_LOG_DEBUG);
-    // wifi_manager
-    esp_log_level_set("ProvisioningServer", ESP_LOG_DEBUG);
-    esp_log_level_set("RuntimeServer", ESP_LOG_DEBUG);
-    esp_log_level_set("WiFiInterface", ESP_LOG_DEBUG);
-    esp_log_level_set("WiFiStateMachine", ESP_LOG_DEBUG);
-    // static_assets
-    esp_log_level_set("ContentType", ESP_LOG_DEBUG);
-    esp_log_level_set("EmbeddedAssetTable", ESP_LOG_DEBUG);
-    esp_log_level_set("StaticFileHandler", ESP_LOG_DEBUG);
-}
+    static EspIdfLogSink uartSink;
+    LogSinkRegistry::setSink(&uartSink);
 
+    // --- 2. Configure filtering ---
+    LogSinkRegistry::setDefaultLevel(LogLevel::Info);
+    LogSinkRegistry::setLevelForTag("app_main", LogLevel::Debug);
+    LogSinkRegistry::setLevelForTag("ProvisioningServer", LogLevel::Debug);
+    LogSinkRegistry::setLevelForTag("app_main", LogLevel::Debug);
+    LogSinkRegistry::setLevelForTag("ApplicationContext", LogLevel::Debug);
+    // core_api API Handlers
+    LogSinkRegistry::setLevelForTag("CredentialApiHandler", LogLevel::Debug);
+    LogSinkRegistry::setLevelForTag("WiFiApiHandler", LogLevel::Debug);
+    // credential_store
+    LogSinkRegistry::setLevelForTag("CredentialStore", LogLevel::Debug);
+    // framework
+    LogSinkRegistry::setLevelForTag("FrameworkContext", LogLevel::Debug);
+    // http
+    LogSinkRegistry::setLevelForTag("HttpServer", LogLevel::Debug);
+    // wifi_manager
+    LogSinkRegistry::setLevelForTag("ProvisioningServer", LogLevel::Debug);
+    LogSinkRegistry::setLevelForTag("RuntimeServer", LogLevel::Debug);
+    LogSinkRegistry::setLevelForTag("WiFiInterface", LogLevel::Debug);
+    LogSinkRegistry::setLevelForTag("WiFiStateMachine", LogLevel::Debug);
+    // static_assets
+    LogSinkRegistry::setLevelForTag("ContentType", LogLevel::Debug);
+    LogSinkRegistry::setLevelForTag("EmbeddedAssetTable", LogLevel::Debug);
+    LogSinkRegistry::setLevelForTag("StaticFileHandler", LogLevel::Debug);
+	
+	log = Logger("app_main");
+}

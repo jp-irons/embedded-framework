@@ -1,16 +1,16 @@
 
 #include "wifi_manager/ProvisioningServer.hpp"
 
-#include "esp_log.h"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
+#include "logger/Logger.hpp"
 #include "static_assets/StaticFileHandler.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiStateMachine.hpp"
 
 namespace wifi_manager {
 
-static const char *TAG = "ProvisioningServer";
+static logger::Logger log{"ProvisioningServer"};
 
 ProvisioningServer::ProvisioningServer(WiFiContext &ctx)
     : ctx(ctx)
@@ -19,23 +19,25 @@ ProvisioningServer::ProvisioningServer(WiFiContext &ctx)
     , staticHandler("/provision", "index.html")
     , fallbackHandler("/", "index.html")
     , wifiHandler(ctx)
-    , credentialHandler(*ctx.credentialStore) {}
+    , credentialHandler(*ctx.credentialStore) {
+		log.debug("constructor");
+	}
 
 ProvisioningServer::~ProvisioningServer() {
     stop();
 }
 
 bool ProvisioningServer::start() {
-    ESP_LOGI(TAG, "Starting ProvisioningServer");
+	log.info("Starting ProvisioningServer");
 
     server.start();
 
     if (!routesRegistered) {
-        ESP_LOGD(TAG, "start() registering routes");
+        log.debug("start() registering routes");
         server.addRoute("/provision/*", &staticHandler);
         server.addRoute("/api/framework/credentials/*", &credentialHandler);
-		server.addRoute("/api/framework/wifi/*", &wifiHandler);
-		server.addRoute("/*", &fallbackHandler);
+        server.addRoute("/api/framework/wifi/*", &wifiHandler);
+        server.addRoute("/*", &fallbackHandler);
 
         routesRegistered = true;
     }
@@ -44,27 +46,27 @@ bool ProvisioningServer::start() {
 }
 
 void ProvisioningServer::stop() {
-    ESP_LOGI(TAG, "Stopping ProvisioningServer");
+    log.debug("Stopping ProvisioningServer");
     server.stop();
 }
 
 // handle requests not handled elsewhere
 bool ProvisioningServer::handle(http::HttpRequest &req, http::HttpResponse &res) {
     const std::string &path = req.path();
-	ESP_LOGD(TAG, "handle");
+    log.debug("handle");
 
-//    if (path == "/provision/status") {
-//        return handleStatus(req, res);
-//    }
-//
-//    if (path == "/provision/reset") {
-//        return handleReset(req, res);
-//    }
-//
-//    if (path == "/provision/retry") {
-//        return handleRetry(req, res);
-//    }
-//
+    //    if (path == "/provision/status") {
+    //        return handleStatus(req, res);
+    //    }
+    //
+    //    if (path == "/provision/reset") {
+    //        return handleReset(req, res);
+    //    }
+    //
+    //    if (path == "/provision/retry") {
+    //        return handleRetry(req, res);
+    //    }
+    //
     // fallback: serve provisioning UI
     return staticHandler.handle(req, res);
 }

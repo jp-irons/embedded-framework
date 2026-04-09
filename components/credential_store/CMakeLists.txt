@@ -8,4 +8,5 @@ idf_component_register(
   		common
   		nvs_flash
     	http
+        logger
 )

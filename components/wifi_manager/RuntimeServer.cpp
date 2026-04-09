@@ -1,33 +1,33 @@
 #include "wifi_manager/RuntimeServer.hpp"
 
-#include "esp_log.h"
+#include "logger/Logger.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiStateMachine.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
 
 namespace wifi_manager {
 
-static const char *TAG = "RuntimeServer";
+static logger::Logger log{"RuntimeServer"};
 
 RuntimeServer::RuntimeServer(WiFiContext &ctx)
     : ctx(ctx)
     , server(nullptr) {
-    ESP_LOGD(TAG, "constructor");
+    log.debug("constructor");
 }
 
 bool RuntimeServer::start() {
     if (server) {
-        ESP_LOGW(TAG, "Runtime server already running");
+        log.warn("Runtime server already running");
         return true;
     }
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = 80;
 
-    ESP_LOGI(TAG, "Starting runtime HTTP server");
+    log.info("Starting runtime HTTP server");
 
     if (httpd_start(&server, &config) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start runtime server");
+        log.error("Failed to start runtime server");
         server = nullptr;
         return false;
     }
@@ -37,7 +37,7 @@ bool RuntimeServer::start() {
 
 void RuntimeServer::stop() {
     if (server) {
-        ESP_LOGI(TAG, "Stopping runtime HTTP server");
+        log.info("Stopping runtime HTTP server");
         httpd_stop(server);
         server = nullptr;
     }
@@ -49,7 +49,7 @@ bool RuntimeServer::registerHandlers() {
     httpd_uri_t info = {.uri = "/info", .method = HTTP_GET, .handler = handleInfo, .user_ctx = this};
 
     if (httpd_register_uri_handler(server, &root) != ESP_OK || httpd_register_uri_handler(server, &info) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to register runtime handlers");
+        log.error("Failed to register runtime handlers");
         return false;
     }
 

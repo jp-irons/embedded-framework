@@ -1,10 +1,10 @@
 #include "static_assets/StaticFileHandler.hpp"
 
-#include "esp_log.h"
+#include "logger/Logger.hpp"
 
 namespace static_assets {
 
-static const char *TAG = "StaticFileHandler";
+static logger::Logger log{"StaticFileHandler"};
 
 StaticFileHandler::StaticFileHandler(std::string basePath, std::string defaultFile)
     : base(std::move(basePath))
@@ -13,17 +13,17 @@ StaticFileHandler::StaticFileHandler(std::string basePath, std::string defaultFi
 {}
 
 bool StaticFileHandler::handle(http::HttpRequest &request, http::HttpResponse &response) {
-    ESP_LOGD(TAG, "handle '%s'", request.path());
+    log.debug("handle '%s'", request.path());
 	
 	// TODO review logging - probably over the top.
     // Convert string_view → string safely
     std::string resolved = resolvePath(request.uri());
 
-	ESP_LOGD(TAG, "resolved path %s", resolved.c_str());
+	log.debug("resolved path %s", resolved.c_str());
 
     const EmbeddedAsset *asset = table.find(resolved);
     if (!asset) {
-        ESP_LOGW(TAG, "Asset not found: %s", resolved.c_str());
+        log.warn("Asset not found: %s", resolved.c_str());
         // TODO fix this       response.setStatus(404);
         response.send("Not found");
         return false;
@@ -38,8 +38,8 @@ bool StaticFileHandler::handle(http::HttpRequest &request, http::HttpResponse &r
 std::string StaticFileHandler::resolvePath(std::string_view uri) const {
     // Convert string_view → string
     std::string path(uri.data(), uri.size());
-//	ESP_LOGD(TAG, "base='%s' (len=%zu)", base.c_str(), base.size());
-//	ESP_LOGD(TAG, "path='%s'", path.c_str());
+//	log.debug("base='%s' (len=%zu)", base.c_str(), base.size());
+//	log.debug("path='%s'", path.c_str());
 
     // Must start with base
     if (!path.starts_with(base)) {

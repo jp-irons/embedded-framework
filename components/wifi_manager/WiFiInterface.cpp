@@ -2,9 +2,9 @@
 
 #include "common/Result.hpp"
 #include "esp_event.h"
-#include "esp_log.h"
 #include "esp_wifi.h"
 #include "esp_wifi_types_generic.h"
+#include "logger/Logger.hpp"
 #include "wifi_manager/ProvisioningServer.hpp"
 #include "wifi_manager/RuntimeServer.hpp"
 #include "wifi_manager/WiFiContext.hpp"
@@ -13,11 +13,11 @@
 
 namespace wifi_manager {
 
-static const char *TAG = "WiFiInterface";
+static logger::Logger log{"WiFiInterface"};
 
 WiFiInterface::WiFiInterface(WiFiContext &ctx)
     : ctx(ctx) {
-    ESP_LOGD(TAG, "constructor");
+    log.debug("constructor");
 }
 
 /**
@@ -26,7 +26,7 @@ WiFiInterface::WiFiInterface(WiFiContext &ctx)
  * Those belong in app_main().
  */
 void WiFiInterface::startDriver() {
-    ESP_LOGI(TAG, "startDriver");
+    log.info("startDriver");
 
     // 1. Create default netifs
     apNetif = esp_netif_create_default_wifi_ap();
@@ -51,7 +51,7 @@ void WiFiInterface::startDriver() {
 }
 
 void WiFiInterface::stopDriver() {
-    ESP_LOGI(TAG, "Stopping WiFi driver");
+    log.info("Stopping WiFi driver");
     ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_deinit());
 }
@@ -60,7 +60,7 @@ void WiFiInterface::stopDriver() {
  * AP MODE
  */
 void WiFiInterface::startAp(const ApConfig &config) {
-    ESP_LOGI(TAG, "Starting SoftAP: %s", config.ssid.c_str());
+    log.info("Starting SoftAP: %s", config.ssid.c_str());
     /*        ***********************   */
     wifi_config_t ap_cfg = config.toEspConfig();
     bool useOpenAp = false;
@@ -68,7 +68,7 @@ void WiFiInterface::startAp(const ApConfig &config) {
     if (config.password.empty()) {
         useOpenAp = true;
     } else if (config.password.length() < 8) {
-        ESP_LOGW(TAG, "AP password '%s' is too short (%d chars). Falling back to OPEN AP.", config.password.c_str(),
+        log.warn("AP password '%s' is too short (%d chars). Falling back to OPEN AP.", config.password.c_str(),
                  (int) config.password.length());
         useOpenAp = true;
     }
@@ -81,7 +81,7 @@ void WiFiInterface::startAp(const ApConfig &config) {
         strncpy((char *) ap_cfg.ap.password, config.password.c_str(), sizeof(ap_cfg.ap.password));
     }
 
-    ESP_LOGI(TAG, "Starting SoftAP: %s (authmode=%s)", config.ssid.c_str(), useOpenAp ? "OPEN" : "WPA2");
+    log.info("Starting SoftAP: %s (authmode=%s)", config.ssid.c_str(), useOpenAp ? "OPEN" : "WPA2");
     apActive = true;
     wifi_mode_t mode = computeMode();
     ESP_ERROR_CHECK(esp_wifi_set_mode(mode));
@@ -90,7 +90,7 @@ void WiFiInterface::startAp(const ApConfig &config) {
 }
 
 void WiFiInterface::stopAp() {
-    ESP_LOGI(TAG, "Stopping SoftAP");
+    log.info("Stopping SoftAP");
     apActive = false;
     wifi_mode_t mode = computeMode();
     ESP_ERROR_CHECK(esp_wifi_set_mode(mode));
@@ -101,7 +101,7 @@ void WiFiInterface::stopAp() {
  * STA MODE
  */
 void WiFiInterface::connectSta(const StaConfig &cfg) {
-    ESP_LOGI(TAG, "Connecting STA to SSID: %s", cfg.ssid.c_str());
+    log.info("Connecting STA to SSID: %s", cfg.ssid.c_str());
 
     wifi_config_t sta_cfg = cfg.toEspConfig();
     strncpy((char *) sta_cfg.sta.ssid, cfg.ssid.c_str(), sizeof(sta_cfg.sta.ssid));
@@ -116,7 +116,7 @@ void WiFiInterface::connectSta(const StaConfig &cfg) {
 }
 
 void WiFiInterface::disconnectSta() {
-    ESP_LOGD(TAG, "Disconnecting STA");
+    log.debug("Disconnecting STA");
     staActive = false;
     wifi_mode_t mode = computeMode();
 
@@ -128,12 +128,12 @@ void WiFiInterface::disconnectSta() {
  * Provisioning server control
  */
 void WiFiInterface::startProvisioningServer() {
-    ESP_LOGD(TAG, "Starting provisioning server");
+    log.debug("Starting provisioning server");
     ctx.provisioningServer->start();
 }
 
 void WiFiInterface::stopProvisioningServer() {
-    ESP_LOGI(TAG, "Stopping provisioning server");
+    log.info("Stopping provisioning server");
     ctx.provisioningServer->stop();
 }
 
@@ -141,12 +141,12 @@ void WiFiInterface::stopProvisioningServer() {
  * Runtime server control
  */
 void WiFiInterface::startRuntimeServer() {
-    ESP_LOGI(TAG, "Starting runtime server");
+    log.info("Starting runtime server");
     ctx.runtimeServer->start();
 }
 
 void WiFiInterface::stopRuntimeServer() {
-    ESP_LOGI(TAG, "Stopping runtime server");
+    log.info("Stopping runtime server");
     ctx.runtimeServer->stop();
 }
 
@@ -167,51 +167,51 @@ void WiFiInterface::ipEventHandler(void *arg, esp_event_base_t base, int32_t id,
  * INSTANCE EVENT HANDLERS
  */
 void WiFiInterface::handleWiFiEvent(esp_event_base_t base, int32_t id, void *data) {
-    ESP_LOGD(TAG, "handleWiFiEvent");
+    log.debug("handleWiFiEvent");
     switch (id) {
         case WIFI_EVENT_STA_START:
-            ESP_LOGD(TAG, "WIFI_EVENT_STA_START");
+            log.debug("WIFI_EVENT_STA_START");
             break;
 
         case WIFI_EVENT_STA_CONNECTED:
-            ESP_LOGI(TAG, "STA connected");
+            log.info("STA connected");
             ctx.stateMachine->onStaConnected();
             break;
 
         case WIFI_EVENT_STA_DISCONNECTED: {
             auto *event = (wifi_event_sta_disconnected_t *) data;
-            ESP_LOGW(TAG, "STA disconnected, reason=%d", event->reason);
+            log.warn("STA disconnected, reason=%d", event->reason);
             ctx.stateMachine->onStaDisconnected(toWiFiError(event->reason));
             break;
         }
 
         case WIFI_EVENT_AP_START:
-            ESP_LOGI(TAG, "AP started");
+            log.info("AP started");
             break;
 
         case WIFI_EVENT_AP_STOP:
-            ESP_LOGI(TAG, "AP stopped");
+            log.info("AP stopped");
             break;
 
         case WIFI_EVENT_AP_STACONNECTED:
-            ESP_LOGI(TAG, "STA connected");
+            log.info("STA connected");
             break;
         case WIFI_EVENT_STA_STOP:
-            ESP_LOGI(TAG, "STA stopped");
+            log.info("STA stopped");
             break;
         case WIFI_EVENT_AP_STADISCONNECTED:
-            ESP_LOGI(TAG, "STA disconnected");
+            log.info("STA disconnected");
             break;
         case WIFI_EVENT_HOME_CHANNEL_CHANGE:
-            ESP_LOGI(TAG, "Home channel changed");
+            log.info("Home channel changed");
             break;
 
         case WIFI_EVENT_SCAN_DONE:
-            ESP_LOGI(TAG, "Scan done");
+            log.info("Scan done");
             break;
 
         default:
-            ESP_LOGD(TAG, "Unhandled WiFi event: %ld", id);
+            log.debug("Unhandled WiFi event: %ld", id);
             break;
     }
 }
@@ -219,15 +219,15 @@ void WiFiInterface::handleWiFiEvent(esp_event_base_t base, int32_t id, void *dat
 void WiFiInterface::handleIPEvent(esp_event_base_t base, int32_t id, void *data) {
     if (id == IP_EVENT_STA_GOT_IP) {
         auto *event = (ip_event_got_ip_t *) data;
-        ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
+        log.info("Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
         ctx.stateMachine->onStaGotIp(event);
     }
 }
 
 common::Result WiFiInterface::scan(std::vector<WiFiAp> &outAps) {
-    ESP_LOGD(TAG, "scan");
+    log.debug("scan");
     if (!driverStarted) {
-        ESP_LOGE(TAG, "scan() unsupported: driver not started");
+        log.error("scan() unsupported: driver not started");
         return common::Result::Unsupported;
     }
 
@@ -235,15 +235,15 @@ common::Result WiFiInterface::scan(std::vector<WiFiAp> &outAps) {
 
     // Ensure STA is enabled
     if (!setStaState(true)) {
-        ESP_LOGE(TAG, "scan() setStaState true failed");
+        log.error("scan() setStaState true failed");
         return common::Result::InternalError;
     }
 	
     wifi_scan_config_t scanConfig = {};
-	ESP_LOGD(TAG, "scan starting scan");
+	log.debug("scan starting scan");
     esp_err_t err = esp_wifi_scan_start(&scanConfig, true);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "scan esp_wifi_scan_start returned %s", esp_err_to_name(err));
+        log.error("scan esp_wifi_scan_start returned %s", esp_err_to_name(err));
         setStaState(initialStaActive); // restore before returning
         return common::Result::InternalError;
     }
@@ -252,7 +252,7 @@ common::Result WiFiInterface::scan(std::vector<WiFiAp> &outAps) {
     uint16_t apCount = 0;
 	err = esp_wifi_scan_get_ap_num(&apCount);
 	if (err != ESP_OK) {
-	    ESP_LOGE(TAG, "scan() esp_wifi_scan_get_ap_number error %s", esp_err_to_name(err));
+	    log.error("scan() esp_wifi_scan_get_ap_number error %s", esp_err_to_name(err));
 	    setStaState(initialStaActive);
 	    return common::Result::InternalError;
 	}
@@ -260,7 +260,7 @@ common::Result WiFiInterface::scan(std::vector<WiFiAp> &outAps) {
     std::vector<wifi_ap_record_t> records(apCount);
     err = esp_wifi_scan_get_ap_records(&apCount, records.data());
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "scan() esp_wifi_scan_get_ap_records error %s", esp_err_to_name(err));
+        log.error("scan() esp_wifi_scan_get_ap_records error %s", esp_err_to_name(err));
         setStaState(initialStaActive);
         return common::Result::InternalError;
     }
@@ -315,7 +315,7 @@ wifi_mode_t WiFiInterface::computeMode() const {
 }
 
 bool WiFiInterface::setStaState(bool enable) {
-    ESP_LOGD(TAG, "setStaState %d", enable);
+    log.debug("setStaState %d", enable);
     if (staActive == enable) {
         return true; // nothing to do
     }
@@ -325,7 +325,7 @@ bool WiFiInterface::setStaState(bool enable) {
 
     esp_err_t err = esp_wifi_set_mode(mode);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "setStaState() esp_wifi_set_mode error %s", esp_err_to_name(err));
+        log.error("setStaState() esp_wifi_set_mode error %s", esp_err_to_name(err));
         // rollback
         staActive = !enable;
         return false;

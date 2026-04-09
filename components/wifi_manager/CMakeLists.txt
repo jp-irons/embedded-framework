@@ -18,5 +18,6 @@ idf_component_register(
         common
         credential_store
         http
+        logger
         static_assets
 )

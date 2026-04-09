@@ -2,7 +2,7 @@
 
 #include "cJSON.h"
 #include "common/Result.hpp"
-#include "esp_log.h"
+#include "logger/Logger.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
 #include "wifi_manager/WiFiContext.hpp"
@@ -14,22 +14,22 @@ using namespace http;
 
 namespace wifi_manager {
 
-static const char *TAG = "WiFiApiHandler";
+static logger::Logger log{"WiFiApiHandler"};
 
 WiFiApiHandler::WiFiApiHandler(WiFiContext &w)
     : wifiCtx(w) {
-    ESP_LOGD(TAG, "constructor");
+    log.debug("constructor");
 }
 
 // handle requests not handled elsewhere
 bool WiFiApiHandler::handle(http::HttpRequest &req, http::HttpResponse &res) {
-    ESP_LOGD(TAG, "handle");
+    log.debug("handle");
     const std::string &path = req.path();
     std::string action = extractAction(req.path());
-    ESP_LOGD(TAG, "action '%s'", action.c_str());
+    log.debug("action '%s'", action.c_str());
 
     if (action == "scan") {
-        ESP_LOGD(TAG, "action scan matched");
+        log.debug("action scan matched");
         return handleScan(res);
     }
     //    if (path == "/api/wifi/status") {
@@ -68,14 +68,14 @@ static void formatBssid(const uint8_t bssid[6], char out[18])
 
 
 bool WiFiApiHandler::handleScan(HttpResponse &res) {
-    ESP_LOGD(TAG, "handleScan");
+    log.debug("handleScan");
     std::vector<WiFiAp> aps;
     common::Result r = wifiCtx.wifiInterface->scan(aps);
-    ESP_LOGD(TAG, "scan result");
+    log.debug("scan result");
 
     switch (r) {
         case common::Result::Ok: {
-            ESP_LOGD(TAG, "result Ok");
+            log.debug("result Ok");
             uint16_t count = aps.size();
             cJSON *root = cJSON_CreateArray();
 
@@ -96,32 +96,32 @@ bool WiFiApiHandler::handleScan(HttpResponse &res) {
         }
 
         case common::Result::NotFound:
-            ESP_LOGD(TAG, "result NotFound");
+            log.debug("result NotFound");
             res.jsonStatus("no_access_points_found");
             return true;
 
         case common::Result::Unsupported:
-            ESP_LOGW(TAG, "result Unsupported");
+            log.warn("result Unsupported");
             res.jsonStatus("wifi_not_ready");
             return false;
 
         case common::Result::BadRequest:
-            ESP_LOGW(TAG, "result BadRequest");
+            log.warn("result BadRequest");
             res.jsonStatus("bad_request");
             return false;
 
         case common::Result::Forbidden:
-            ESP_LOGW(TAG, "result Forbidden");
+            log.warn("result Forbidden");
             res.jsonStatus("forbidden");
             return false;
 
         case common::Result::InternalError:
-            ESP_LOGW(TAG, "result InternalError");
+            log.warn("result InternalError");
             res.jsonStatus("internal_error");
             return false;
 
         default:
-            ESP_LOGW(TAG, "result unknown result");
+            log.warn("result unknown result");
             res.jsonStatus("unknown result");
             return false;
     }

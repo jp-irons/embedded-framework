@@ -2,40 +2,40 @@
 #include "credential_store/CredentialStore.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
-#include "esp_log.h"
+#include "logger/Logger.hpp"
 
 using namespace http;
 
 namespace credential_store {
 
-static const char *TAG = "CredentialApiHandler";
+static logger::Logger log{"CredentialApiHandler"};
 
 CredentialApiHandler::CredentialApiHandler(CredentialStore &s)
     : store(s) {
-    ESP_LOGD(TAG, "constructor");
+    log.debug("constructor");
 }
 
 bool CredentialApiHandler::handle(http::HttpRequest& req,
                 http::HttpResponse& res) {
-	ESP_LOGD(TAG, "handle");
+	log.debug("handle");
     const std::string &path = req.path();
 	std::string action = extractAction(req.path());
-	ESP_LOGD(TAG, "action '%s'", action.c_str());
+	log.debug("action '%s'", action.c_str());
 
     if (action == "list") {
-		ESP_LOGD(TAG, "handleList");
+		log.debug("handleList");
         return handleList(res);
     }
     if (path == "submit") {
-		ESP_LOGD(TAG, "handleSubmit");
+		log.debug("handleSubmit");
         return handleSubmit(req, res);
     }
     if (path == "delete") {
-		ESP_LOGD(TAG, "handleDelete");
+		log.debug("handleDelete");
         return handleDelete(req, res);
     }
     if (path == "clear") {
-		ESP_LOGD(TAG, "handleClear");
+		log.debug("handleClear");
         return handleClear(res);
     }
     return false;

@@ -1,16 +1,16 @@
 #include "ApplicationContext.hpp"
 
-#include "esp_log.h"
+#include "logger/Logger.hpp"
 
-static const char *TAG = "ApplicationContext";
+static logger::Logger log{"ApplicationContext"};
 
 ApplicationContext::ApplicationContext()
     : framework(apConfig) {
-    ESP_LOGD(TAG, "constructor");
+    log.debug("constructor");
 }
 
 void ApplicationContext::start() {
-    ESP_LOGD(TAG, "start");
+    log.debug("start");
     framework.start();
 }
 

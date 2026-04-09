@@ -3,10 +3,11 @@ idf_component_register(
     	StaticFileHandler.cpp
     	EmbeddedAssetTable.cpp
     INCLUDE_DIRS
-        "include"
+        include
     REQUIRES
-         common
-         http
+        common
+        http
+        logger
     EMBED_FILES
         assets/index.html
         assets/app.js

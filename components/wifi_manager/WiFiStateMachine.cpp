@@ -1,36 +1,37 @@
 #include "wifi_manager/WiFiStateMachine.hpp"
+
 #include "credential_store/CredentialStore.hpp"
+#include "logger/Logger.hpp"
 #include "wifi_manager/ProvisioningServer.hpp"
 #include "wifi_manager/RuntimeServer.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
-#include "esp_log.h"
 
 namespace wifi_manager {
 
-static const char *TAG = "WiFiStateMachine";
+static logger::Logger log{"WiFiStateMachine"};
 
 // ---------------------------------------------------------
 // Constructor
 // ---------------------------------------------------------
 WiFiStateMachine::WiFiStateMachine(WiFiContext &ctx)
     : ctx(ctx) {
-    ESP_LOGD(TAG, "Constructor");
+    log.debug("Constructor");
 }
 
 // ---------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------
 void WiFiStateMachine::start() {
-    ESP_LOGD(TAG, "start");
+    log.debug("start");
     if (currentState != WiFiState::UNINITIALISED) {
-        ESP_LOGW(TAG, "WiFiStateMachine::start() called in state %s",
+        log.warn("WiFiStateMachine::start() called in state %s",
                  toString(currentState));
         return;
     }
 
-    ESP_LOGI(TAG, "Starting WiFiStateMachine");
+    log.info("Starting WiFiStateMachine");
     enterState(WiFiState::STARTING);
 
     // Initialise WiFi driver
@@ -38,61 +39,61 @@ void WiFiStateMachine::start() {
 
     // Decide provisioning vs runtime
     if (ctx.credentialStore->count() == 0) {
-        ESP_LOGD(TAG, "No credentials found - entering provisioning AP mode");
+        log.debug("No credentials found - entering provisioning AP mode");
         enterState(WiFiState::UNPROVISIONED_AP);
     } else {
-        ESP_LOGD(TAG, "Credentials found -> entering runtime STA mode");
+        log.debug("Credentials found -> entering runtime STA mode");
         enterState(WiFiState::STA_CONNECTING);
     }
 }
 
 
 void WiFiStateMachine::reset() {
-    ESP_LOGD(TAG, "reset");
+    log.debug("reset");
 }
 
 void WiFiStateMachine::startRuntime() {
-    ESP_LOGD(TAG, "startRuntime");
+    log.debug("startRuntime");
 }
 
 // ---------------------------------------------------------
 // Driver lifecycle events
 // ---------------------------------------------------------
 void WiFiStateMachine::onDriverStarted() {
-    ESP_LOGD(TAG, "onDriverStarted");
+    log.debug("onDriverStarted");
 }
 
 void WiFiStateMachine::onDriverStopped() {
-    ESP_LOGD(TAG, "onDriverStopped");
+    log.debug("onDriverStopped");
 }
 
 // ---------------------------------------------------------
 // AP events
 // ---------------------------------------------------------
 void WiFiStateMachine::onApStarted() {
-    ESP_LOGD(TAG, "onApStarted");
+    log.debug("onApStarted");
 }
 
 void WiFiStateMachine::onApStopped() {
-    ESP_LOGD(TAG, "onApStopped");
+    log.debug("onApStopped");
 }
 
 // ---------------------------------------------------------
 // STA events
 // ---------------------------------------------------------
 void WiFiStateMachine::onStaConnecting() {
-    ESP_LOGD(TAG, "onStaConnecting");
+    log.debug("onStaConnecting");
 }
 
 void WiFiStateMachine::onStaConnected() {
-    ESP_LOGD(TAG, "onStaConnected");
+    log.debug("onStaConnected");
 	if (currentState == WiFiState::PROVISIONING_TEST_STA) {
 	    enterState(WiFiState::STA_CONNECTED);
 	}
 }
 
 void WiFiStateMachine::onStaGotIp(const ip_event_got_ip_t *ip) {
-    ESP_LOGD(TAG, "onStaGotIp");
+    log.debug("onStaGotIp");
 	if (currentState == WiFiState::PROVISIONING_TEST_STA ||
 	    currentState == WiFiState::STA_CONNECTED)
 	{
@@ -101,7 +102,7 @@ void WiFiStateMachine::onStaGotIp(const ip_event_got_ip_t *ip) {
 }
 
 void WiFiStateMachine::onStaDisconnected(WiFiError reason) {
-    ESP_LOGD(TAG, "onStaDisconnected");
+    log.debug("onStaDisconnected");
 	if (currentState == WiFiState::PROVISIONING_TEST_STA) {
 	    enterState(WiFiState::STA_CONNECT_FAILED);
 	}
@@ -111,27 +112,27 @@ void WiFiStateMachine::onStaDisconnected(WiFiError reason) {
 // Provisioning events
 // ---------------------------------------------------------
 void WiFiStateMachine::onProvisioningRequestReceived() {
-    ESP_LOGD(TAG, "onProvisioningRequestReceived not implemented");
+    log.debug("onProvisioningRequestReceived not implemented");
     if (currentState == WiFiState::UNPROVISIONED_AP) {
         enterState(WiFiState::PROVISIONING);
     }
 }
 
 void WiFiStateMachine::onProvisioningCredentialsReceived(const credential_store::WiFiCredential &creds) {
-    ESP_LOGD(TAG, "onProvisioningCredentialsReceived");
+    log.debug("onProvisioningCredentialsReceived");
     ctx.credentialStore->store(creds);
     enterState(WiFiState::PROVISIONING_TEST_STA);
 }
 
 void WiFiStateMachine::onProvisioningTestResult(bool success) {
-    ESP_LOGD(TAG, "onProvisioningTestResult");
+    log.debug("onProvisioningTestResult");
 }
 
 // ---------------------------------------------------------
 // Error handling
 // ---------------------------------------------------------
 void WiFiStateMachine::onError(WiFiError error) {
-    ESP_LOGD(TAG, "onError");
+    log.debug("onError");
 }
 
 // ---------------------------------------------------------
@@ -158,12 +159,12 @@ credential_store::WiFiCredential WiFiStateMachine::getCredential(size_t index) c
 // Internal helpers
 // ---------------------------------------------------------
 void WiFiStateMachine::enterState(WiFiState newState) {
-	ESP_LOGD(TAG, "enterState");
+	log.debug("enterState");
     if (currentState == newState) {
         return;
     }
 
-    ESP_LOGD(TAG, "State transition: %s -> %s", toString(currentState), toString(newState));
+    log.debug("State transition: %s -> %s", toString(currentState), toString(newState));
 
     currentState = newState;
 
@@ -211,22 +212,22 @@ void WiFiStateMachine::enterState(WiFiState newState) {
 }
 
 void WiFiStateMachine::tryNextCredential() {
-    ESP_LOGD(TAG, "tryNextCredential Not Implemented");
+    log.debug("tryNextCredential Not Implemented");
 }
 
 void WiFiStateMachine::startProvisioningAp()
 {
-    ESP_LOGD(TAG, "startProvisioningAp");
+    log.debug("startProvisioningAp");
 
     ctx.runtimeServer->stop();          // stop runtime server if running
     ctx.wifiInterface->disconnectSta(); // correct name
-	ESP_LOGD(TAG, "start AP %s", ctx.apConfig.ssid.c_str());
+	log.debug("start AP %s", ctx.apConfig.ssid.c_str());
     ctx.wifiInterface->startAp(ctx.apConfig); // must pass config
     ctx.provisioningServer->start();
 }
 
 void WiFiStateMachine::startProvisioningTestSta() {
-    ESP_LOGD(TAG, "startProvisioningTestSta Not Implemented");
+    log.debug("startProvisioningTestSta Not Implemented");
 //    ctx.provisioningServer.stop();
 //    ctx.wifiInterface.stopAp();
 //    ctx.wifiInterface.configureSta(ctx.credentialStore.getLatest());
@@ -234,12 +235,12 @@ void WiFiStateMachine::startProvisioningTestSta() {
 }
 
 void WiFiStateMachine::startRuntimeSta() {
-    ESP_LOGD(TAG, "startRuntimeSta Not Implemented");
+    log.debug("startRuntimeSta Not Implemented");
 //	ctx.provisioningServer.stop();
 //	ctx.wifiInterface->stopAp();
 
 	currentCredentialIndex = 0;
-	ESP_LOGD(TAG, "startRuntimeSta Not Implemented");
+	log.debug("startRuntimeSta Not Implemented");
 //	currentCredential = ctx.credentialStore.getCredential(currentIndex);
 //
 //	ctx.wifiInterface->configureSta(creds);
