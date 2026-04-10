@@ -85,27 +85,27 @@ common::Result WiFiApiHandler::handleScan(HttpResponse &res) {
         }
         char *json_response = cJSON_PrintUnformatted(root);
         cJSON_Delete(root);
-        r = res.json(json_response);
+        r = res.sendJson(json_response);
 		cJSON_free(json_response);
     } else {
         log.warn("result %s", common::toString(r));
-        res.jsonStatus(common::toString(r));
+        res.sendJsonStatus(common::toString(r));
     }
     return r;
 }
 
 common::Result WiFiApiHandler::handleStatus(HttpResponse &res) {
-    res.jsonStatus("not_implemented");
+    res.sendJsonStatus("not_implemented");
     return common::Result::Unsupported;
 }
 
 common::Result WiFiApiHandler::handleConnect(const HttpRequest &req, HttpResponse &res) {
-    res.jsonStatus("not_implemented");
+    res.sendJsonStatus("not_implemented");
     return common::Result::Unsupported;
 }
 
 common::Result WiFiApiHandler::handleDisconnect(HttpResponse &res) {
-    res.jsonStatus("not_implemented");
+    res.sendJsonStatus("not_implemented");
     return common::Result::Unsupported;
 }
 

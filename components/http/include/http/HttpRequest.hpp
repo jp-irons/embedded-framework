@@ -1,33 +1,57 @@
 #pragma once
 
 #include "esp_http_server.h"
+
 #include <string>
 #include <string_view>
 
 namespace http {
-
-// TODO move method defns back from header to cpp
 class HttpRequest {
   public:
-    explicit HttpRequest(httpd_req *r)
-        : req(r) {}
-
-    const char *path() const {
-        return req->uri;
+    explicit HttpRequest(httpd_req_t *r)
+        : req(r) {
+        readBody();
     }
 
-    std::string body() const;  // keep this out-of-line
+    std::string_view body() const {
+        return std::string_view(bodyStorage_.data(), bodyStorage_.size());
+    }
 
     std::string_view uri() const {
         return req->uri;
     }
 
-    httpd_req *raw() const {
+    const char *path() const {
+        return req->uri;
+    }
+
+    httpd_req_t *raw() const {
         return req;
     }
 
-private:
-    httpd_req *req;
+  private:
+    httpd_req_t *req;
+    std::string bodyStorage_; // owns the memory
+
+    void readBody() {
+        size_t len = req->content_len;
+
+        if (len == 0) {
+            bodyStorage_.clear();
+            return;
+        }
+
+        bodyStorage_.resize(len);
+
+        int received = httpd_req_recv(req, bodyStorage_.data(), len);
+        if (received <= 0) {
+            bodyStorage_.clear();
+            return;
+        }
+
+        // shrink to actual bytes received
+        bodyStorage_.resize(received);
+    }
 };
 
 } // namespace http

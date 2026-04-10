@@ -1,12 +1,13 @@
 #include "credential_store/CredentialApiHandler.hpp"
 
+#include "cJSON.h"
 #include "common/Result.hpp"
 #include "credential_store/CredentialStore.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
 #include "logger/Logger.hpp"
 
-#include <cJson.h>
+#include <cJSON.h>
 
 using namespace http;
 using namespace common;
@@ -93,30 +94,118 @@ Result CredentialApiHandler::handleList(HttpResponse &res) {
 	if (!json_response) {
 	    return Result::InternalError;
 	}
-	Result result = res.json(json_response);
+	Result result = res.sendJson(json_response);
 	cJSON_free(json_response);
 	return result;
 }
 
 Result CredentialApiHandler::handleSubmit(const HttpRequest &req, HttpResponse &res) {
-    res.jsonStatus("not_implemented");
-    return Result::Unsupported;
+	// Read body from your HttpRequest abstraction
+	std::string_view body = req.body();
+
+	if (body.empty()) {
+	    return res.sendBadRequest400("Empty body");
+	}
+
+	// Log raw JSON body
+	log.debug("Raw body (%d bytes): %.*s",
+	          static_cast<int>(body.size()),
+	          static_cast<int>(body.size()),
+	          body.data());
+
+
+	cJSON* root = cJSON_Parse(body.data());
+	if (!root) {
+	    return res.sendBadRequest400("Invalid JSON");
+	}
+
+	// Required: ssid
+	cJSON* ssid = cJSON_GetObjectItem(root, "ssid");
+	if (!ssid || !cJSON_IsString(ssid)) {
+	    cJSON_Delete(root);
+		return res.sendBadRequest400("Missing ssid");
+	}
+
+	WiFiCredential entry;
+	entry.ssid = ssid->valuestring;
+
+	// Optional: password
+	cJSON* password = cJSON_GetObjectItem(root, "password");
+	entry.password = (password && cJSON_IsString(password))
+	                 ? password->valuestring
+	                 : "";
+
+	// Optional: priority
+	cJSON* priority = cJSON_GetObjectItem(root, "priority");
+	entry.priority = (priority && cJSON_IsNumber(priority))
+	                 ? priority->valueint
+	                 : 0;
+
+	// Optional: bssid + bssidLocked
+	// TODO include bssid
+//	memset(entry.bssid, 0, 6);
+//	entry.bssidLocked = false;
+//
+//	cJSON* bssid = cJSON_GetObjectItem(root, "bssid");
+//	if (bssid && cJSON_IsString(bssid)) {
+//	    uint8_t mac[6];
+//	    if (sscanf(bssid->valuestring, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+//	               &mac[0], &mac[1], &mac[2],
+//	               &mac[3], &mac[4], &mac[5]) == 6)
+//	    {
+//	        memcpy(entry.bssid, mac, 6);
+//	        entry.bssidLocked = true;
+//	    }
+//	}
+//
+	// Optional: explicit bssidLocked override
+//	cJSON* bssidLocked = cJSON_GetObjectItem(root, "bssidLocked");
+//	if (bssidLocked && cJSON_IsBool(bssidLocked)) {
+//	    entry.bssidLocked = cJSON_IsTrue(bssidLocked);
+//	}
+//
+	// Load → modify/replace → save
+	std::vector<WiFiCredential> entries;
+	store.loadAll(entries);
+
+	bool replaced = false;
+	for (auto& e : entries) {
+	    if (e.ssid == entry.ssid) {
+	        e = entry;
+	        replaced = true;
+	        break;
+	    }
+	}
+	if (!replaced) {
+	    entries.push_back(entry);
+	}
+
+	Result r = store.saveAll(entries);
+	cJSON_Delete(root);
+
+	if (Result::Ok != r) {
+		return res.sendInternalError500("Failed to save credential");
+	}
+	
+	r = res.sendJson("{\"status\":\"ok\"}");
+	return r;
 }
 
 Result CredentialApiHandler::handleDelete(const HttpRequest &req, HttpResponse &res) {
-    res.jsonStatus("not_implemented");
+    res.sendJsonError(404,"not_implemented");
     return Result::Unsupported;
 }
 
 Result CredentialApiHandler::handleClear(HttpResponse &res) {
     log.info("Clearing all credentials");
     store.clear();
-    return res.jsonStatus("ok");
+	Result r = res.sendJson("{\"status\":\"ok\"}");
+	return r;
 }
 
 Result CredentialApiHandler::handleClearNvs(HttpResponse &res) {
-    res.jsonStatus("not_implemented");
-    return Result::Unsupported;
+	res.sendJsonError(404,"not_implemented");
+	return Result::Unsupported;
 }
 
 } // namespace credential_store

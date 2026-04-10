@@ -1,6 +1,6 @@
 idf_component_register(
     SRCS
-        HttpRequest.cpp
+ #       HttpRequest.cpp
         HttpServer.cpp
     INCLUDE_DIRS
         include

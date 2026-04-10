@@ -42,11 +42,25 @@ Result CredentialStore::loadAll(std::vector<WiFiCredential> &out) const {
 
     size_t size = 0;
     err = nvs_get_blob(handle, "entries", nullptr, &size);
-    if (err != ESP_OK || size == 0) {
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        // No credentials stored yet — treat as empty store
+        log.debug("CredentialStore: no entries found (empty store)");
+        nvs_close(handle);
+        return Result::Ok; // or a special Empty result if you prefer
+    }
+
+    if (err != ESP_OK) {
         Result r = esp_adapter::toResult(err);
         log.warn("Error '%s' accessing nvs", toString(r));
         nvs_close(handle);
         return r;
+    }
+
+    if (size == 0) {
+        // Blob exists but is empty — also not an error
+        log.debug("CredentialStore: entries blob is empty");
+        nvs_close(handle);
+        return Result::Ok;
     }
 
     std::vector<uint8_t> buf(size);

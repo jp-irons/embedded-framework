@@ -27,7 +27,7 @@ Result StaticFileHandler::handle(http::HttpRequest &request, http::HttpResponse 
     if (!asset) {
         log.warn("Asset not found: %s", resolved.c_str());
         // TODO fix this       response.setStatus(404);
-		response.notFound("Asset not found");
+		response.sendNotFound404("Asset not found");
         response.send("Not found");
         return Result::NotFound;
     }
