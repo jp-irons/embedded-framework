@@ -56,6 +56,10 @@ void WiFiStateMachine::startRuntime() {
     log.debug("startRuntime");
 }
 
+void WiFiStateMachine::onUnexpectedEvent(const char *eventName) {
+    log.error("Unexpected event %s in state %s", eventName, toString(currentState));
+}
+
 // ---------------------------------------------------------
 // Driver lifecycle events
 // ---------------------------------------------------------
@@ -87,17 +91,20 @@ void WiFiStateMachine::onStaConnecting() {
 
 void WiFiStateMachine::onStaConnected() {
     log.debug("onStaConnected");
-    if (currentState == WiFiState::PROVISIONING_TEST_STA ||
-	       currentState == WiFiState::STA_CONNECTING) {
+    if (currentState == WiFiState::PROVISIONING_TEST_STA || currentState == WiFiState::STA_CONNECTING) {
         transitionTo(WiFiState::STA_CONNECTED);
+    } else {
+        onUnexpectedEvent("onStaConnected");
     }
 }
 
 void WiFiStateMachine::onStaGotIp(const ip_event_got_ip_t *ip) {
     log.debug("onStaGotIp");
-	log.debug("onStaGotIp - Current State %s ", toString(currentState));
+    log.debug("onStaGotIp - Current State %s ", toString(currentState));
     if (currentState == WiFiState::PROVISIONING_TEST_STA || currentState == WiFiState::STA_CONNECTED) {
         transitionTo(WiFiState::GOT_IP);
+    } else {
+        onUnexpectedEvent("onStaGotIp()");
     }
 }
 
@@ -105,6 +112,8 @@ void WiFiStateMachine::onStaDisconnected(WiFiError reason) {
     log.debug("onStaDisconnected");
     if (currentState == WiFiState::PROVISIONING_TEST_STA) {
         transitionTo(WiFiState::STA_CONNECT_FAILED);
+    } else {
+        onUnexpectedEvent("onStaDisconnected()");
     }
 }
 
@@ -115,6 +124,8 @@ void WiFiStateMachine::onProvisioningRequestReceived() {
     log.debug("onProvisioningRequestReceived not implemented");
     if (currentState == WiFiState::UNPROVISIONED_AP) {
         transitionTo(WiFiState::PROVISIONING);
+    } else {
+        onUnexpectedEvent("onProvisioningRequestReceived()");
     }
 }
 
@@ -132,7 +143,7 @@ void WiFiStateMachine::onProvisioningTestResult(bool success) {
 // Error handling
 // ---------------------------------------------------------
 void WiFiStateMachine::onError(WiFiError error) {
-    log.debug("onError");
+    log.error("onError");
 }
 
 // ---------------------------------------------------------

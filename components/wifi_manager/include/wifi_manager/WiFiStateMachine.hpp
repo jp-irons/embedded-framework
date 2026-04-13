@@ -20,6 +20,8 @@ class WiFiStateMachine {
     void start();
 
     // Driver lifecycle
+	void onUnexpectedEvent(const char* eventName);
+
     void onDriverStarted();
     void onDriverStopped();
 
