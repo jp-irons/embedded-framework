@@ -62,7 +62,7 @@ function buildProvisioningPayload() {
   });
 
   if (selectedIndex === null) {
-	showWarning('Please select a network');
+	showModal('warning', 'Selection Required', 'Please select a network');
     return null;
   }
 
@@ -170,52 +170,39 @@ async function clearNvs() {
   await fetch('/framework/api/credentials/clearNvs', { method: 'POST' });
 }
 
-function showRebootModal() {
-  document.getElementById('reboot-modal').classList.remove('hidden');
-}
+let _confirmCallback = null;
 
-function hideRebootModal() {
-  document.getElementById('reboot-modal').classList.add('hidden');
-}
+function showConfirm(type, title, message, onConfirm) {
+  const modal = document.getElementById('confirm-modal');
+  const titleEl = document.getElementById('confirm-modal-title');
+  const msgEl = document.getElementById('confirm-modal-message');
 
-function showSuccess(msg) {
-  document.getElementById('success-message').textContent = msg;
-  document.getElementById('success-modal').classList.remove('hidden');
-}
+  titleEl.textContent = title;
+  msgEl.textContent = message;
 
-function hideSuccessModal() {
-  document.getElementById('success-modal').classList.add('hidden');
-}
+  // Optional color coding
+  if (type === 'danger') {
+    titleEl.style.color = '#dc2626'; // red-600
+  } else if (type === 'warning') {
+    titleEl.style.color = '#d97706'; // amber-600
+  } else {
+    titleEl.style.color = '#111827'; // default
+  }
 
-function showWarning(msg) {
-  document.getElementById('warning-message').textContent = msg;
-  document.getElementById('warning-modal').classList.remove('hidden');
-}
-
-function hideWarningModal() {
-  document.getElementById('warning-modal').classList.add('hidden');
-}
-
-function showError(msg) {
-  document.getElementById('error-message').textContent = msg;
-  document.getElementById('error-modal').classList.remove('hidden');
-}
-
-function hideErrorModal() {
-  document.getElementById('error-modal').classList.add('hidden');
+  _confirmCallback = onConfirm;
+  modal.classList.remove('hidden');
 }
 
 async function confirmReboot() {
-  hideRebootModal();
-
   try {
     const res = await fetch('/api/device/reboot', { method: 'POST' });
 
     if (!res.ok) {
-      throw new Error('Reboot failed');
+      showModal('error', 'Reboot Failed', 'Unable to reboot device');
+      return;
     }
 
-	showSuccess('Device is rebooting…');
+    showModal('success', 'Rebooting', 'Device is rebooting…');
 
     setTimeout(() => {
       location.reload();
@@ -223,9 +210,52 @@ async function confirmReboot() {
 
   } catch (err) {
     console.error(err);
-	showError('Unable to reboot device');
+    showModal('error', 'Reboot Failed', 'Unable to reboot device');
   }
 }
+
+function hideConfirmModal() {
+  document.getElementById('confirm-modal').classList.add('hidden');
+  _confirmCallback = null;
+}
+
+// Wire up the buttons once
+document.getElementById('confirm-cancel-btn').onclick = () => {
+  hideConfirmModal();
+};
+
+document.getElementById('confirm-ok-btn').onclick = () => {
+  if (_confirmCallback) _confirmCallback();
+  hideConfirmModal();
+};
+
+function showModal(type, title, message) {
+  const modal = document.getElementById('unified-modal');
+  const titleEl = document.getElementById('unified-modal-title');
+  const msgEl = document.getElementById('unified-modal-message');
+
+  // Set content
+  titleEl.textContent = title;
+  msgEl.textContent = message;
+
+  // Optional: color‑coding by type
+  if (type === 'error') {
+    titleEl.style.color = '#dc2626'; // red-600
+  } else if (type === 'success') {
+    titleEl.style.color = '#16a34a'; // green-600
+  } else if (type === 'warning') {
+    titleEl.style.color = '#d97706'; // amber-600
+  } else {
+    titleEl.style.color = '#111827'; // default gray-900
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function hideUnifiedModal() {
+  document.getElementById('unified-modal').classList.add('hidden');
+}
+
 
 document.getElementById('btn-clear-creds').onclick = clearCredentials;
 document.getElementById('btn-clear-nvs').onclick = clearNvs;
