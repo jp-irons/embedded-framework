@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ESP32 WiFi Provisioning</title> 
+	<head>
+	  <meta charset="UTF-8" />
+	  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	  <title>ESP32 WiFi Provisioning</title>
 
-  <script src="/app.js"></script>
-  <link rel="stylesheet" href="/style.css">
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      loadScanResults();
-    });
-  </script>
-</head>
+	  <script src="/app.js" defer></script>
+	  <link rel="stylesheet" href="/style.css">
 
-<body class="bg-gray-100 text-gray-900">
+	  <script>
+	    document.addEventListener("DOMContentLoaded", () => {
+	      loadScanResults();
+	    });
+	  </script>
+	</head>
+	
+<body class="bg-gray-100 text-gray-900 min-h-screen relative">
 
-  <div class="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded-lg">
+  <!-- Provisioning Card -->
+  <div class="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded-lg overflow-visible">
 
     <h1 class="text-2xl font-semibold mb-4">WiFi Provisioning</h1>
 
@@ -37,6 +39,12 @@
                 class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
           Clear NVS
         </button>
+
+        <button id="btn-reboot"
+                onclick="showRebootModal()"
+                class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+          Reboot
+        </button>
       </div>
     </div>
 
@@ -46,9 +54,9 @@
 
       <div class="flex items-center gap-3">
         <input id="password"
-              type="password"
-              class="flex-grow px-3 py-2 border rounded focus:ring focus:ring-blue-300"
-              placeholder="Network password" />
+               type="password"
+               class="flex-grow px-3 py-2 border rounded focus:ring focus:ring-blue-300"
+               placeholder="Network password" />
 
         <button onclick="submitProvisioning()"
                 class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
@@ -77,8 +85,75 @@
       </div>
     </div>
 
+  </div> <!-- END provisioning card -->
+
+
+  <!-- Modal OUTSIDE all stacking contexts -->
+  <div id="reboot-modal"
+       class="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center hidden">
+    <div class="bg-white rounded shadow-lg p-6 w-80">
+      <h2 class="text-lg font-semibold mb-4">Reboot device?</h2>
+      <p class="text-sm text-gray-700 mb-6">
+        Are you sure you want to reboot the device?
+      </p>
+
+      <div class="flex justify-end gap-3">
+        <button onclick="hideRebootModal()"
+                class="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">
+          Cancel
+        </button>
+
+        <button onclick="confirmReboot()"
+                class="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">
+          Reboot
+        </button>
+      </div>
+    </div>
 
   </div>
+  
+  <!-- Error Modal -->
+  <div id="error-modal"
+       class="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center hidden">
+    <div class="bg-white rounded shadow-lg p-6 w-80">
+      <h2 class="text-lg font-semibold mb-4">Error</h2>
+      <p id="error-message" class="text-sm text-gray-700 mb-6"></p>
+      <div class="flex justify-end">
+        <button onclick="hideErrorModal()"
+                class="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="warning-modal"
+       class="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center hidden">
+    <div class="bg-white rounded shadow-lg p-6 w-80">
+      <h2 class="text-lg font-semibold mb-4">Notice</h2>
+      <p id="warning-message" class="text-sm text-gray-700 mb-6"></p>
+      <div class="flex justify-end">
+        <button onclick="hideWarningModal()"
+                class="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
 
-</body>
+    <div id="success-modal"
+       class="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center hidden">
+    <div class="bg-white rounded shadow-lg p-6 w-80">
+      <h2 class="text-lg font-semibold mb-4">Success</h2>
+      <p id="success-message" class="text-sm text-gray-700 mb-6"></p>
+      <div class="flex justify-end">
+        <button onclick="hideSuccessModal()"
+                class="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+
+  
 </html>

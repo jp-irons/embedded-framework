@@ -62,7 +62,7 @@ function buildProvisioningPayload() {
   });
 
   if (selectedIndex === null) {
-    alert("Please select a network");
+	showWarning('Please select a network');
     return null;
   }
 
@@ -168,6 +168,63 @@ async function clearCredentials() {
 
 async function clearNvs() {
   await fetch('/framework/api/credentials/clearNvs', { method: 'POST' });
+}
+
+function showRebootModal() {
+  document.getElementById('reboot-modal').classList.remove('hidden');
+}
+
+function hideRebootModal() {
+  document.getElementById('reboot-modal').classList.add('hidden');
+}
+
+function showSuccess(msg) {
+  document.getElementById('success-message').textContent = msg;
+  document.getElementById('success-modal').classList.remove('hidden');
+}
+
+function hideSuccessModal() {
+  document.getElementById('success-modal').classList.add('hidden');
+}
+
+function showWarning(msg) {
+  document.getElementById('warning-message').textContent = msg;
+  document.getElementById('warning-modal').classList.remove('hidden');
+}
+
+function hideWarningModal() {
+  document.getElementById('warning-modal').classList.add('hidden');
+}
+
+function showError(msg) {
+  document.getElementById('error-message').textContent = msg;
+  document.getElementById('error-modal').classList.remove('hidden');
+}
+
+function hideErrorModal() {
+  document.getElementById('error-modal').classList.add('hidden');
+}
+
+async function confirmReboot() {
+  hideRebootModal();
+
+  try {
+    const res = await fetch('/api/device/reboot', { method: 'POST' });
+
+    if (!res.ok) {
+      throw new Error('Reboot failed');
+    }
+
+	showSuccess('Device is rebooting…');
+
+    setTimeout(() => {
+      location.reload();
+    }, 3000);
+
+  } catch (err) {
+    console.error(err);
+	showError('Unable to reboot device');
+  }
 }
 
 document.getElementById('btn-clear-creds').onclick = clearCredentials;
