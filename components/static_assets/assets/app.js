@@ -62,7 +62,7 @@ function buildProvisioningPayload() {
   });
 
   if (selectedIndex === null) {
-	showModal('warning', 'Selection Required', 'Please select a network');
+	showMessage('warning', 'Selection Required', 'Please select a network');
     return null;
   }
 
@@ -79,9 +79,14 @@ function buildProvisioningPayload() {
     bssidLocked: bssidLocked
   };
 }
-// POST /submit
+
 async function submitProvisioning() {
   const payload = buildProvisioningPayload();
+
+  // If no payload, the modal has already been shown — stop here
+  if (!payload) {
+    return;
+  }
 
   try {
     const res = await fetch('/framework/api/credentials/submit', {
@@ -148,7 +153,7 @@ function renderCredList(creds) {
     const btn = document.createElement('button');
     btn.textContent = 'Delete';
     btn.className = "px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700";
-    btn.onclick = () => deleteCredential(c.ssid);
+    btn.onclick = () => requestDeleteCredential(c.ssid);
 
     li.appendChild(name);
     li.appendChild(btn);
@@ -156,18 +161,65 @@ function renderCredList(creds) {
   });
 }
 
+function requestDeleteCredential(ssid) {
+  showConfirm(
+    'danger',
+    'Delete Credential',
+    `Do you want to delete "${ssid}"?`,
+    () => deleteCredential(ssid)
+  );
+}
+
 async function deleteCredential(ssid) {
-  await fetch(`/framework/api/credentials/${encodeURIComponent(ssid)}`, { method: 'DELETE' });
-  await fetchCredentials();
+  try {
+    await fetch(`/framework/api/credentials/${encodeURIComponent(ssid)}`, {
+      method: 'DELETE'
+    });
+    await fetchCredentials();
+    showMessage('success', 'Deleted', `Credential "${ssid}" has been removed.`);
+  } catch (err) {
+    console.error(err);
+    showMessage('error', 'Delete Failed', `Unable to delete "${ssid}".`);
+  }
+}
+
+function requestClearCredentials() {
+  showConfirm(
+    'warning',
+    'Clear All Credentials',
+    'Do you want to remove all saved WiFi credentials?',
+    clearCredentials
+  );
 }
 
 async function clearCredentials() {
-  await fetch('/framework/api/credentials/clear', { method: 'POST' });
-  await fetchCredentials();
+  try {
+    await fetch('/framework/api/credentials/clear', { method: 'POST' });
+    await fetchCredentials();
+    showMessage('success', 'Cleared', 'All credentials have been removed.');
+  } catch (err) {
+    console.error(err);
+    showMessage('error', 'Clear Failed', 'Unable to clear credentials.');
+  }
+}
+
+function requestClearNvs() {
+  showConfirm(
+    'danger',
+    'Clear NVS',
+    'This will erase all stored WiFi data. Continue?',
+    clearNvs
+  );
 }
 
 async function clearNvs() {
-  await fetch('/framework/api/credentials/clearNvs', { method: 'POST' });
+  try {
+    await fetch('/framework/api/credentials/clearNvs', { method: 'POST' });
+    showMessage('success', 'NVS Cleared', 'Non-volatile storage has been erased.');
+  } catch (err) {
+    console.error(err);
+    showMessage('error', 'Clear Failed', 'Unable to clear NVS.');
+  }
 }
 
 let _confirmCallback = null;
@@ -198,11 +250,11 @@ async function confirmReboot() {
     const res = await fetch('/api/device/reboot', { method: 'POST' });
 
     if (!res.ok) {
-      showModal('error', 'Reboot Failed', 'Unable to reboot device');
+      showMessage('error', 'Reboot Failed', 'Unable to reboot device');
       return;
     }
 
-    showModal('success', 'Rebooting', 'Device is rebooting…');
+    showMessage('success', 'Rebooting', 'Device is rebooting…');
 
     setTimeout(() => {
       location.reload();
@@ -210,7 +262,7 @@ async function confirmReboot() {
 
   } catch (err) {
     console.error(err);
-    showModal('error', 'Reboot Failed', 'Unable to reboot device');
+    showMessage('error', 'Reboot Failed', 'Unable to reboot device');
   }
 }
 
@@ -229,10 +281,10 @@ document.getElementById('confirm-ok-btn').onclick = () => {
   hideConfirmModal();
 };
 
-function showModal(type, title, message) {
-  const modal = document.getElementById('unified-modal');
-  const titleEl = document.getElementById('unified-modal-title');
-  const msgEl = document.getElementById('unified-modal-message');
+function showMessage(type, title, message) {
+  const modal = document.getElementById('message-modal');
+  const titleEl = document.getElementById('message-modal-title');
+  const msgEl = document.getElementById('message-modal-message');
 
   // Set content
   titleEl.textContent = title;
@@ -252,12 +304,12 @@ function showModal(type, title, message) {
   modal.classList.remove('hidden');
 }
 
-function hideUnifiedModal() {
-  document.getElementById('unified-modal').classList.add('hidden');
+function hideMessageModal() {
+  document.getElementById('message-modal').classList.add('hidden');
 }
 
 
-document.getElementById('btn-clear-creds').onclick = clearCredentials;
-document.getElementById('btn-clear-nvs').onclick = clearNvs;
+document.getElementById('btn-clear-creds').onclick = requestClearCredentials;
+document.getElementById('btn-clear-nvs').onclick = requestClearNvs;
 
 window.addEventListener('load', fetchCredentials);
