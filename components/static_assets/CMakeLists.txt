@@ -1,3 +1,5 @@
+file(GLOB_RECURSE EMBED_ASSETS "assets/*")
+#touch
 idf_component_register(
     SRCS
     	StaticFileHandler.cpp
@@ -9,8 +11,10 @@ idf_component_register(
         http
         logger
     EMBED_FILES
-        assets/index.html
-        assets/app.js
-        assets/style.css
-        assets/favicon.ico
+        ${EMBED_ASSETS}    
+#        assets/index.html
+#        assets/app.js
+#        assets/style.css
+#        assets/favicon.ico
+#        assets/provision/index.html
 )
