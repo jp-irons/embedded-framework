@@ -12,9 +12,4 @@ idf_component_register(
         logger
     EMBED_FILES
         ${EMBED_ASSETS}    
-#        assets/index.html
-#        assets/app.js
-#        assets/style.css
-#        assets/favicon.ico
-#        assets/provision/index.html
 )
