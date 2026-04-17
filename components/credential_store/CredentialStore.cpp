@@ -116,9 +116,19 @@ Result CredentialStore::loadAllSortedByPriority(std::vector<WiFiCredential> &out
     return Result::Ok;
 }
 
-Result CredentialStore::saveAll(const std::vector<WiFiCredential> &entries) {
+Result CredentialStore::saveAll(std::vector<WiFiCredential> entries) {
     log.debug("saveAll");
-    // Compute size
+
+    // 1. Sort by priority (just in case caller didn't)
+    std::sort(entries.begin(), entries.end(),
+              [](auto &a, auto &b) { return a.priority < b.priority; });
+
+    // 2. Renumber priorities sequentially
+    for (size_t i = 0; i < entries.size(); ++i) {
+        entries[i].priority = i;
+    }
+
+    // 3. Compute encoded size
     size_t size = 0;
     for (auto &e : entries) {
         size += 1 + 1 + 1; // ssidLen, passLen, priority
@@ -129,10 +139,11 @@ Result CredentialStore::saveAll(const std::vector<WiFiCredential> &entries) {
     std::vector<uint8_t> buf(size);
     uint8_t *p = buf.data();
 
+    // 4. Encode entries
     for (auto &e : entries) {
-        *p++ = (uint8_t) e.ssid.size();
-        *p++ = (uint8_t) e.password.size();
-        *p++ = (int8_t) e.priority;
+        *p++ = (uint8_t)e.ssid.size();
+        *p++ = (uint8_t)e.password.size();
+        *p++ = (uint8_t)e.priority;
 
         memcpy(p, e.ssid.data(), e.ssid.size());
         p += e.ssid.size();
@@ -141,6 +152,7 @@ Result CredentialStore::saveAll(const std::vector<WiFiCredential> &entries) {
         p += e.password.size();
     }
 
+    // 5. Write to NVS
     nvs_handle_t handle;
     esp_err_t err = nvs_open(ns, NVS_READWRITE, &handle);
     if (err != ESP_OK) {
@@ -156,7 +168,6 @@ Result CredentialStore::saveAll(const std::vector<WiFiCredential> &entries) {
     nvs_close(handle);
     return Result::Ok;
 }
-
 Result CredentialStore::add(const WiFiCredential &entry) {
     log.debug("add");
     std::vector<WiFiCredential> entries;

@@ -207,23 +207,25 @@ function renderCredList(creds) {
 	
 	// Right: button group
 	const btnGroup = document.createElement('div');
-	btnGroup.className = "flex gap-2";   // space between ^1st and Delete
+	btnGroup.className = "flex gap-3";   // space between ^1st and Delete
 
-	// ^1st button
-	const btnFirst = document.createElement("button");
-	btnFirst.textContent = "^1st";
-	btnFirst.className = "px-2 py-1 bg-gray-300 rounded hover:bg-gray-400";
-	btnFirst.onclick = () => makeFirst(c.ssid);
-
+	if (c.priority !== 0) {
+	    const btnFirst = document.createElement("button");
+	    btnFirst.textContent = "^1st";
+	    btnFirst.className = "px-2 py-1 bg-gray-300 rounded hover:bg-gray-400";
+	    btnFirst.onclick = () => makeFirst(c.ssid);
+	    btnGroup.appendChild(btnFirst);
+	}
+	
 	// Delete button (furthest right)
 	const btnDelete = document.createElement('button');
 	btnDelete.textContent = 'Delete';
 	btnDelete.className = "px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700";
 	btnDelete.onclick = () => requestDeleteCredential(c.ssid);
+	btnGroup.appendChild(btnDelete);
 	
     li.appendChild(name);
-	btnGroup.appendChild(btnFirst);
-	btnGroup.appendChild(btnDelete);
+	// ^1st button (only if not already top)
 	li.appendChild(btnGroup);
     ul.appendChild(li);
   });
