@@ -19,9 +19,9 @@ class CredentialApiHandler : public http::HttpHandler {
   private:
     common::Result handleList(http::HttpResponse &res);
     common::Result handleSubmit(const http::HttpRequest &req, http::HttpResponse &res);
-    common::Result handleDelete(const http::HttpRequest &req, http::HttpResponse &res);
 	common::Result handleClear(http::HttpResponse &res);
 	common::Result handleClearNvs(http::HttpResponse &res);
+    common::Result handleDelete(std::string ssid, http::HttpResponse &res);
 	std::string extractAction(const char* uri);
 
     credential_store::CredentialStore &store;

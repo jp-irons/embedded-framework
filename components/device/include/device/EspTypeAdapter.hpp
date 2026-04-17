@@ -4,7 +4,7 @@
 #include "esp_http_server.h"
 #include "http/HttpMethod.hpp"
 
-namespace esp_adapter {
+namespace device {
 inline esp_err_t toEspError(common::Result r) {
     using common::Result;
 

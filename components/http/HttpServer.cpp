@@ -1,7 +1,7 @@
 #include "common/Result.hpp"
 #include "http/HttpServer.hpp"
 
-#include "../device/include/device/EspTypeAdapter.hpp"
+#include "device/EspTypeAdapter.hpp"
 #include "http/HttpMethod.hpp"
 #include "logger/Logger.hpp"
 #include "esp_err.h"
@@ -59,7 +59,7 @@ void HttpServer::addRoute(HttpMethod method, const std::string &path, HttpHandle
 	ownedPaths.push_back(path);
 	httpd_uri_t uri = {
 	    .uri = ownedPaths.back().c_str(),
-	    .method = esp_adapter::toEspIdfMethod(method),
+	    .method = device::toEspIdfMethod(method),
 	    .handler = &HttpServer::handlerAdapter,
 	    .user_ctx = handler
 	};

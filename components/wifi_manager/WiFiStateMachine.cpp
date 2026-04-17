@@ -237,9 +237,18 @@ void WiFiStateMachine::enterState(WiFiState newState) {
 }
 
 void WiFiStateMachine::tryNextCredential() {
-    log.debug("tryNextCredential Not Implemented");
-	// TODO work out how to retry and try next credential
-}
+	if (retryCount < MAX_RETRIES) {
+	    retryCount++;
+	    log.warn("Retry %d/%d connecting to STA", retryCount, MAX_RETRIES);
+
+	    defer.runAfter(500, [this]() {
+	        transitionTo(WiFiState::STA_CONNECTING);
+	    });
+	} else {
+	    log.error("Max STA retries reached — falling back to AP");
+	    retryCount = 0;
+	    transitionTo(WiFiState::FALLBACK_AP);
+	}}
 
 void WiFiStateMachine::startProvisioningAp() {
     log.debug("startProvisioningAp");

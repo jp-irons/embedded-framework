@@ -28,7 +28,7 @@ class HttpRequest {
     }
 	
 	HttpMethod method() const {
-		return esp_adapter::toHttpMethod(req->method);
+		return device::toHttpMethod(req->method);
 	}
 
     httpd_req_t *raw() const {

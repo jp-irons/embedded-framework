@@ -60,6 +60,9 @@ class WiFiStateMachine {
 	
     size_t currentCredentialIndex = 0;
 	wifi_types::WiFiCredential* currentCredential = nullptr;
+	
+	int retryCount = 0;
+	static constexpr int MAX_RETRIES = 3;
 
     wifi_types::WiFiCredential getCredential(size_t index) const;
 	

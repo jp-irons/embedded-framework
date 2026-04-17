@@ -1,7 +1,7 @@
 #include "wifi_manager/WiFiInterface.hpp"
 
-#include "../device/include/device/EspTypeAdapter.hpp"
-#include "../wifi_types/include/wifi_types/WiFiTypes.hpp"
+#include "device/EspTypeAdapter.hpp"
+#include "wifi_types/WiFiTypes.hpp"
 #include "common/Result.hpp"
 #include "esp_event.h"
 #include "esp_event_base.h"
@@ -272,7 +272,7 @@ Result WiFiInterface::scan(std::vector<WiFiAp> &outAps) {
 	log.debug("scan starting scan");
     esp_err_t err = esp_wifi_scan_start(&scanConfig, true);
     if (err != ESP_OK) {
-		Result r = esp_adapter::toResult(err);
+		Result r = device::toResult(err);
         log.error("scan esp_wifi_scan_start returned %s", r);
         setStaState(initialStaActive); // restore before returning
         return r;
@@ -282,7 +282,7 @@ Result WiFiInterface::scan(std::vector<WiFiAp> &outAps) {
     uint16_t apCount = 0;
 	err = esp_wifi_scan_get_ap_num(&apCount);
 	if (err != ESP_OK) {
-		Result r = esp_adapter::toResult(err);
+		Result r = device::toResult(err);
 	    log.error("scan() esp_wifi_scan_get_ap_number error %s", r);
 	    setStaState(initialStaActive);
 	    return r;
@@ -291,7 +291,7 @@ Result WiFiInterface::scan(std::vector<WiFiAp> &outAps) {
     std::vector<wifi_ap_record_t> records(apCount);
     err = esp_wifi_scan_get_ap_records(&apCount, records.data());
     if (err != ESP_OK) {
-		Result r = esp_adapter::toResult(err);
+		Result r = device::toResult(err);
         log.error("scan() esp_wifi_scan_get_ap_records error %s", r);
         setStaState(initialStaActive);
         return r;
@@ -357,7 +357,7 @@ Result WiFiInterface::setStaState(bool enable) {
 
     esp_err_t err = esp_wifi_set_mode(mode);
     if (err != ESP_OK) {
-		Result r = esp_adapter::toResult(err);
+		Result r = device::toResult(err);
         log.error("setStaState() esp_wifi_set_mode error %s", r);
         // rollback
         staActive = !enable;

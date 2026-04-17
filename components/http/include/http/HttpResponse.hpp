@@ -4,7 +4,7 @@
 
 #include <string>
 #include <string_view>
-#include "../../../device/include/device/EspTypeAdapter.hpp"
+#include "device/EspTypeAdapter.hpp"
 
 // TODO move method defns back from header to cpp
 namespace http {
@@ -18,12 +18,12 @@ class HttpResponse {
 
     Result send(const unsigned char *data, unsigned int size) {
         esp_err_t err = httpd_resp_send(req, reinterpret_cast<const char *>(data), size);
-        return esp_adapter::toResult(err);
+        return device::toResult(err);
     }
 
     Result send(std::string_view data) {
         esp_err_t err = httpd_resp_send(req, data.data(), data.size());
-        return esp_adapter::toResult(err);
+        return device::toResult(err);
     }
 
     void setType(std::string_view type) {
@@ -35,7 +35,7 @@ class HttpResponse {
     Result sendText(std::string_view body) {
         httpd_resp_set_type(req, "text/plain");
         esp_err_t err = httpd_resp_send(req, body.data(), body.size());
-        return esp_adapter::toResult(err);
+        return device::toResult(err);
     }
 
     // "400 Bad Request"
@@ -65,7 +65,7 @@ class HttpResponse {
 	Result sendJson(std::string_view body) {
 	    httpd_resp_set_type(req, "application/json");
 	    esp_err_t err = httpd_resp_send(req, body.data(), body.size());
-	    return esp_adapter::toResult(err);
+	    return device::toResult(err);
 	}
 
 	Result sendJsonOk(std::string_view message = "Ok") {

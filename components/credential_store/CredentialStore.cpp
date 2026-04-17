@@ -7,7 +7,7 @@
 
 #include <algorithm>
 #include <cstring>
-#include "../device/include/device/EspTypeAdapter.hpp"
+#include "device/EspTypeAdapter.hpp"
 
 namespace credential_store {
 
@@ -40,7 +40,7 @@ Result CredentialStore::loadAll(std::vector<WiFiCredential> &out) const {
 	    return Result::Ok;
 	}
 	if (err != ESP_OK) {
-	    Result r = esp_adapter::toResult(err);
+	    Result r = device::toResult(err);
 	    log.warn("Error '%s' opening namespace", toString(r));
 	    return r;
 	}
@@ -54,7 +54,7 @@ Result CredentialStore::loadAll(std::vector<WiFiCredential> &out) const {
     }
 
     if (err != ESP_OK) {
-        Result r = esp_adapter::toResult(err);
+        Result r = device::toResult(err);
         log.warn("Error '%s' accessing nvs", toString(r));
         nvs_close(handle);
         return r;
@@ -72,7 +72,7 @@ Result CredentialStore::loadAll(std::vector<WiFiCredential> &out) const {
     nvs_close(handle);
 
     if (err != ESP_OK) {
-        Result r = esp_adapter::toResult(err);
+        Result r = device::toResult(err);
         log.warn("Error '%s' reading nvs", toString(r));
         nvs_close(handle);
         return r;
@@ -143,7 +143,7 @@ Result CredentialStore::saveAll(const std::vector<WiFiCredential> &entries) {
     nvs_handle_t handle;
     esp_err_t err = nvs_open(ns, NVS_READWRITE, &handle);
     if (err != ESP_OK) {
-        Result r = esp_adapter::toResult(err);
+        Result r = device::toResult(err);
         log.warn("Error '%s' opening nvs", r);
         return r;
     }
@@ -190,7 +190,7 @@ Result CredentialStore::clear() {
     nvs_handle_t handle;
     esp_err_t err = nvs_open(ns, NVS_READWRITE, &handle);
     if (err != ESP_OK)
-        return esp_adapter::toResult(err);
+        return device::toResult(err);
 
     err = nvs_erase_key(handle, "entries");
     if (err == ESP_OK)

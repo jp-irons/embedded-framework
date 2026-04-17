@@ -147,11 +147,15 @@ async function submitProvisioning() {
 
     const result = await res.json();
     console.log("Provisioning submitted:", result);
-
-    startStatusPolling();
+	document.getElementById("password").value = "";
+	showMessage("success", "Credential saved", `${payload.ssid} added.`);
+	
+	await fetchCredentials();
+    // startStatusPolling();
 
   } catch (err) {
     console.error("Submit failed:", err);
+	showMessage("error", "Save failed", "Unable to save credential.");
   }
 }
 
