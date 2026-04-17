@@ -37,13 +37,15 @@ bool RuntimeServer::start() {
 
     if (!routesRegistered) {
         log.debug("start() registering routes");
-        server.addRoutes(ctx.rootUri + "/credentials/*", &credentialHandler);
-        // TODO change to addRoutes
-        server.addPostRoute(ctx.rootUri + "/device/*", &deviceHandler);
-        server.addGetRoute(ctx.rootUri + "/wifi/*", &wifiHandler);
-        //		server.addGetRoute(ctx.rootUri + "/provision/*", this);
-        server.addGetRoute("/*", &fallbackHandler);
+		//
+		routes = {
+		{ctx.rootUri + "/credentials/", &credentialHandler},
+		{ctx.rootUri + "/device/", &deviceHandler},
+		{ctx.rootUri + "/wifi/", &wifiHandler},
+		{"/", &fallbackHandler}
+		};
 
+        server.addRoutes("/*", this);
         routesRegistered = true;
     }
 
@@ -57,25 +59,23 @@ void RuntimeServer::stop() {
 
 // handle requests not handled elsewhere
 Result RuntimeServer::handle(http::HttpRequest &req, http::HttpResponse &res) {
-    const std::string &path = req.path();
     log.debug("handle");
-    std::string action = extractAction(req.path());
-    log.debug("action '%s'", action.c_str());
+    const std::string &path = req.path();
+    log.debug("path '%s'", path.c_str());
+	
+	for (auto& r : routes) {
+		log.debug("check route '%s' path '%s'", r.prefix.c_str(), path.c_str());
 
-    //	if (action == "status") {
-    //	    log.debug("action status matched");
-    //	    return handleStatus(res);
-    //	}
-    //
-    //    if (path == "/provision/status") {
-    //        return handleStatus(req, res);
-    //    }
-    //
-    //    if (path == "/provision/reset") {
-    //    if (path == "/provision/retry") {
-    //
-    // fallback: serve provisioning UI
-    return staticHandler.handle(req, res);
+	    if (path.rfind(r.prefix, 0) == 0) {
+			log.debug("matched '%s' to '%s'", r.prefix.c_str(), path.c_str());
+	        Result result = r.handler->handle(req, res);
+			if (result != Result::NotFound) {
+				return result;
+			}
+	    }
+	}
+	
+	return res.sendNotFound404();
 }
 
 } // namespace wifi_manager
