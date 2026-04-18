@@ -21,8 +21,7 @@ ProvisioningServer::ProvisioningServer(WiFiContext &ctx, WiFiApiHandler &wifiApi
                              device::DeviceApiHandler &deviceHandler)
     : ctx(ctx)
     , server()
-    , staticHandler("/provision/", "index.html")
-    , fallbackHandler("/", "index.html")
+    , staticHandler("/", "index.html")
     , wifiHandler(wifiApi)
     , credentialHandler(credentialApi)
     , deviceHandler(deviceHandler) {
@@ -44,7 +43,7 @@ bool ProvisioningServer::start() {
 		{ctx.rootUri + "/credentials/", &credentialHandler},
 		{ctx.rootUri + "/device/", &deviceHandler},
 		{ctx.rootUri + "/wifi/", &wifiHandler},
-		{"/", &fallbackHandler}
+		{"/", &staticHandler}
 		};
         server.addRoutes("/*", this);
         routesRegistered = true;

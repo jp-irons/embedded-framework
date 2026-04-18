@@ -32,7 +32,6 @@ class ProvisioningServer : public http::HttpHandler {
 
     http::HttpServer server;
     static_assets::StaticFileHandler staticHandler;
-    static_assets::StaticFileHandler fallbackHandler;
     wifi_manager::WiFiApiHandler wifiHandler;
     credential_store::CredentialApiHandler credentialHandler;
     device::DeviceApiHandler deviceHandler;
