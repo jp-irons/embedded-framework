@@ -88,10 +88,10 @@ Result WiFiApiHandler::handleScan(HttpRequest &req, HttpResponse &res) {
 Result WiFiApiHandler::handleStatus(HttpRequest &req, HttpResponse &res) {
     log.debug("handleStatus");
 
-    // TODO    if (req.method != HttpMethod::GET) {
-    //	        return res.sendError(HttpStatus::METHOD_NOT_ALLOWED);
-    //	    }
-    //
+    if (req.method() != HttpMethod::Get) {
+		return res.sendJsonError(403, "Method not supported");
+    }
+
     wifi_types::WiFiStaStatus st = wifiCtx.stateMachine->getStaStatus();
 
     // Create root JSON object
@@ -111,8 +111,8 @@ Result WiFiApiHandler::handleStatus(HttpRequest &req, HttpResponse &res) {
     cJSON_Delete(root);
 
     if (!jsonStr) {
-		return res.sendJsonError(500, "Internal Error");
-   }
+        return res.sendJsonError(500, "Internal Error");
+    }
 
     // Send response
     Result r = res.sendJson(jsonStr);
