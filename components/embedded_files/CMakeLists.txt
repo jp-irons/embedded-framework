@@ -1,9 +1,9 @@
-file(GLOB_RECURSE EMBED_ASSETS "assets/*")
+file(GLOB_RECURSE EMBED_FILES "assets/*")
 #touch
 idf_component_register(
     SRCS
-    	StaticFileHandler.cpp
-    	EmbeddedAssetTable.cpp
+    	EmbeddedFileHandler.cpp
+    	EmbeddedFileTable.cpp
     INCLUDE_DIRS
         include
     REQUIRES
@@ -11,5 +11,5 @@ idf_component_register(
         http
         logger
     EMBED_FILES
-        ${EMBED_ASSETS}    
+        ${EMBED_FILES}    
 )

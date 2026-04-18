@@ -1,37 +1,38 @@
-#include "static_assets/StaticFileHandler.hpp"
+#include "embedded_files/EmbeddedFileHandler.hpp"
+#include "embedded_files/EmbeddedFileTable.hpp"
 
 #include "logger/Logger.hpp"
 
-namespace static_assets {
+namespace embedded_files {
 
 using namespace common;
 
-static logger::Logger log{"StaticFileHandler"};
+static logger::Logger log{"EmbeddedFileHandler"};
 
-StaticFileHandler::StaticFileHandler(std::string basePath, std::string defaultFile)
+EmbeddedFileHandler::EmbeddedFileHandler(std::string basePath, std::string defaultFile)
     : base(std::move(basePath))
     , defaultFile(std::move(defaultFile))
     , table() {
 		log.debug("constructor '%s'", base.c_str());
 }
 
-Result StaticFileHandler::handle(http::HttpRequest &request, http::HttpResponse &response) {
+Result EmbeddedFileHandler::handle(http::HttpRequest &request, http::HttpResponse &response) {
 	const char * path = request.path();
     log.debug("handle '%s' base '%s'", path, base.c_str());
-    const EmbeddedAsset *asset = table.find(path);
-    if (!asset) {
-        log.warn("Asset not found: %s", path);
-        response.sendNotFound404("Asset not found");
+    const EmbeddedFile *file = table.find(path);
+    if (!file) {
+        log.warn("File not found: %s", path);
+        response.sendNotFound404("File not found");
         return Result::NotFound;
     }
 
     const char *type = contentTypeForPath(path);
     response.setType(type);
-    response.send(asset->data, asset->size);
+    response.send(file->data, file->size);
     return Result::Ok;
 }
 
-const char *StaticFileHandler::contentTypeForPath(const std::string &path) {
+const char *EmbeddedFileHandler::contentTypeForPath(const std::string &path) {
     if (path.ends_with(".html"))
         return "text/html";
     if (path.ends_with(".js"))
@@ -48,4 +49,4 @@ const char *StaticFileHandler::contentTypeForPath(const std::string &path) {
     return "application/octet-stream";
 }
 
-} // namespace static_assets
+} // namespace embedded_files

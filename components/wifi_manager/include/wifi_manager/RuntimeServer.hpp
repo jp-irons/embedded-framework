@@ -2,9 +2,9 @@
 
 #include "credential_store/CredentialApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
+#include "embedded_files/EmbeddedFileHandler.hpp"
 #include "http/HttpHandler.hpp"
 #include "http/HttpServer.hpp"
-#include "static_assets/StaticFileHandler.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 
 namespace wifi_manager {
@@ -31,7 +31,7 @@ class RuntimeServer : public http::HttpHandler {
     WiFiContext &ctx;
 
     http::HttpServer server;
-    static_assets::StaticFileHandler staticHandler;
+    embedded_files::EmbeddedFileHandler embeddedFileHandler;
     wifi_manager::WiFiApiHandler wifiHandler;
     credential_store::CredentialApiHandler credentialHandler;
     device::DeviceApiHandler deviceHandler;

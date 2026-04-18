@@ -4,17 +4,17 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace static_assets {
+namespace embedded_files {
 
-struct EmbeddedAsset {
+struct EmbeddedFile {
     const uint8_t* data;
     size_t size;
 };
 
-class EmbeddedAssetTable {
+class EmbeddedFileTable {
 public:
-    const EmbeddedAsset* find(std::string_view path) const;
+    const EmbeddedFile* find(std::string_view path) const;
     const uint8_t* find(const char* path, size_t& outSize) const;
 };
 
-} // namespace static_assets
+} // namespace embedded_files

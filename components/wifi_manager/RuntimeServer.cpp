@@ -21,7 +21,7 @@ RuntimeServer::RuntimeServer(WiFiContext &ctx, WiFiApiHandler &wifiApi,
                              device::DeviceApiHandler &deviceHandler)
     : ctx(ctx)
     , server()
-    , staticHandler("/", "index.html")
+    , embeddedFileHandler("/", "index.html")
     , wifiHandler(wifiApi)
     , credentialHandler(credentialApi)
     , deviceHandler(deviceHandler) {
@@ -43,7 +43,7 @@ bool RuntimeServer::start() {
 		{ctx.rootUri + "/credentials/", &credentialHandler},
 		{ctx.rootUri + "/device/", &deviceHandler},
 		{ctx.rootUri + "/wifi/", &wifiHandler},
-		{"/", &staticHandler}
+		{"/", &embeddedFileHandler}
 		};
         server.addRoutes("/*", this);
         routesRegistered = true;

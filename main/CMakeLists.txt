@@ -4,11 +4,11 @@ idf_component_register(
         ApplicationContext.cpp
     REQUIRES
         credential_store
+        embedded_files
+        framework
+        http
         logger
         wifi_manager
-        http
-        static_assets
-        framework
     INCLUDE_DIRS
         .
 )

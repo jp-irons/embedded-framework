@@ -8,7 +8,7 @@ idf_component_register(
         credential_store
         http
         logger
-        static_assets
+        embedded_files
         wifi_manager
         wifi_types
 )

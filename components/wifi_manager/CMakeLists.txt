@@ -18,8 +18,8 @@ idf_component_register(
         common
         credential_store
         device
+        embedded_files
         http
         logger
-        static_assets
         wifi_types
 )
