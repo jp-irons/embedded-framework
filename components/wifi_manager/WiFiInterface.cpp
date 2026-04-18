@@ -368,4 +368,27 @@ Result WiFiInterface::setStaState(bool enable) {
     return Result::Ok;
 }
 
+IpAddress WiFiInterface::getApIp() const {
+    esp_netif_ip_info_t ip;
+    if (!apNetif || esp_netif_get_ip_info(apNetif, &ip) != ESP_OK) {
+        return {};
+    }
+
+    char buf[32];
+    esp_ip4addr_ntoa(&ip.ip, buf, sizeof(buf));
+    return { std::string(buf), true };
+}
+
+IpAddress WiFiInterface::getStaIp() const {
+    esp_netif_ip_info_t ip;
+    if (!staNetif || esp_netif_get_ip_info(staNetif, &ip) != ESP_OK) {
+        return {};
+    }
+
+    char buf[32];
+    esp_ip4addr_ntoa(&ip.ip, buf, sizeof(buf));
+    return { std::string(buf), true };
+}
+
+
 } // namespace wifi_manager

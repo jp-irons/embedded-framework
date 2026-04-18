@@ -39,6 +39,9 @@ class WiFiInterface {
     void stopRuntimeServer();
 
 	common::Result scan(std::vector<wifi_types::WiFiAp>& results);
+	
+	wifi_types::IpAddress getApIp() const;
+	wifi_types::IpAddress getStaIp() const;
 
   private:
     WiFiContext &ctx;

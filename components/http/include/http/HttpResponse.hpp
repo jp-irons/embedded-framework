@@ -1,10 +1,10 @@
 #pragma once
 #include "common/Result.hpp"
+#include "device/EspTypeAdapter.hpp"
 #include "esp_http_server.h"
 
 #include <string>
 #include <string_view>
-#include "device/EspTypeAdapter.hpp"
 
 // TODO move method defns back from header to cpp
 namespace http {
@@ -15,6 +15,20 @@ class HttpResponse {
   public:
     explicit HttpResponse(httpd_req *r)
         : req(r) {}
+
+    Result redirect(const std::string &target) {
+        // No copy — use target.c_str() directly
+        esp_err_t err = httpd_resp_set_status(req, "302 Found");
+        if (err != ESP_OK)
+            return device::toResult(err);
+
+        err = httpd_resp_set_hdr(req, "Location", target.c_str());
+        if (err != ESP_OK)
+            return device::toResult(err);
+
+        err = httpd_resp_send(req, nullptr, 0);
+        return device::toResult(err);
+    }
 
     Result send(const unsigned char *data, unsigned int size) {
         esp_err_t err = httpd_resp_send(req, reinterpret_cast<const char *>(data), size);
@@ -62,36 +76,36 @@ class HttpResponse {
         return sendText(body);
     }
 
-	Result sendJson(std::string_view body) {
-	    httpd_resp_set_type(req, "application/json");
-		httpd_resp_set_hdr(req, "Cache-Control", "no-store");
-	    esp_err_t err = httpd_resp_send(req, body.data(), body.size());
-	    return device::toResult(err);
-	}
+    Result sendJson(std::string_view body) {
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+        esp_err_t err = httpd_resp_send(req, body.data(), body.size());
+        return device::toResult(err);
+    }
 
-	Result sendJsonOk(std::string_view message = "Ok") {
-	    std::string body;
-	    body.reserve(message.size() + 10); // {"ok":""}
+    Result sendJsonOk(std::string_view message = "Ok") {
+        std::string body;
+        body.reserve(message.size() + 10); // {"ok":""}
 
-	    body.append("{\"ok\":\"");
-	    body.append(message);
-	    body.append("\"}");
+        body.append("{\"ok\":\"");
+        body.append(message);
+        body.append("\"}");
 
-	    return sendJson(body);
-	}
-	
-	Result sendJsonResult(Result r) {
-	    std::string_view text = toString(r);
+        return sendJson(body);
+    }
 
-	    std::string body;
-	    body.reserve(text.size() + 12); // {"result":""}
+    Result sendJsonResult(Result r) {
+        std::string_view text = toString(r);
 
-	    body.append("{\"result\":\"");
-	    body.append(text);
-	    body.append("\"}");
+        std::string body;
+        body.reserve(text.size() + 12); // {"result":""}
 
-	    return sendJson(body);
-	}
+        body.append("{\"result\":\"");
+        body.append(text);
+        body.append("\"}");
+
+        return sendJson(body);
+    }
 
     Result sendJsonError(std::string_view message) {
         httpd_resp_set_status(req, "400 Bad Request");

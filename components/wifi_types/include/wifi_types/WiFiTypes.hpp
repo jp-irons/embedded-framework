@@ -82,6 +82,11 @@ enum class WiFiStatus {
     ConnectError
 };
 
+struct IpAddress {
+    std::string value;   // "192.168.4.1"
+    bool valid = false;
+};
+
 
 const char *toString(WiFiState state);
 

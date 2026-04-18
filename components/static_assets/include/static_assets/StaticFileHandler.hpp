@@ -18,7 +18,6 @@ class StaticFileHandler : public http::HttpHandler {
     std::string defaultFile;
     EmbeddedAssetTable table; // owns its own table
 
-    std::string resolvePath(std::string_view uri) const;
     static const char *contentTypeForPath(const std::string &path);
 };
 

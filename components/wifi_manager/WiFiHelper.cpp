@@ -71,12 +71,13 @@ std::string toString(uint8_t reason) {
 
 WiFiError toWiFiError(uint8_t reason) {
     switch (reason) {
-
+		case 1: return WiFiError::UNKNOWN;
         // -------------------------
         // Authentication failures
         // -------------------------
         case 2: // WIFI_REASON_AUTH_EXPIRE
         case 15: // WIFI_REASON_AUTH_FAIL
+        case 202: // WIFI_REASON_CONNECTION_FAIL
             return WiFiError::AUTH_FAILED;
 
         // -------------------------
@@ -90,12 +91,13 @@ WiFiError toWiFiError(uint8_t reason) {
         // -------------------------
         case 4: // WIFI_REASON_ASSOC_EXPIRE
         case 200: // WIFI_REASON_BEACON_TIMEOUT
-        case 202: // WIFI_REASON_CONNECTION_FAIL
-            return WiFiError::CONNECTION_TIMEOUT;
+        case 203: // WIFI ASSOC_FAIL";
+         	return WiFiError::CONNECTION_TIMEOUT;
 
-        // -------------------------
+       // -------------------------
         // Handshake failures
         // -------------------------
+		case 14: //4WAY_HANDSHAKE_TIMEOUT
         case 204: // WIFI_REASON_HANDSHAKE_TIMEOUT
             return WiFiError::HANDSHAKE_TIMEOUT;
 
@@ -103,6 +105,7 @@ WiFiError toWiFiError(uint8_t reason) {
         // AP kicked us off (normal)
         // -------------------------
         case 3: // WIFI_REASON_ASSOC_LEAVE
+		case 8: // WIFI_REASON_ASSOC_LEAVE duplicate
             return WiFiError::NONE;
 
         // -------------------------
@@ -112,6 +115,5 @@ WiFiError toWiFiError(uint8_t reason) {
             return WiFiError::UNKNOWN;
     }
 }
-
 
 } // namespace wifi_manager

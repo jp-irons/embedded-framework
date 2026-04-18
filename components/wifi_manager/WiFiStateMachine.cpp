@@ -109,7 +109,7 @@ void WiFiStateMachine::onStaGotIp(const ip_event_got_ip_t *ip) {
 }
 
 void WiFiStateMachine::onStaDisconnected(WiFiError reason) {
-    log.debug("onStaDisconnected");
+    log.debug("onStaDisconnected due: %s", toString(reason));
 
     switch (currentState) {
 

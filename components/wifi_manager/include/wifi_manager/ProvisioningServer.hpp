@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/Result.hpp"
 #include "credential_store/CredentialApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "http/HttpHandler.hpp"
@@ -8,20 +7,14 @@
 #include "static_assets/StaticFileHandler.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 
-namespace http {
-class HttpRequest;
-class HttpResponse;
-} // namespace http
-
 namespace wifi_manager {
 
 struct WiFiContext;
 
 class ProvisioningServer : public http::HttpHandler {
   public:
-    explicit ProvisioningServer(WiFiContext &ctx, WiFiApiHandler &wifiApi,
-                                credential_store::CredentialApiHandler &credentialApi,
-                                device::DeviceApiHandler &deviceApi);
+    explicit ProvisioningServer(  WiFiContext &ctx, WiFiApiHandler &wifiApi,
+                             credential_store::CredentialApiHandler &credentialApi, device::DeviceApiHandler &deviceApi);
     ~ProvisioningServer();
 
     bool start();
@@ -30,6 +23,11 @@ class ProvisioningServer : public http::HttpHandler {
     common::Result handle(http::HttpRequest &req, http::HttpResponse &res) override;
 
   private:
+  struct Route {
+      std::string prefix;
+      http::HttpHandler* handler;
+  };
+
     WiFiContext &ctx;
 
     http::HttpServer server;
@@ -39,6 +37,7 @@ class ProvisioningServer : public http::HttpHandler {
     credential_store::CredentialApiHandler credentialHandler;
     device::DeviceApiHandler deviceHandler;
 
+	std::vector<Route> routes;
     bool routesRegistered = false;
 };
 

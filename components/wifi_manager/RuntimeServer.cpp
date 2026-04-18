@@ -5,7 +5,10 @@
 #include "logger/Logger.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiContext.hpp"
+#include "wifi_manager/WiFiApiHandler.hpp"
+#include "wifi_manager/WiFiInterface.hpp"
 #include "wifi_manager/WiFiStateMachine.hpp"
+#include "wifi_types/WiFiTypes.hpp"
 
 namespace wifi_manager {
 
@@ -18,37 +21,42 @@ RuntimeServer::RuntimeServer(WiFiContext &ctx, WiFiApiHandler &wifiApi,
                              device::DeviceApiHandler &deviceHandler)
     : ctx(ctx)
     , server()
-    , staticHandler("/", "index.html")
+    , staticHandler("/runtime/", "index.html")
     , fallbackHandler("/", "index.html")
     , wifiHandler(wifiApi)
     , credentialHandler(credentialApi)
     , deviceHandler(deviceHandler) {
     log.debug("constructor");
 }
+
 RuntimeServer::~RuntimeServer() {
     log.info("destructor");
     stop();
 }
 
 bool RuntimeServer::start() {
-    log.info("Starting RuntimeServer");
-
+    log.debug("Starting RuntimeServer");
     server.start();
 
     if (!routesRegistered) {
         log.debug("start() registering routes");
-		//
 		routes = {
 		{ctx.rootUri + "/credentials/", &credentialHandler},
 		{ctx.rootUri + "/device/", &deviceHandler},
 		{ctx.rootUri + "/wifi/", &wifiHandler},
 		{"/", &fallbackHandler}
 		};
-
         server.addRoutes("/*", this);
         routesRegistered = true;
     }
 
+	log.debug("RuntimeServer up");
+	wifi_types::IpAddress ip = ctx.wifiInterface->getStaIp();
+	if (ip.valid) {
+	    log.info("RuntimeServer started on http://%s", ip.value.c_str());
+	} else {
+	    log.warn("RuntimeServer started but STA IP unknown");
+	}
     return true;
 }
 
@@ -62,11 +70,17 @@ Result RuntimeServer::handle(http::HttpRequest &req, http::HttpResponse &res) {
     log.debug("handle");
     const std::string &path = req.path();
     log.debug("path '%s'", path.c_str());
+
+	std::string effectivePath = path;
+	if (path.empty() || path == "/" || path == "/index.html") {
+		log.debug("resolving path");
+		return res.redirect("/runtime/index.html");
+	}
 	
 	for (auto& r : routes) {
-		log.debug("check route '%s' path '%s'", r.prefix.c_str(), path.c_str());
+		log.debug("check route '%s' uri '%s'", r.prefix.c_str(), effectivePath.c_str());
 
-	    if (path.rfind(r.prefix, 0) == 0) {
+	    if (effectivePath.rfind(r.prefix, 0) == 0) {
 			log.debug("matched '%s' to '%s'", r.prefix.c_str(), path.c_str());
 	        Result result = r.handler->handle(req, res);
 			if (result != Result::NotFound) {

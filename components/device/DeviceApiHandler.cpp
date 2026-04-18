@@ -10,7 +10,7 @@ namespace device {
 static logger::Logger log{"DeviceApiHandler"};
 
 DeviceApiHandler::DeviceApiHandler() {
-	log.debug("contructor");
+	log.debug("constructor");
 }
 
 using namespace common;
