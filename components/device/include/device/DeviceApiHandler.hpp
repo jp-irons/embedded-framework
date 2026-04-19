@@ -1,5 +1,6 @@
 #pragma once
 
+#include "device/DeviceService.hpp"
 #include "http/HttpHandler.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
@@ -15,6 +16,9 @@ public:
     common::Result handle(http::HttpRequest& req, http::HttpResponse& res) override;
 
 private:
+	common::Result handleClearNvs(http::HttpRequest& req, http::HttpResponse& res);
     common::Result handleReboot(http::HttpRequest& req, http::HttpResponse& res);
+	DeviceService deviceService;
+	
 };
 } // namespace

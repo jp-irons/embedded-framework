@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
     	DeferredExecutor.cpp
     	DeviceApiHandler.cpp
+    	DeviceService.cpp
     INCLUDE_DIRS
         include
     REQUIRES
@@ -9,4 +10,5 @@ idf_component_register(
         http
         logger
         esp_timer
+        nvs_flash
 )

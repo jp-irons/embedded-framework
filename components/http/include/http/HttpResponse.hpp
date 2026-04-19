@@ -136,7 +136,9 @@ class HttpResponse {
 	 "400 Bad Request"
 	 "404 Not Found"
 	 "403 Forbidden"
+	 "405 Method Not allowed"
 	 "500 Internal Server Error"
+	 "501 Not Implemented"
 	*/
     Result sendJsonError(int code, std::string_view message) {
         char statusBuf[32];

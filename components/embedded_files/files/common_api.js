@@ -63,12 +63,12 @@ export function clearCredentials() {
     return post("/framework/api/credentials/clear");
 }
 
+// ---------- Device ----------
+
 export function clearNvs() {
-    return post("/framework/api/credentials/clearNvs");
+    return post("/framework/api/device/clearNvs");
 }
 
-
-// ---------- Device ----------
 
 export function rebootDevice() {
     return post("/framework/api/device/reboot");

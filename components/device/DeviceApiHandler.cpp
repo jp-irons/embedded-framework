@@ -22,11 +22,23 @@ Result DeviceApiHandler::handle(http::HttpRequest& req, http::HttpResponse& res)
     if (action == "reboot") {
         return handleReboot(req, res);
     }
+	if (action == "clearNvs") {
+	    return handleClearNvs(req, res);
+	}
 	res.sendNotFound404("action '" + action + "' not found");
     return common::Result::Ok;
 }
 
-common::Result DeviceApiHandler::handleReboot(http::HttpRequest& req, http::HttpResponse& res)
+Result DeviceApiHandler::handleClearNvs(http::HttpRequest& req, http::HttpResponse& res) {
+    log.info("handleClearNvs not implemented");
+	Result r = deviceService.clearNvs();
+    if (r != common::Result::Ok) {
+        return res.sendJsonError(500, std::string("Error ") + toString(r) + " clearing NVS");
+    }
+    return res.sendJsonOk("NVS cleared");
+}
+
+Result DeviceApiHandler::handleReboot(http::HttpRequest& req, http::HttpResponse& res)
 {
 	log.debug("handleReboot");
 	if (req.method()!= http::HttpMethod::Post) {
@@ -44,4 +56,5 @@ common::Result DeviceApiHandler::handleReboot(http::HttpRequest& req, http::Http
 
     return common::Result::Ok;
 }
+
 } // namespace

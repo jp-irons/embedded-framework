@@ -17,12 +17,11 @@ class CredentialApiHandler : public http::HttpHandler {
     common::Result handle(http::HttpRequest &req, http::HttpResponse &res) override;
 
   private:
-    common::Result handleList(http::HttpResponse &res);
-    common::Result handleSubmit(const http::HttpRequest &req, http::HttpResponse &res);
-    common::Result handleClear(http::HttpResponse &res);
-    common::Result handleClearNvs(http::HttpResponse &res);
-    common::Result handleDelete(std::string ssid, http::HttpResponse &res);
-    common::Result handleMakeFirst(const http::HttpRequest &req, http::HttpResponse &res);
+    common::Result handleList(http::HttpRequest& req, http::HttpResponse& res);
+    common::Result handleSubmit(http::HttpRequest& req, http::HttpResponse& res);
+    common::Result handleClear(http::HttpRequest& req, http::HttpResponse& res);
+    common::Result handleDelete(http::HttpRequest& req, http::HttpResponse& res);
+    common::Result handleMakeFirst(http::HttpRequest& req, http::HttpResponse& res);
 
     credential_store::CredentialStore &store;
 };
