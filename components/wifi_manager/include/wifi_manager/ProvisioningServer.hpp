@@ -20,7 +20,7 @@ class ProvisioningServer : public http::HttpHandler {
     bool start();
     void stop();
 
-    common::Result handle(http::HttpRequest &req, http::HttpResponse &res) override;
+    http::HandlerResult handle(http::HttpRequest &req, http::HttpResponse &res) override;
 
   private:
   struct Route {

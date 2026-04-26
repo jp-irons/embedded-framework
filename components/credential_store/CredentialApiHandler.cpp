@@ -22,34 +22,52 @@ CredentialApiHandler::CredentialApiHandler(CredentialStore &s)
     log.debug("constructor");
 }
 
-Result CredentialApiHandler::handle(http::HttpRequest &req, http::HttpResponse &res) {
-    log.debug("handle");
-    const std::string &path = req.path();
-    std::string action = extractAction(req.path());
-    if (req.method() == HttpMethod::Delete) {
-        // DELETE /credentials/{ssid}
-        return handleDelete(req, res);
-    }
+HandlerResult CredentialApiHandler::handle(http::HttpRequest &req, http::HttpResponse &res) {
+	log.debug("handle");
+	HttpMethod method = req.method();
+	switch (method) {
+		case HttpMethod::Get:
+			return handleGet(req, res);
+		case HttpMethod::Post:
+			return handlePost(req, res);
+		case HttpMethod::Delete:
+			return handleDelete(req, res);
+		default:
+			return res.sendJsonError(405, std::string("Method ") + toString(method) + " not allowed");
+	}
+}
 
-    log.debug("action '%s'", action.c_str());
-    if (action == "list") {
+HandlerResult CredentialApiHandler::handleGet(http::HttpRequest &req, http::HttpResponse &res) {
+    const std::string &path = req.path();
+    std::string target = extractTarget(req.path());
+    log.debug("target '%s'", target.c_str());
+    if (target == "list") {
         return handleList(req, res);
     }
-    if (action == "submit") {
+    log.error("handle action '%s' unsupported", target.c_str());
+    return res.sendJsonError(501, "handleGet '" + target + "' unsupported");
+}
+
+HandlerResult CredentialApiHandler::handlePost(http::HttpRequest &req, http::HttpResponse &res) {
+    const std::string &path = req.path();
+    std::string target = extractTarget(req.path());
+    log.debug("action '%s'", target.c_str());
+    if (target == "submit") {
         return handleSubmit(req, res);
     }
-    if (action == "clear") {
+    if (target == "clear") {
         return handleClear(req, res);
     }
-    if (action == "makeFirst") {
+    if (target == "makeFirst") {
         return handleMakeFirst(req, res);
     }
 
-    log.error("handle action '%s' unsupported", action.c_str());
-    return res.sendJsonError(403, "Unsupported");
+    log.error("handle target '%s' unsupported", target.c_str());
+    return res.sendJsonError(403, "handlePost '" + target + "' unsupported");
 }
 
-Result CredentialApiHandler::handleList(http::HttpRequest& req, http::HttpResponse& res) {
+HandlerResult CredentialApiHandler::handleList(http::HttpRequest& req, http::HttpResponse& res) {
+	log.debug("handleList");
     std::vector<WiFiCredential> entries;
 
     store.loadAllSortedByPriority(entries); // <-- correct API usage
@@ -57,7 +75,8 @@ Result CredentialApiHandler::handleList(http::HttpRequest& req, http::HttpRespon
     // Create the top-level JSON array
     cJSON *root = cJSON_CreateArray();
     if (!root) {
-        return Result::InternalError;
+		log.error("Internal error loading credentials");
+		return res.sendJsonError(500, "Internal error loading credentials");
     }
 
     for (const auto &c : entries) {
@@ -65,7 +84,8 @@ Result CredentialApiHandler::handleList(http::HttpRequest& req, http::HttpRespon
         cJSON *obj = cJSON_CreateObject();
         if (!obj) {
             cJSON_Delete(root);
-            return Result::InternalError;
+			log.error("Internal error creating credential list");
+			return res.sendJsonError(500, "Internal error creating credential list");
         }
 
         // Add fields
@@ -82,26 +102,28 @@ Result CredentialApiHandler::handleList(http::HttpRequest& req, http::HttpRespon
     // Free the cJSON tree; the printed string is independent
     cJSON_Delete(root);
     if (!json_response) {
-        return Result::InternalError;
+		log.error("Internal error preparing credential list response");
+		return res.sendJsonError(500, "Internal error preparing credential list response");
     }
-    Result r = res.sendJson(json_response);
+    HandlerResult r = res.sendJson(json_response);
     cJSON_free(json_response);
     return r;
 }
 
-Result CredentialApiHandler::handleSubmit(http::HttpRequest& req, http::HttpResponse& res) {
-    // Read body from your HttpRequest abstraction
+HandlerResult CredentialApiHandler::handleSubmit(http::HttpRequest& req, http::HttpResponse& res) {
+    log.debug("handleSubmit");
+	// Read body from your HttpRequest abstraction
     std::string_view body = req.body();
 
     if (body.empty()) {
-        log.error("Empty body");
-        return res.sendBadRequest400("Empty body");
+		log.error("Empty body");
+		return res.sendJsonError(400, "Empty body");
     }
 
     cJSON *root = cJSON_Parse(body.data());
     if (!root) {
         log.error("Invalid JSON");
-        return res.sendBadRequest400("Invalid JSON");
+        return res.sendJsonError(400, "Invalid JSON");
     }
 
     // Required: ssid
@@ -109,7 +131,7 @@ Result CredentialApiHandler::handleSubmit(http::HttpRequest& req, http::HttpResp
     if (!ssid || !cJSON_IsString(ssid)) {
         cJSON_Delete(root);
         log.error("Missing ssid");
-        return res.sendBadRequest400("Missing ssid");
+        return res.sendJsonError(400, "Missing ssid");
     }
 
     WiFiCredential entry;
@@ -143,16 +165,15 @@ Result CredentialApiHandler::handleSubmit(http::HttpRequest& req, http::HttpResp
 
     if (Result::Ok != r) {
         log.error("Credential not saved");
-        return res.sendInternalError500("Credential not saved");
+        return res.sendJsonError(500, "Credential not saved");
     }
-
     return res.sendJson("{\"status\":\"ok\"}");
 }
 
-Result CredentialApiHandler::handleDelete(http::HttpRequest& req, http::HttpResponse& res) {
-	log.debug("handle");
+HandlerResult CredentialApiHandler::handleDelete(http::HttpRequest& req, http::HttpResponse& res) {
+	log.debug("handleDelete");
 	const std::string &path = req.path();
-	std::string ssid = extractAction(req.path());
+	std::string ssid = extractTarget(req.path());
     log.debug("delete ssid '%s'", ssid.c_str());
     Result result = store.erase(ssid);
     if (result != common::Result::Ok) {
@@ -161,7 +182,7 @@ Result CredentialApiHandler::handleDelete(http::HttpRequest& req, http::HttpResp
     return res.sendJson(ssid + " deleted");
 }
 
-Result CredentialApiHandler::handleClear(http::HttpRequest& req, http::HttpResponse& res) {
+HandlerResult CredentialApiHandler::handleClear(http::HttpRequest& req, http::HttpResponse& res) {
     log.info("Clearing all credentials");
     Result r = store.clear();
     if (r != common::Result::Ok) {
@@ -170,7 +191,7 @@ Result CredentialApiHandler::handleClear(http::HttpRequest& req, http::HttpRespo
     return res.sendJson("Credentials cleared");
 }
 
-Result CredentialApiHandler::handleMakeFirst(http::HttpRequest& req, http::HttpResponse& res) {
+HandlerResult CredentialApiHandler::handleMakeFirst(http::HttpRequest& req, http::HttpResponse& res) {
     // Parse JSON body
     cJSON* root = cJSON_Parse(req.body().data());
     if (!root) {
@@ -198,7 +219,7 @@ Result CredentialApiHandler::handleMakeFirst(http::HttpRequest& req, http::HttpR
             std::string("error ") + common::toString(r) + " promoting " + ssid
         );
     }
-    return res.sendJsonOk("Credential for " + ssid + " promoted");
+    return res.sendJson("Credential for " + ssid + " promoted");
 }
 
 } // namespace credential_store

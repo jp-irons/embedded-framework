@@ -294,7 +294,7 @@ void WiFiStateMachine::startProvisioningAp() {
 }
 
 void WiFiStateMachine::startProvisioningTestSta() {
-    log.debug("startProvisioningTestSta Not Implemented");
+    log.warn("startProvisioningTestSta Not Implemented");
     //    ctx.provisioningServer.stop();
     //    ctx.wifiInterface.stopAp();
     //    ctx.wifiInterface.configureSta(ctx.credentialStore.getLatest());

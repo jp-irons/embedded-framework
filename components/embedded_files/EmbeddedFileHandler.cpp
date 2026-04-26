@@ -5,7 +5,7 @@
 
 namespace embedded_files {
 
-using namespace common;
+using namespace http;
 
 static logger::Logger log{"EmbeddedFileHandler"};
 
@@ -16,20 +16,17 @@ EmbeddedFileHandler::EmbeddedFileHandler(std::string basePath, std::string defau
 		log.debug("constructor '%s'", base.c_str());
 }
 
-Result EmbeddedFileHandler::handle(http::HttpRequest &request, http::HttpResponse &response) {
+HandlerResult EmbeddedFileHandler::handle(http::HttpRequest &request, http::HttpResponse &response) {
 	const char * path = request.path();
     log.debug("handle '%s' base '%s'", path, base.c_str());
     const EmbeddedFile *file = table.find(path);
     if (!file) {
         log.warn("File not found: %s", path);
-        response.sendNotFound404("File not found");
-        return Result::NotFound;
+        return response.sendJsonError(404, "File '" + std::string(path) + "' not found");
     }
 
     const char *type = contentTypeForPath(path);
-    response.setType(type);
-    response.send(file->data, file->size);
-    return Result::Ok;
+	return response.send(file->data, file->size, type);
 }
 
 const char *EmbeddedFileHandler::contentTypeForPath(const std::string &path) {

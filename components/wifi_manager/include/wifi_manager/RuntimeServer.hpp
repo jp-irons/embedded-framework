@@ -20,7 +20,7 @@ class RuntimeServer : public http::HttpHandler {
     bool start(); // start HTTP server
     void stop(); // stop HTTP server
 
-    common::Result handle(http::HttpRequest &req, http::HttpResponse &res) override;
+    http::HandlerResult handle(http::HttpRequest &req, http::HttpResponse &res) override;
 
   private:
     struct Route {

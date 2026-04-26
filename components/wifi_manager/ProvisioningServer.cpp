@@ -2,6 +2,7 @@
 
 #include "credential_store/CredentialApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
+#include "http/HttpTypes.hpp"
 #include "logger/Logger.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiContext.hpp"
@@ -12,7 +13,7 @@
 
 namespace wifi_manager {
 
-using namespace common;
+using namespace http;
 
 static logger::Logger log{"ProvisioningServer"};
 
@@ -65,7 +66,7 @@ void ProvisioningServer::stop() {
 }
 
 // handle requests not handled elsewhere
-Result ProvisioningServer::handle(http::HttpRequest &req, http::HttpResponse &res) {
+HandlerResult ProvisioningServer::handle(http::HttpRequest &req, http::HttpResponse &res) {
 	    log.debug("handle");
 	    const std::string &path = req.path();
 	    log.debug("path '%s'", path.c_str());
@@ -81,14 +82,14 @@ Result ProvisioningServer::handle(http::HttpRequest &req, http::HttpResponse &re
 
 		    if (effectivePath.rfind(r.prefix, 0) == 0) {
 				log.debug("matched '%s' to '%s'", r.prefix.c_str(), path.c_str());
-		        Result result = r.handler->handle(req, res);
-				if (result != Result::NotFound) {
+		        HandlerResult result = r.handler->handle(req, res);
+				if (result != HandlerResult::NotFound) {
 					return result;
 				}
 		    }
 		}
 		
-		return res.sendNotFound404();
+		return HandlerResult::NotFound;
 	}
 
 	} // namespace wifi_manager

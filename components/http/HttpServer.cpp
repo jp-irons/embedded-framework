@@ -1,12 +1,14 @@
-#include "common/Result.hpp"
 #include "http/HttpServer.hpp"
 
 #include "device/EspTypeAdapter.hpp"
-#include "http/HttpMethod.hpp"
+#include "http/HttpHandler.hpp"
+#include "http/HttpRequest.hpp"
 #include "logger/Logger.hpp"
 #include "esp_err.h"
 
 namespace http {
+	
+using namespace http;
 
 static logger::Logger log{"HttpServer"};
 
@@ -68,13 +70,13 @@ void HttpServer::addRoute(HttpMethod method, const std::string &path, HttpHandle
 
 esp_err_t HttpServer::handlerAdapter(httpd_req_t *req) {
 	log.debug("handlerAdapter '%s'", req->uri);
-    auto *handler = static_cast<http::HttpHandler *>(req->user_ctx);
-    http::HttpRequest request(req);
-    http::HttpResponse response(req);
-    common::Result handlerResp = handler->handle(request, response);
-	if (handlerResp != Result::Ok) {
-		log.error("handlerAdapter fail '%s'", req->uri);
-	}
+    auto *handler = static_cast<HttpHandler *>(req->user_ctx);
+    HttpRequest request(req);
+    HttpResponse response(req);
+    HandlerResult handlerResp = handler->handle(request, response);
+    if (HandlerResult::Ok != handlerResp) {
+        log.error("handlerAdapter fail '%s'", req->uri);
+    }
     return ESP_OK;
 }
 

@@ -2,7 +2,7 @@
 #include "common/Result.hpp"
 #include "esp_err.h"
 #include "esp_http_server.h"
-#include "http/HttpMethod.hpp"
+#include "http/HttpTypes.hpp"
 
 namespace device {
 inline esp_err_t toEspError(common::Result r) {

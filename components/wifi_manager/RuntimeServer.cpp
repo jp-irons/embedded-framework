@@ -12,7 +12,7 @@
 
 namespace wifi_manager {
 
-using namespace common;
+using namespace http;
 
 static logger::Logger log{"RuntimeServer"};
 
@@ -65,7 +65,7 @@ void RuntimeServer::stop() {
 }
 
 // handle requests not handled elsewhere
-Result RuntimeServer::handle(http::HttpRequest &req, http::HttpResponse &res) {
+HandlerResult RuntimeServer::handle(http::HttpRequest &req, http::HttpResponse &res) {
     log.debug("handle");
     const std::string &path = req.path();
     log.debug("path '%s'", path.c_str());
@@ -81,14 +81,14 @@ Result RuntimeServer::handle(http::HttpRequest &req, http::HttpResponse &res) {
 
 	    if (effectivePath.rfind(r.prefix, 0) == 0) {
 			log.debug("matched '%s' to '%s'", r.prefix.c_str(), path.c_str());
-	        Result result = r.handler->handle(req, res);
-			if (result != Result::NotFound) {
+	        HandlerResult result = r.handler->handle(req, res);
+			if (result != HandlerResult::NotFound) {
 				return result;
 			}
 	    }
 	}
 	
-	return res.sendNotFound404();
+	return res.sendJsonError(404, "'" + path + "' not found");
 }
 
 } // namespace wifi_manager

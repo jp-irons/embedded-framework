@@ -2,7 +2,7 @@
 
 #include "esp_http_server.h"
 #include "device/EspTypeAdapter.hpp"
-#include "http/HttpMethod.hpp"
+#include "http/HttpTypes.hpp"
 
 #include <string>
 #include <string_view>

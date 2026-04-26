@@ -344,8 +344,12 @@ async function pollStatus() {
         }
 
 		if (status.state === "Got IP" && status.connected) {
+		    stopStatusPolling();
+		    if (el) el.textContent = "Connected!";
+		}
+		if (status.state === "Unprovisioned AP") {
             stopStatusPolling();
-            if (el) el.textContent = "Connected!";
+            if (el) el.textContent = "Unprovisioned AP";
         }
     } catch (err) {
         console.error("Status poll failed:", err);

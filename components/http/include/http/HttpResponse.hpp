@@ -1,161 +1,78 @@
 #pragma once
-#include "common/Result.hpp"
-#include "device/EspTypeAdapter.hpp"
 #include "esp_http_server.h"
+#include "http/HttpTypes.hpp"
 
-#include <string>
 #include <string_view>
 
 // TODO move method defns back from header to cpp
 namespace http {
 
-using namespace common;
-
 class HttpResponse {
   public:
-    explicit HttpResponse(httpd_req *r)
-        : req(r) {}
-
-    Result redirect(const std::string &target) {
-        // No copy — use target.c_str() directly
-        esp_err_t err = httpd_resp_set_status(req, "302 Found");
-        if (err != ESP_OK)
-            return device::toResult(err);
-
-        err = httpd_resp_set_hdr(req, "Location", target.c_str());
-        if (err != ESP_OK)
-            return device::toResult(err);
-
-        err = httpd_resp_send(req, nullptr, 0);
-        return device::toResult(err);
-    }
-
-    Result send(const unsigned char *data, unsigned int size) {
-        esp_err_t err = httpd_resp_send(req, reinterpret_cast<const char *>(data), size);
-        return device::toResult(err);
-    }
-
-    Result send(std::string_view data) {
-        esp_err_t err = httpd_resp_send(req, data.data(), data.size());
-        return device::toResult(err);
-    }
-
-    void setType(std::string_view type) {
-        httpd_resp_set_type(req, type.data());
-    }
-
-    // -----------------
-
-    Result sendText(std::string_view body) {
-        httpd_resp_set_type(req, "text/plain");
-        esp_err_t err = httpd_resp_send(req, body.data(), body.size());
-        return device::toResult(err);
-    }
-
-    // "400 Bad Request"
-    // "404 Not Found"
-    // "403 Forbidden"
-    // "500 Internal Server Error"
-    Result sendBadRequest400(std::string_view body = "Bad Request") {
-        httpd_resp_set_status(req, "400 Bad Request");
-        return sendText(body);
-    }
-
-    Result sendNotFound404(std::string_view body = "Not Found") {
-        httpd_resp_set_status(req, "404 Not Found");
-        return sendText(body);
-    }
-
-    Result sendForbidden403(std::string_view body = "Forbidden") {
-        httpd_resp_set_status(req, "403 Forbidden");
-        return sendText(body);
-    }
-
-    Result sendInternalError500(std::string_view body = "Internal Server Error") {
-        httpd_resp_set_status(req, "500 Internal Server Error");
-        return sendText(body);
-    }
-
-    Result sendJson(std::string_view body) {
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_set_hdr(req, "Cache-Control", "no-store");
-        esp_err_t err = httpd_resp_send(req, body.data(), body.size());
-        return device::toResult(err);
-    }
-
-    Result sendJsonOk(std::string_view message = "Ok") {
-        std::string body;
-        body.reserve(message.size() + 10); // {"ok":""}
-
-        body.append("{\"ok\":\"");
-        body.append(message);
-        body.append("\"}");
-
-        return sendJson(body);
-    }
-
-    Result sendJsonResult(Result r) {
-        std::string_view text = toString(r);
-
-        std::string body;
-        body.reserve(text.size() + 12); // {"result":""}
-
-        body.append("{\"result\":\"");
-        body.append(text);
-        body.append("\"}");
-
-        return sendJson(body);
-    }
-
-    Result sendJsonError(std::string_view message) {
-        httpd_resp_set_status(req, "400 Bad Request");
-
-        // Build {"error":"<message>"} with one allocation
-        std::string body;
-        body.reserve(message.size() + 12); // {"error":""}
-
-        body.append("{\"error\":\"");
-        body.append(message);
-        body.append("\"}");
-
-        return sendJson(body);
-    }
-
-    Result sendJsonStatus(std::string_view status) {
-        std::string body;
-        body.reserve(status.size() + 13); // {"status":""}
-
-        body.append("{\"status\":\"");
-        body.append(status);
-        body.append("\"}");
-
-        return sendJson(body);
-    }
+    explicit HttpResponse(httpd_req *r);
 
     /* 
+	 "200 Ok"
+	 "301 Moved Permanently"
+	 "302 Found"
 	 "400 Bad Request"
-	 "404 Not Found"
 	 "403 Forbidden"
+	 "404 Not Found"
 	 "405 Method Not allowed"
 	 "500 Internal Server Error"
 	 "501 Not Implemented"
 	*/
-    Result sendJsonError(int code, std::string_view message) {
-        char statusBuf[32];
-        snprintf(statusBuf, sizeof(statusBuf), "%d Error", code);
-        httpd_resp_set_status(req, statusBuf);
+    HandlerResult send(int code, std::string_view body, const char *type);
 
-        std::string body;
-        body.reserve(message.size() + 12);
-        body.append("{\"error\":\"");
-        body.append(message);
-        body.append("\"}");
+    HandlerResult send(std::string_view body, const char *type);
 
-        return sendJson(body);
-    }
+    HandlerResult redirect(const char *target);
+
+    HandlerResult send(const unsigned char *data, unsigned int size, const char *type);
+
+    HandlerResult send(std::string_view body);
+
+    //    void setType(const char *type);
+
+    HandlerResult sendText(std::string_view body);
+
+    HandlerResult sendJson(std::string_view body);
+
+    /* 
+	 "200 Ok"
+	 "301 Moved Permanently"
+	 "302 Found"
+	 "400 Bad Request"
+	 "403 Forbidden"
+	 "404 Not Found"
+	 "405 Method Not allowed"
+	 "500 Internal Server Error"
+	 "501 Not Implemented"
+	*/
+    HandlerResult sendJson(int code, std::string_view body);
+
+    //    HandlerResult sendJsonOk(std::string_view message = "Ok");
+    //
+    //    HandlerResult sendJsonResult(Result r);
+    //
+    /* 
+ "200 Ok"
+ "301 Moved Permanently"
+ "302 Found"
+ "400 Bad Request"
+ "403 Forbidden"
+ "404 Not Found"
+ "405 Method Not allowed"
+ "500 Internal Server Error"
+ "501 Not Implemented"
+*/
+    HandlerResult sendJsonError(int code, std::string_view message);
+
+    HandlerResult sendJsonStatus(std::string_view status);
 
   private:
     httpd_req *req;
+    void warn_err(esp_err_t err);
 };
 
 } // namespace http

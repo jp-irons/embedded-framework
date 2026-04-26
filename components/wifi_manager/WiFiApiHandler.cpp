@@ -4,6 +4,7 @@
 #include "common/Result.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
+#include "http/HttpTypes.hpp"
 #include "logger/Logger.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
@@ -25,15 +26,15 @@ WiFiApiHandler::WiFiApiHandler(WiFiContext &w)
 }
 
 // handle events
-Result WiFiApiHandler::handle(http::HttpRequest &req, http::HttpResponse &res) {
+HandlerResult WiFiApiHandler::handle(http::HttpRequest &req, http::HttpResponse &res) {
     const std::string &path = req.path();
-    std::string action = extractAction(req.path());
-    log.debug("handle action '%s'", action.c_str());
+    std::string target = extractTarget(req.path());
+    log.debug("handle action '%s'", target.c_str());
 
-    if (action == "scan") {
+    if (target == "scan") {
         return handleScan(req, res);
     }
-    if (action == "status") {
+    if (target == "status") {
         return handleStatus(req, res);
     }
     //    if (path == "/api/wifi/connect") {
@@ -45,7 +46,8 @@ Result WiFiApiHandler::handle(http::HttpRequest &req, http::HttpResponse &res) {
     //        return true;
     //    }
     //
-    return Result::NotFound;
+	log.error("handle target '%s' unsupported", target.c_str());
+	return res.sendJsonError(403, "handlePost '" + target + "' unsupported");
 }
 
 static void formatBssid(const uint8_t bssid[6], char out[18]) {
@@ -53,11 +55,12 @@ static void formatBssid(const uint8_t bssid[6], char out[18]) {
     snprintf(out, 18, "%02X:%02X:%02X:%02X:%02X:%02X", bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
 }
 
-Result WiFiApiHandler::handleScan(HttpRequest &req, HttpResponse &res) {
+HandlerResult WiFiApiHandler::handleScan(HttpRequest &req, HttpResponse &res) {
     log.debug("handleScan");
     std::vector<WiFiAp> aps;
     Result r = wifiCtx.wifiInterface->scan(aps);
-    log.debug("scan result");
+
+	log.debug("scan result");
 
     if (r == Result::Ok) {
         log.debug("result Ok");
@@ -76,16 +79,16 @@ Result WiFiApiHandler::handleScan(HttpRequest &req, HttpResponse &res) {
         }
         char *json_response = cJSON_PrintUnformatted(root);
         cJSON_Delete(root);
-        r = res.sendJson(json_response);
+        HandlerResult h_r = res.sendJson(json_response);
         cJSON_free(json_response);
+		return h_r;
     } else {
         log.warn("result %s", common::toString(r));
-        res.sendJsonStatus(common::toString(r));
+        return res.sendJsonStatus(common::toString(r));
     }
-    return r;
 }
 
-Result WiFiApiHandler::handleStatus(HttpRequest &req, HttpResponse &res) {
+HandlerResult WiFiApiHandler::handleStatus(HttpRequest &req, HttpResponse &res) {
     log.debug("handleStatus");
 
     if (req.method() != HttpMethod::Get) {
@@ -97,6 +100,7 @@ Result WiFiApiHandler::handleStatus(HttpRequest &req, HttpResponse &res) {
     // Create root JSON object
     cJSON *root = cJSON_CreateObject();
     if (!root) {
+		log.error("Internal error");
         return res.sendJsonError(500, "Internal Error");
     }
 
@@ -111,24 +115,25 @@ Result WiFiApiHandler::handleStatus(HttpRequest &req, HttpResponse &res) {
     cJSON_Delete(root);
 
     if (!jsonStr) {
+		log.error("Internal error preparing response");
         return res.sendJsonError(500, "Internal Error");
     }
 
     // Send response
-    Result r = res.sendJson(jsonStr);
+    HandlerResult r = res.sendJson(jsonStr);
     free(jsonStr); // cJSON allocates with malloc()
 
     return r;
 }
 
-Result WiFiApiHandler::handleConnect(HttpRequest &req, HttpResponse &res) {
-    res.sendJsonStatus("not_implemented");
-    return common::Result::Unsupported;
+HandlerResult WiFiApiHandler::handleConnect(HttpRequest &req, HttpResponse &res) {
+	log.error("handleConnect not implemented");
+    return res.sendJson(404, "Wi-Fi connect not implemented");
 }
 
-common::Result WiFiApiHandler::handleDisconnect(HttpRequest &req, HttpResponse &res) {
-    res.sendJsonStatus("not_implemented");
-    return common::Result::Unsupported;
+HandlerResult WiFiApiHandler::handleDisconnect(HttpRequest &req, HttpResponse &res) {
+	log.error("handleDisconnect not implemented");
+	return res.sendJson(404, "Wi-Fi disconnect not implemented");
 }
 
 } // namespace wifi_manager

@@ -2,8 +2,6 @@
 
 #include "esp_http_server.h"
 #include "http/HttpHandler.hpp"
-#include "http/HttpMethod.hpp"
-
 #include <string>
 #include <vector>
 
