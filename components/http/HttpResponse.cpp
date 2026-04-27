@@ -8,7 +8,6 @@
 #include <string>
 #include <string_view>
 
-// TODO move method defns back from header to cpp
 namespace http {
 
 static logger::Logger log{"HttpResponse"};
@@ -53,13 +52,6 @@ HandlerResult HttpResponse::send(std::string_view data) {
 	return HandlerResult::Ok;
 }
 
-// TODO - is this used anywhere?
-//void HttpResponse::setType(std::string_view type) {
-//    warn_err(httpd_resp_set_type(req, type.data()));
-//}
-//
-// -----------------
-
 HandlerResult HttpResponse::sendText(std::string_view body) {
     warn_err(httpd_resp_set_type(req, "text/plain"));
     warn_err(httpd_resp_send(req, body.data(), body.size()));
@@ -76,30 +68,6 @@ HandlerResult HttpResponse::sendJson(int code, std::string_view body) {
     warn_err(httpd_resp_set_status(req, httpStatusToString(code).c_str()));
 	return sendJson(body);
 }
-
-//HandlerResult HttpResponse::sendJsonOk(std::string_view message = "Ok") {
-//    std::string body;
-//    body.reserve(message.size() + 10); // {"ok":""}
-//
-//    body.append("{\"ok\":\"");
-//    body.append(message);
-//    body.append("\"}");
-//
-//    return sendJson(body);
-//}
-//
-//Result sendJsonResult(Result r) {
-//    std::string_view text = toString(r);
-//
-//    std::string body;
-//    body.reserve(text.size() + 12); // {"result":""}
-//
-//    body.append("{\"result\":\"");
-//    body.append(text);
-//    body.append("\"}");
-//
-//    return sendJson(body);
-//}
 
 HandlerResult HttpResponse::sendJsonError(int code, std::string_view message) {
     httpd_resp_set_status(req, httpStatusToString(code).c_str());
@@ -125,28 +93,6 @@ HandlerResult HttpResponse::sendJsonStatus(std::string_view status) {
 
     return sendJson(body);
 }
-
-/* 
-	 "400 Bad Request"
-	 "403 Forbidden"
-	 "404 Not Found"
-	 "405 Method Not allowed"
-	 "500 Internal Server Error"
-	 "501 Not Implemented"
-	*/
-//Result sendJsonError(int code, std::string_view message) {
-//    char statusBuf[32];
-//    snprintf(statusBuf, sizeof(statusBuf), "%d Error", code);
-//    httpd_resp_set_status(req, statusBuf);
-//
-//    std::string body;
-//    body.reserve(message.size() + 12);
-//    body.append("{\"error\":\"");
-//    body.append(message);
-//    body.append("\"}");
-//
-//    return sendJson(body);
-//}
 
 void HttpResponse::warn_err(esp_err_t err) {
     if (err != ESP_OK) {

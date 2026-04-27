@@ -22,7 +22,6 @@ CredentialStore::CredentialStore(const char *nvsNamespace)
     log.debug("constructor");
 }
 
-// TODO[CredentialStore::count]: Replace loadAll() with header-only count()
 size_t CredentialStore::count() const {
     std::vector<WiFiCredential> entries;
     Result r = loadAll(entries);
@@ -168,6 +167,7 @@ Result CredentialStore::saveAll(std::vector<WiFiCredential> entries) {
     nvs_close(handle);
     return Result::Ok;
 }
+
 Result CredentialStore::add(const WiFiCredential &entry) {
     log.debug("add");
     std::vector<WiFiCredential> entries;

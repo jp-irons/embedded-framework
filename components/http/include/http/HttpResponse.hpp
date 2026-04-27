@@ -4,7 +4,6 @@
 
 #include <string_view>
 
-// TODO move method defns back from header to cpp
 namespace http {
 
 class HttpResponse {
@@ -32,8 +31,6 @@ class HttpResponse {
 
     HandlerResult send(std::string_view body);
 
-    //    void setType(const char *type);
-
     HandlerResult sendText(std::string_view body);
 
     HandlerResult sendJson(std::string_view body);
@@ -51,10 +48,6 @@ class HttpResponse {
 	*/
     HandlerResult sendJson(int code, std::string_view body);
 
-    //    HandlerResult sendJsonOk(std::string_view message = "Ok");
-    //
-    //    HandlerResult sendJsonResult(Result r);
-    //
     /* 
  "200 Ok"
  "301 Moved Permanently"

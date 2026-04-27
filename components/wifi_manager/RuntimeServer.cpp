@@ -2,6 +2,7 @@
 
 #include "credential_store/CredentialApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
+#include "http/HttpTypes.hpp"
 #include "logger/Logger.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiContext.hpp"
@@ -88,7 +89,7 @@ HandlerResult RuntimeServer::handle(http::HttpRequest &req, http::HttpResponse &
 	    }
 	}
 	
-	return res.sendJsonError(404, "'" + path + "' not found");
+	return HandlerResult::NotFound;
 }
 
 } // namespace wifi_manager

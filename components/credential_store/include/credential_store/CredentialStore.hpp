@@ -18,7 +18,6 @@ public:
 
     // Replace entire set atomically
 	common::Result saveAll(std::vector<wifi_types::WiFiCredential> entries);
-// TODO delete?   common::Result saveAll(const std::vector<wifi_types::WiFiCredential>& entries);
 
     // Add a new credential (fails if SSID exists)
     common::Result add(const wifi_types::WiFiCredential& entry);
