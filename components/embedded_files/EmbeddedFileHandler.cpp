@@ -16,7 +16,7 @@ EmbeddedFileHandler::EmbeddedFileHandler(std::string basePath, std::string defau
 		log.debug("constructor '%s'", base.c_str());
 }
 
-HandlerResult EmbeddedFileHandler::handle(http::HttpRequest &request, http::HttpResponse &response) {
+common::Result EmbeddedFileHandler::handle(http::HttpRequest &request, http::HttpResponse &response) {
 	const char * path = request.path();
     log.debug("handle '%s' base '%s'", path, base.c_str());
     const EmbeddedFile *file = table.find(path);

@@ -1,6 +1,6 @@
 #pragma once
+#include "common/Result.hpp"
 #include "esp_http_server.h"
-#include "http/HttpTypes.hpp"
 
 #include <string_view>
 
@@ -21,19 +21,19 @@ class HttpResponse {
 	 "500 Internal Server Error"
 	 "501 Not Implemented"
 	*/
-    HandlerResult send(int code, std::string_view body, const char *type);
+    common::Result send(int code, std::string_view body, const char *type);
 
-    HandlerResult send(std::string_view body, const char *type);
+    common::Result send(std::string_view body, const char *type);
 
-    HandlerResult redirect(const char *target);
+    common::Result redirect(const char *target);
 
-    HandlerResult send(const unsigned char *data, unsigned int size, const char *type);
+    common::Result send(const unsigned char *data, unsigned int size, const char *type);
 
-    HandlerResult send(std::string_view body);
+    common::Result send(std::string_view body);
 
-    HandlerResult sendText(std::string_view body);
+    common::Result sendText(std::string_view body);
 
-    HandlerResult sendJson(std::string_view body);
+    common::Result sendJson(std::string_view body);
 
     /* 
 	 "200 Ok"
@@ -46,7 +46,7 @@ class HttpResponse {
 	 "500 Internal Server Error"
 	 "501 Not Implemented"
 	*/
-    HandlerResult sendJson(int code, std::string_view body);
+    common::Result sendJson(int code, std::string_view body);
 
     /* 
  "200 Ok"
@@ -59,9 +59,9 @@ class HttpResponse {
  "500 Internal Server Error"
  "501 Not Implemented"
 */
-    HandlerResult sendJsonError(int code, std::string_view message);
+    common::Result sendJsonError(int code, std::string_view message);
 
-    HandlerResult sendJsonStatus(std::string_view status);
+    common::Result sendJsonStatus(std::string_view status);
 
   private:
     httpd_req *req;

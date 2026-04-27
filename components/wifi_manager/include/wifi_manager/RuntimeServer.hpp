@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/Result.hpp"
 #include "credential_store/CredentialApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "embedded_files/EmbeddedFileHandler.hpp"
@@ -20,7 +21,7 @@ class RuntimeServer : public http::HttpHandler {
     bool start(); // start HTTP server
     void stop(); // stop HTTP server
 
-    http::HandlerResult handle(http::HttpRequest &req, http::HttpResponse &res) override;
+    common::Result handle(http::HttpRequest &req, http::HttpResponse &res) override;
 
   private:
     struct Route {

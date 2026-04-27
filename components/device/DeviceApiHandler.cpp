@@ -1,3 +1,4 @@
+#include "common/Result.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "logger/Logger.hpp"
 #include "esp_system.h"
@@ -15,7 +16,7 @@ DeviceApiHandler::DeviceApiHandler() {
 using namespace common;
 using namespace http;
 
-HandlerResult DeviceApiHandler::handle(HttpRequest& req, HttpResponse& res) {
+common::Result DeviceApiHandler::handle(HttpRequest& req, HttpResponse& res) {
 	log.debug("handle");
 	
 	HttpMethod method = req.method();
@@ -26,16 +27,16 @@ HandlerResult DeviceApiHandler::handle(HttpRequest& req, HttpResponse& res) {
 			return handlePost(req, res);
 		default:
 			res.sendJson(405, std::string("Method") + toString(method) + "not allowed");
-			return HandlerResult::Ok;
+			return common::Result::Ok;
 	}
 }
 
-HandlerResult DeviceApiHandler::handleGet(http::HttpRequest& req, http::HttpResponse& res) {
+common::Result DeviceApiHandler::handleGet(http::HttpRequest& req, http::HttpResponse& res) {
 	res.sendJson(501, "handleGet Not implemented");
-	return HandlerResult::Ok;
+	return common::Result::Ok;
 }
 	
-HandlerResult DeviceApiHandler::handlePost(http::HttpRequest& req, http::HttpResponse& res) {
+common::Result DeviceApiHandler::handlePost(http::HttpRequest& req, http::HttpResponse& res) {
     const std::string target = http::HttpHandler::extractTarget(req.path());
 	
     if (target == "reboot") {
@@ -46,26 +47,26 @@ HandlerResult DeviceApiHandler::handlePost(http::HttpRequest& req, http::HttpRes
 	}
 	
 	res.sendJson(404, "target '" + target + "' not found");
-    return HandlerResult::Ok;
+    return common::Result::Ok;
 }
 
-HandlerResult DeviceApiHandler::handleClearNvs(http::HttpRequest& req, http::HttpResponse& res) {
+common::Result DeviceApiHandler::handleClearNvs(http::HttpRequest& req, http::HttpResponse& res) {
     log.info("handleClearNvs not implemented");
 	Result r = deviceService.clearNvs();
     if (r != common::Result::Ok) {
         res.sendJson(500, std::string("Error ") + toString(r) + " clearing NVS");
-		return HandlerResult::Ok;
+		return common::Result::Ok;
 	}
     res.sendJson("NVS cleared");
-	return HandlerResult::Ok;
+	return common::Result::Ok;
 }
 
-HandlerResult DeviceApiHandler::handleReboot(http::HttpRequest& req, http::HttpResponse& res)
+common::Result DeviceApiHandler::handleReboot(http::HttpRequest& req, http::HttpResponse& res)
 {
 	log.debug("handleReboot");
 	if (req.method()!= http::HttpMethod::Post) {
 		res.sendJson(405, "{\"error\":\"method not allowed\"}");
-		return HandlerResult::Ok;
+		return common::Result::Ok;
 	}
     // Respond BEFORE rebooting
 	res.sendJson("{\"status\":\"rebooting\"}");
@@ -77,7 +78,7 @@ HandlerResult DeviceApiHandler::handleReboot(http::HttpRequest& req, http::HttpR
     // Reboot the device
     esp_restart();
 
-    return HandlerResult::Ok;
+    return common::Result::Ok;
 }
 
 } // namespace

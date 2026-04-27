@@ -1,7 +1,7 @@
 #pragma once
 
+#include "common/Result.hpp"
 #include "http/HttpHandler.hpp"
-#include "http/HttpTypes.hpp"
 #include <string>
 
 #include "embedded_files/EmbeddedFileTable.hpp"
@@ -12,7 +12,7 @@ class EmbeddedFileHandler : public http::HttpHandler {
   public:
     EmbeddedFileHandler(std::string basePath, std::string defaultFile);
 
-    http::HandlerResult handle(http::HttpRequest &request, http::HttpResponse &response) override;
+    common::Result handle(http::HttpRequest &request, http::HttpResponse &response) override;
 
   private:
     std::string base;

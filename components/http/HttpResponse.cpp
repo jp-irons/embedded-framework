@@ -26,50 +26,50 @@ HttpResponse::HttpResponse(httpd_req *r)
 	 "500 Internal Server Error"
 	 "501 Not Implemented"
 	*/
-HandlerResult HttpResponse::send(int code, std::string_view body, const char *type) {
+common::Result HttpResponse::send(int code, std::string_view body, const char *type) {
     std::string statusMsg = httpStatusToString(code);
     warn_err(httpd_resp_set_type(req, type));
     warn_err(httpd_resp_set_status(req, "302 Found"));
-    return HandlerResult::Ok;
+    return common::Result::Ok;
 }
 
-HandlerResult HttpResponse::redirect(const char *target) {
+common::Result HttpResponse::redirect(const char *target) {
     // No copy — use target.c_str() directly
     warn_err(httpd_resp_set_status(req, "302 Found"));
     warn_err(httpd_resp_set_hdr(req, "Location", target));
     warn_err(httpd_resp_send(req, nullptr, 0));
-    return HandlerResult::Ok;
+    return common::Result::Ok;
 }
 
-HandlerResult HttpResponse::send(const unsigned char *data, unsigned int size, const char * type) {
+common::Result HttpResponse::send(const unsigned char *data, unsigned int size, const char * type) {
 	warn_err(httpd_resp_set_type(req, type));
     warn_err(httpd_resp_send(req, reinterpret_cast<const char *>(data), size));
-	return HandlerResult::Ok;
+	return common::Result::Ok;
 }
 
-HandlerResult HttpResponse::send(std::string_view data) {
+common::Result HttpResponse::send(std::string_view data) {
     warn_err(httpd_resp_send(req, data.data(), data.size()));
-	return HandlerResult::Ok;
+	return common::Result::Ok;
 }
 
-HandlerResult HttpResponse::sendText(std::string_view body) {
+common::Result HttpResponse::sendText(std::string_view body) {
     warn_err(httpd_resp_set_type(req, "text/plain"));
     warn_err(httpd_resp_send(req, body.data(), body.size()));
-	return HandlerResult::Ok;
+	return common::Result::Ok;
 }
 
-HandlerResult HttpResponse::sendJson(std::string_view body) {
+common::Result HttpResponse::sendJson(std::string_view body) {
     warn_err(httpd_resp_set_type(req, "application/json"));
     warn_err(httpd_resp_send(req, body.data(), body.size()));
-	return HandlerResult::Ok;
+	return common::Result::Ok;
 }
 
-HandlerResult HttpResponse::sendJson(int code, std::string_view body) {
+common::Result HttpResponse::sendJson(int code, std::string_view body) {
     warn_err(httpd_resp_set_status(req, httpStatusToString(code).c_str()));
 	return sendJson(body);
 }
 
-HandlerResult HttpResponse::sendJsonError(int code, std::string_view message) {
+common::Result HttpResponse::sendJsonError(int code, std::string_view message) {
     httpd_resp_set_status(req, httpStatusToString(code).c_str());
 
     // Build {"error":"<message>"} with one allocation
@@ -83,7 +83,7 @@ HandlerResult HttpResponse::sendJsonError(int code, std::string_view message) {
     return sendJson(body);
 }
 
-HandlerResult HttpResponse::sendJsonStatus(std::string_view status) {
+common::Result HttpResponse::sendJsonStatus(std::string_view status) {
     std::string body;
     body.reserve(status.size() + 13); // {"status":""}
 

@@ -13,13 +13,6 @@ enum class HttpMethod {
     Options
 };
 
-enum class HandlerResult {
-    Ok, // Operation succeeded
-    NotImplemented, // Handler recognised request but not implemented
-    NotFound, // Resource missing
-    InternalError // Something failed
-};
-
 inline std::string toString(HttpMethod method) {
     switch (method) {
         case HttpMethod::Get:     return "Get";

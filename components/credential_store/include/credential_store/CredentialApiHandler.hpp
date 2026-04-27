@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/Result.hpp"
 #include "http/HttpHandler.hpp"
 
 namespace http {
@@ -14,16 +15,16 @@ class CredentialStore;
 class CredentialApiHandler : public http::HttpHandler {
   public:
     CredentialApiHandler(credential_store::CredentialStore &store);
-    http::HandlerResult handle(http::HttpRequest &req, http::HttpResponse &res) override;
+    common::Result handle(http::HttpRequest &req, http::HttpResponse &res) override;
 
   private:
-	http::HandlerResult handleDelete(http::HttpRequest &req, http::HttpResponse &res);
-    http::HandlerResult handleGet(http::HttpRequest &req, http::HttpResponse &res);
-    http::HandlerResult handlePost(http::HttpRequest &req, http::HttpResponse &res);
-    http::HandlerResult handleList(http::HttpRequest &req, http::HttpResponse &res);
-    http::HandlerResult handleSubmit(http::HttpRequest &req, http::HttpResponse &res);
-    http::HandlerResult handleClear(http::HttpRequest &req, http::HttpResponse &res);
-    http::HandlerResult handleMakeFirst(http::HttpRequest &req, http::HttpResponse &res);
+	common::Result handleDelete(http::HttpRequest &req, http::HttpResponse &res);
+    common::Result handleGet(http::HttpRequest &req, http::HttpResponse &res);
+    common::Result handlePost(http::HttpRequest &req, http::HttpResponse &res);
+    common::Result handleList(http::HttpRequest &req, http::HttpResponse &res);
+    common::Result handleSubmit(http::HttpRequest &req, http::HttpResponse &res);
+    common::Result handleClear(http::HttpRequest &req, http::HttpResponse &res);
+    common::Result handleMakeFirst(http::HttpRequest &req, http::HttpResponse &res);
 
     credential_store::CredentialStore &store;
 };

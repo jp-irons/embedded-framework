@@ -10,7 +10,7 @@ class HttpHandler {
   public:
     virtual ~HttpHandler() = default;
 
-    virtual HandlerResult handle(HttpRequest &req, HttpResponse &res) = 0;
+    virtual common::Result handle(HttpRequest &req, HttpResponse &res) = 0;
 
   protected:
     static std::string extractTarget(const char *uri) {

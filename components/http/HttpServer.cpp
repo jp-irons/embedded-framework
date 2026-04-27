@@ -73,8 +73,8 @@ esp_err_t HttpServer::handlerAdapter(httpd_req_t *req) {
     auto *handler = static_cast<HttpHandler *>(req->user_ctx);
     HttpRequest request(req);
     HttpResponse response(req);
-    HandlerResult handlerResp = handler->handle(request, response);
-    if (HandlerResult::Ok != handlerResp) {
+    common::Result handlerResp = handler->handle(request, response);
+    if (common::Result::Ok != handlerResp) {
         log.error("handlerAdapter fail '%s'", req->uri);
     }
     return ESP_OK;
