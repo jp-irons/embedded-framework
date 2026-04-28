@@ -171,6 +171,10 @@ async function submitProvisioning() {
     try {
         await submitCredential(payload);
         document.getElementById("password").value = "";
+		// Clear all selected SSIDs
+		document.querySelectorAll('.ssid-select').forEach(cb => cb.checked = false);
+		// Clear all BSSID lock checkboxes too
+		document.querySelectorAll('.bssid-lock').forEach(cb => cb.checked = false);
         showMessage("success", "Credential Saved", `${payload.ssid} added.`);
         await refreshCredentials();
     } catch (err) {
@@ -205,8 +209,9 @@ function renderCredList(creds) {
         const isLast = i === creds.length - 1;
 
         li.className =
-            "flex justify-between items-center py-2 " +
-            (isLast ? "" : "border-b border-gray-200");
+            "flex justify-between items-center py-2 ";
+			// +
+            //(isLast ? "border-b border-gray-200" : "");
 
         const name = document.createElement("span");
         name.textContent = c.ssid;

@@ -73,7 +73,7 @@ common::Result ProvisioningServer::handle(http::HttpRequest &req, http::HttpResp
 		std::string effectivePath = path;
 		if (path.empty() || path == "/" || path == "/index.html") {
 			log.debug("resolving path");
-			return res.redirect("/provision/index.html");
+			return res.redirect("/embedded/index.html");
 		}
 		
 		for (auto& r : routes) {

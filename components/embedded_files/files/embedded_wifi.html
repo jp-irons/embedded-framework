@@ -20,51 +20,67 @@
 	<!-- Shared Header -->
 	<div id="navigation"></div>
 
-    <div class="mt-8">
-      <h2 class="text-lg font-medium mb-3">Saved Credentials</h2>
+	<!-- Status -->
+	<div class="mt-6 pt-6 border-t border-gray-300">
+
+	  <div class="flex items-center gap-3">
+	    <!-- Label -->
+	    <label class="font-medium whitespace-nowrap">
+	      Wi-Fi Status
+	    </label>
+
+	    <!-- Status field expands to fill the row -->
+	    <div id="status"
+	         class="flex-grow p-3 bg-gray-50 border rounded text-sm text-gray-700">
+	      Waiting for status…
+	    </div>
+	  </div>
+
+	</div>
+
+	<div class="mt-6 pt-6 border-t border-gray-300">
+	  <label class="block font-medium mb-1">Saved Credentials</label>
 
       <ul id="cred-list" class="space-y-2"></ul>
 
-      <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-300">
-        <button id="btn-clear-creds" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+      <div class="flex justify-end gap-3 mt-4 pt-4">
+        <button id="btn-clear-creds" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
           Clear credentials
         </button>
 
-        <button id="btn-clear-nvs" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
-          Clear NVS
-        </button>
-
-        <button id="btn-reboot" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+        <button id="btn-reboot" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
           Reboot
         </button>
       </div>
     </div>
 
-    <!-- Password -->
-    <div class="mb-6">
-      <label class="block font-medium mb-1">Password</label>
+	<!-- Password -->
+	<div class="mt-6 pt-6 border-t border-gray-300">
 
-      <div class="flex items-center gap-3">
-        <input id="password"
-               type="password"
-               class="flex-grow px-3 py-2 border rounded focus:ring focus:ring-blue-300"
-               placeholder="Network password" />
+	  <div class="flex items-center gap-3">
+	    <!-- Label -->
+	    <label class="font-medium whitespace-nowrap">
+	      Password
+	    </label>
 
-        <button id="btn-save" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-          Save
-        </button>
-      </div>
-    </div>
+	    <!-- Input grows to fill remaining space -->
+	    <input id="password"
+	           type="password"
+	           class="flex-grow px-3 py-2 border rounded focus:ring focus:ring-blue-300"
+	           placeholder="Network password" />
 
-    <!-- Status -->
-    <div id="status"
-         class="mt-6 p-3 bg-gray-50 border rounded text-sm text-gray-700">
-      Waiting for action…
-    </div>
+	    <!-- Save button stays right-aligned -->
+	    <button id="btn-save"
+	            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+	      Save
+	    </button>
+	  </div>
 
-    <div class="mt-8 pt-6 border-t border-gray-300">
+	</div>
+
+    <div class="mt-6 pt-6">
       <div class="flex justify-between items-center mb-2">
-        <h2 class="text-lg font-medium">Available Networks</h2>
+		<label class="block font-medium mb-1">Available Networks</label>
 		<button id="btn-refresh" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
 		  Refresh
 		</button>
