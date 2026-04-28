@@ -5,7 +5,7 @@
 	  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	  <title>ESP32 WiFi Provisioning</title>
 
-	  <script type="module" src="/provision/app.js" defer></script>
+	  <script type="module" src="/embedded/app.js" defer></script>
 	  <link rel="stylesheet" href="/common/styles.css">
 
 	</head>
@@ -16,6 +16,9 @@
   <div class="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded-lg overflow-visible">
 
     <h1 class="text-2xl font-semibold mb-4">WiFi Provisioning</h1>
+
+	<!-- Shared Header -->
+	<div id="navigation"></div>
 
     <div class="mt-8">
       <h2 class="text-lg font-medium mb-3">Saved Credentials</h2>
@@ -110,4 +113,13 @@
       </div>
     </div>
   </div>
+<script>
+  fetch('/embedded/navigation.html')
+    .then(r => r.text())
+    .then(html => {
+      document.getElementById('navigation').innerHTML = html;
+    });
+</script>
+  
+</body>
 </html>

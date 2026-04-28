@@ -20,6 +20,11 @@ body {
   min-height: 100vh;         /* min-h-screen */
 }
 
+/* Ensure header spacing is consistent */
+#header {
+  margin-top: 1rem;
+}
+
 /* ============================
    Display & Layout
    ============================ */

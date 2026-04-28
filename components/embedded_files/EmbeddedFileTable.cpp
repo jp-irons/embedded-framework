@@ -26,15 +26,24 @@ extern const uint8_t _binary_provision_app_js_end[] asm("_binary_provision_app_j
 extern const uint8_t _binary_provision_ui_js_start[] asm("_binary_provision_ui_js_start");
 extern const uint8_t _binary_provision_ui_js_end[] asm("_binary_provision_ui_js_end");
 
+extern const uint8_t _binary_provision_navigation_html_start[] asm("_binary_provision_navigation_html_start");
+extern const uint8_t _binary_provision_navigation_html_end[] asm("_binary_provision_navigation_html_end");
+
 // Embedded UI
+extern const uint8_t _binary_embedded_app_js_start[] asm("_binary_embedded_app_js_start");
+extern const uint8_t _binary_embedded_app_js_end[] asm("_binary_embedded_app_js_end");
+
 extern const uint8_t _binary_embedded_index_html_start[] asm("_binary_embedded_index_html_start");
 extern const uint8_t _binary_embedded_index_html_end[] asm("_binary_embedded_index_html_end");
 
-extern const uint8_t _binary_embedded_reboot_html_start[] asm("_binary_embedded_reboot_html_start");
-extern const uint8_t _binary_embedded_reboot_html_end[] asm("_binary_embedded_reboot_html_end");
+extern const uint8_t _binary_embedded_control_html_start[] asm("_binary_embedded_control_html_start");
+extern const uint8_t _binary_embedded_control_html_end[] asm("_binary_embedded_control_html_end");
 
 extern const uint8_t _binary_embedded_wifi_html_start[] asm("_binary_embedded_wifi_html_start");
 extern const uint8_t _binary_embedded_wifi_html_end[] asm("_binary_embedded_wifi_html_end");
+
+extern const uint8_t _binary_embedded_navigation_html_start[] asm("_binary_embedded_navigation_html_start");
+extern const uint8_t _binary_embedded_navigation_html_end[] asm("_binary_embedded_navigation_html_end");
 
 // Runtime UI
 extern const uint8_t _binary_runtime_index_html_start[] asm("_binary_runtime_index_html_start");
@@ -73,18 +82,19 @@ static const FileEntry files[] = {
     {"/favicon.ico", _binary__favicon_ico_start, _binary__favicon_ico_end},
 
     // Provisioning UI
-    {"/provision/app.js", _binary_provision_app_js_start, _binary_provision_app_js_end},
 	{"/provision/ui.js", _binary_provision_ui_js_start, _binary_provision_ui_js_end},
     {"/provision/index.html", _binary_provision_index_html_start, _binary_provision_index_html_end},
+	{"/provision/navigation.html", _binary_provision_navigation_html_start, _binary_provision_navigation_html_end},
 
 	// Embedded UI
+	{"/embedded/app.js", _binary_embedded_app_js_start, _binary_embedded_app_js_end},
 	{"/embedded/index.html", _binary_embedded_index_html_start, _binary_embedded_index_html_end},
-	{"/embedded/reboot.html", _binary_embedded_reboot_html_start, _binary_embedded_reboot_html_end},
+	{"/embedded/navigation.html", _binary_embedded_navigation_html_start, _binary_embedded_navigation_html_end},
+	{"/embedded/control.html", _binary_embedded_control_html_start, _binary_embedded_control_html_end},
 	{"/embedded/wifi.html", _binary_embedded_wifi_html_start, _binary_embedded_wifi_html_end},
 
 	    // Runtime UI
     {"/runtime/index.html", _binary_runtime_index_html_start, _binary_runtime_index_html_end},
-    {"/runtime/app.js", _binary_runtime_app_js_start, _binary_runtime_app_js_end},
 
     // Shared JS/CSS
     {"/common/api.js", _binary_common_api_js_start, _binary_common_api_js_end},
