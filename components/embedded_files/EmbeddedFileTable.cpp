@@ -26,6 +26,16 @@ extern const uint8_t _binary_provision_app_js_end[] asm("_binary_provision_app_j
 extern const uint8_t _binary_provision_ui_js_start[] asm("_binary_provision_ui_js_start");
 extern const uint8_t _binary_provision_ui_js_end[] asm("_binary_provision_ui_js_end");
 
+// Embedded UI
+extern const uint8_t _binary_embedded_index_html_start[] asm("_binary_embedded_index_html_start");
+extern const uint8_t _binary_embedded_index_html_end[] asm("_binary_embedded_index_html_end");
+
+extern const uint8_t _binary_embedded_reboot_html_start[] asm("_binary_embedded_reboot_html_start");
+extern const uint8_t _binary_embedded_reboot_html_end[] asm("_binary_embedded_reboot_html_end");
+
+extern const uint8_t _binary_embedded_wifi_html_start[] asm("_binary_embedded_wifi_html_start");
+extern const uint8_t _binary_embedded_wifi_html_end[] asm("_binary_embedded_wifi_html_end");
+
 // Runtime UI
 extern const uint8_t _binary_runtime_index_html_start[] asm("_binary_runtime_index_html_start");
 extern const uint8_t _binary_runtime_index_html_end[] asm("_binary_runtime_index_html_end");
@@ -67,7 +77,12 @@ static const FileEntry files[] = {
 	{"/provision/ui.js", _binary_provision_ui_js_start, _binary_provision_ui_js_end},
     {"/provision/index.html", _binary_provision_index_html_start, _binary_provision_index_html_end},
 
-    // Runtime UI
+	// Embedded UI
+	{"/embedded/index.html", _binary_embedded_index_html_start, _binary_embedded_index_html_end},
+	{"/embedded/reboot.html", _binary_embedded_reboot_html_start, _binary_embedded_reboot_html_end},
+	{"/embedded/wifi.html", _binary_embedded_wifi_html_start, _binary_embedded_wifi_html_end},
+
+	    // Runtime UI
     {"/runtime/index.html", _binary_runtime_index_html_start, _binary_runtime_index_html_end},
     {"/runtime/app.js", _binary_runtime_app_js_start, _binary_runtime_app_js_end},
 
