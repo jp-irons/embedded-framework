@@ -8,8 +8,7 @@
 #include "esp_wifi.h"
 #include "esp_wifi_types_generic.h"
 #include "logger/Logger.hpp"
-#include "wifi_manager/ProvisioningServer.hpp"
-#include "wifi_manager/RuntimeServer.hpp"
+#include "wifi_manager/EmbeddedServer.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiHelper.hpp"
 #include "wifi_manager/WiFiStateMachine.hpp"
@@ -156,13 +155,13 @@ void WiFiInterface::disconnectSta() {
  * Provisioning server control
  */
 void WiFiInterface::startProvisioningServer() {
-    log.debug("Starting provisioning server");
-    ctx.provisioningServer->start();
+    log.debug("Starting embedded server");
+    ctx.embeddedServer->start();
 }
 
 void WiFiInterface::stopProvisioningServer() {
-    log.info("Stopping provisioning server");
-    ctx.provisioningServer->stop();
+    log.info("Stopping embedded server");
+    ctx.embeddedServer->stop();
 }
 
 /**
@@ -170,12 +169,12 @@ void WiFiInterface::stopProvisioningServer() {
  */
 void WiFiInterface::startRuntimeServer() {
     log.info("Starting runtime server");
-    ctx.runtimeServer->start();
+    ctx.embeddedServer->start();
 }
 
 void WiFiInterface::stopRuntimeServer() {
     log.info("Stopping runtime server");
-    ctx.runtimeServer->stop();
+    ctx.embeddedServer->stop();
 }
 
 /**

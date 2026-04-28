@@ -13,12 +13,10 @@ namespace wifi_manager {
 
 class WiFiInterface;
 class WiFiStateMachine;
-class ProvisioningServer;
-class RuntimeServer;
+class EmbeddedServer;
 
 struct WiFiContext {
-    ProvisioningServer *provisioningServer = nullptr;
-    RuntimeServer *runtimeServer = nullptr;
+    EmbeddedServer *embeddedServer = nullptr;
     credential_store::CredentialStore *credentialStore = nullptr;
 
     WiFiInterface *wifiInterface = nullptr;

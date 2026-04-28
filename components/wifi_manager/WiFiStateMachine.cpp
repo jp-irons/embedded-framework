@@ -2,8 +2,7 @@
 
 #include "credential_store/CredentialStore.hpp"
 #include "logger/Logger.hpp"
-#include "wifi_manager/ProvisioningServer.hpp"
-#include "wifi_manager/RuntimeServer.hpp"
+#include "wifi_manager/EmbeddedServer.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
 #include "wifi_types/WiFiTypes.hpp"
@@ -233,7 +232,7 @@ void WiFiStateMachine::enterState(WiFiState newState) {
             // wait for IP
             break;
         case WiFiState::GOT_IP:
-            ctx.runtimeServer->start();
+            ctx.embeddedServer->start();
             break;
         case WiFiState::STA_DISCONNECTED:
             tryNextCredential();
@@ -286,11 +285,11 @@ void WiFiStateMachine::tryNextCredential() {
 void WiFiStateMachine::startProvisioningAp() {
     log.debug("startProvisioningAp");
 
-    ctx.runtimeServer->stop(); // stop runtime server if running
+    ctx.embeddedServer->stop(); // stop runtime server if running
     ctx.wifiInterface->disconnectSta(); // correct name
     log.debug("start AP %s", ctx.apConfig.ssid.c_str());
     ctx.wifiInterface->startAp(ctx.apConfig); // must pass config
-    ctx.provisioningServer->start();
+    ctx.embeddedServer->start();
 }
 
 void WiFiStateMachine::startProvisioningTestSta() {
@@ -305,7 +304,7 @@ void WiFiStateMachine::startRuntimeSta() {
     log.debug("startRuntimeSta");
 
     // 1. Stop provisioning server and AP
-    ctx.provisioningServer->stop();
+    ctx.embeddedServer->stop();
     ctx.wifiInterface->stopAp();
 
     // 2. Select the current credential

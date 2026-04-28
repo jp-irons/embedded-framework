@@ -6,8 +6,7 @@
 #include "esp_netif.h"
 #include "logger/Logger.hpp"
 #include "nvs_flash.h"
-#include "wifi_manager/ProvisioningServer.hpp"
-#include "wifi_manager/RuntimeServer.hpp"
+#include "wifi_manager/EmbeddedServer.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
 #include "wifi_manager/WiFiStateMachine.hpp"
@@ -69,10 +68,8 @@ void FrameworkContext::initialize(const wifi_types::ApConfig &apConfig) {
 	deviceApi = new device::DeviceApiHandler();
 
     // 8. Create servers
-    provisioningServer = new wifi_manager::ProvisioningServer(wifiCtx, *wifiApi, *credentialApi, *deviceApi);
-    runtimeServer = new wifi_manager::RuntimeServer(wifiCtx, *wifiApi, *credentialApi, *deviceApi);
-    wifiCtx.provisioningServer = provisioningServer;
-    wifiCtx.runtimeServer = runtimeServer;
+    embeddedServer= new wifi_manager::EmbeddedServer(wifiCtx, *wifiApi, *credentialApi, *deviceApi);
+    wifiCtx.embeddedServer = embeddedServer;
 
     // 9. Create WiFiInterface LAST (this registers event handlers and may trigger events)
     wifiInterface = new wifi_manager::WiFiInterface(wifiCtx);
@@ -82,8 +79,7 @@ void FrameworkContext::initialize(const wifi_types::ApConfig &apConfig) {
 FrameworkContext::~FrameworkContext() {
     log.info("destructor");
     stop();
-    delete provisioningServer;
-    delete runtimeServer;
+    delete embeddedServer;
     delete wifiInterface;
     delete wifiStateMachine;
     delete wifiApi;

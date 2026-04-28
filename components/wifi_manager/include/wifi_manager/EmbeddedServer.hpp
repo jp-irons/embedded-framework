@@ -12,11 +12,11 @@ namespace wifi_manager {
 
 struct WiFiContext;
 
-class RuntimeServer : public http::HttpHandler {
+class EmbeddedServer : public http::HttpHandler {
   public:
-    explicit RuntimeServer(WiFiContext &ctx, WiFiApiHandler &wifiApi,
+    explicit EmbeddedServer(WiFiContext &ctx, WiFiApiHandler &wifiApi,
                            credential_store::CredentialApiHandler &credentialApi, device::DeviceApiHandler &deviceApi);
-    ~RuntimeServer();
+    ~EmbeddedServer();
 
     bool start(); // start HTTP server
     void stop(); // stop HTTP server

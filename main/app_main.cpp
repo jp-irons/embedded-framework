@@ -66,8 +66,7 @@ extern "C" void setupLogging() {
     // http
     LogSinkRegistry::setLevelForTag("HttpServer", LogLevel::Debug);
     // wifi_manager
-    LogSinkRegistry::setLevelForTag("ProvisioningServer", LogLevel::Debug);
-    LogSinkRegistry::setLevelForTag("RuntimeServer", LogLevel::Debug);
+    LogSinkRegistry::setLevelForTag("EmbeddedServer", LogLevel::Debug);
     LogSinkRegistry::setLevelForTag("WiFiInterface", LogLevel::Debug);
     LogSinkRegistry::setLevelForTag("WiFiStateMachine", LogLevel::Debug);
     // static_assets

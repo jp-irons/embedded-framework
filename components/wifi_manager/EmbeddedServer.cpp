@@ -1,4 +1,4 @@
-#include "wifi_manager/RuntimeServer.hpp"
+#include "wifi_manager/EmbeddedServer.hpp"
 
 #include "common/Result.hpp"
 #include "credential_store/CredentialApiHandler.hpp"
@@ -13,9 +13,9 @@
 
 namespace wifi_manager {
 
-static logger::Logger log{"RuntimeServer"};
+static logger::Logger log{"EmbeddedServer"};
 
-RuntimeServer::RuntimeServer(WiFiContext &ctx, WiFiApiHandler &wifiApi,
+EmbeddedServer::EmbeddedServer(WiFiContext &ctx, WiFiApiHandler &wifiApi,
                              credential_store::CredentialApiHandler &credentialApi,
                              device::DeviceApiHandler &deviceHandler)
     : ctx(ctx)
@@ -27,13 +27,13 @@ RuntimeServer::RuntimeServer(WiFiContext &ctx, WiFiApiHandler &wifiApi,
     log.debug("constructor");
 }
 
-RuntimeServer::~RuntimeServer() {
+EmbeddedServer::~EmbeddedServer() {
     log.info("destructor");
     stop();
 }
 
-bool RuntimeServer::start() {
-    log.debug("Starting RuntimeServer");
+bool EmbeddedServer::start() {
+    log.debug("Starting EmbeddedServer");
     server.start();
 
     if (!routesRegistered) {
@@ -48,23 +48,23 @@ bool RuntimeServer::start() {
         routesRegistered = true;
     }
 
-	log.debug("RuntimeServer up");
+	log.debug("EmbeddedServer up");
 	wifi_types::IpAddress ip = ctx.wifiInterface->getStaIp();
 	if (ip.valid) {
-	    log.info("RuntimeServer started on http://%s", ip.value.c_str());
+	    log.info("EmbeddedServer started on http://%s", ip.value.c_str());
 	} else {
-	    log.warn("RuntimeServer started but STA IP unknown");
+	    log.warn("EmbeddedServer started but STA IP unknown");
 	}
     return true;
 }
 
-void RuntimeServer::stop() {
-    log.debug("Stopping RuntimeServer");
+void EmbeddedServer::stop() {
+    log.debug("Stopping EmbeddedServer");
     server.stop();
 }
 
 // handle requests not handled elsewhere
-common::Result RuntimeServer::handle(http::HttpRequest &req, http::HttpResponse &res) {
+common::Result EmbeddedServer::handle(http::HttpRequest &req, http::HttpResponse &res) {
     log.debug("handle");
     const std::string &path = req.path();
     log.debug("path '%s'", path.c_str());
