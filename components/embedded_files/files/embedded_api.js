@@ -1,5 +1,5 @@
 //
-// common/api.js
+// embedded/api.js
 //
 
 // ---------- Generic helpers ----------

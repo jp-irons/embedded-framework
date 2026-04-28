@@ -1,4 +1,4 @@
-// common_modal.js
+// embedded_modal.js
 
 let confirmCallback = null;
 

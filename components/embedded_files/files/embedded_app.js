@@ -1,12 +1,12 @@
 //
-// provision/app.js
+// embedded/app.js
 //
 // Tiny orchestrator for Provision Mode.
 // All UI logic lives in /provision/ui.js
 //
 
-import { initUI } from "/provision/ui.js";
-import { wireConfirmButtons, hideMessageModal } from "/common/modal.js";
+import { initUI } from "/embedded/ui.js";
+import { wireConfirmButtons, hideMessageModal } from "/embedded/modal.js";
 
 document.addEventListener("DOMContentLoaded", () => {
     // Modal system

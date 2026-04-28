@@ -1,14 +1,14 @@
 //
-// provision/ui.js
+// embedded/ui.js
 //
 // Shared UI logic for both Provisioning Mode and Runtime Mode.
 // Handles: scan UI, credential list UI, provisioning form, system actions,
 // status polling, and DOM wiring.
 //
 // Requires:
-//   /common/api.js
-//   /common/modal.js
-//   /common/ui.js   (optional helpers)
+//   /embedded/api.js
+//   /embedded/modal.js
+//   /embedded/common_ui.js   (optional helpers)
 //
 
 import {
@@ -21,20 +21,20 @@ import {
     clearCredentials as apiClearCredentials,
     clearNvs as apiClearNvs,
     rebootDevice
-} from "/common/api.js";
+} from "/embedded/api.js";
 
 import {
     showConfirm,
     showMessage,
     hideMessageModal,
     wireConfirmButtons
-} from "/common/modal.js";
+} from "/embedded/modal.js";
 
 import { 
 	el, 
 	button, 
 	clear 
-} from "/common/ui.js";
+} from "/embedded/common_ui.js";
 
 // ------------------------------------------------------------
 // Internal state

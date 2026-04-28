@@ -1,5 +1,5 @@
 //
-// common/ui.js
+// embedded/common_ui.js
 //
 // Generic UI helper utilities.
 // These are intentionally backend‑agnostic and provisioning/runtime‑agnostic.

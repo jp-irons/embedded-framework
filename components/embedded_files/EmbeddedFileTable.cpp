@@ -20,11 +20,11 @@ extern const uint8_t _binary__favicon_ico_end[] asm("_binary__favicon_ico_end");
 extern const uint8_t _binary_provision_index_html_start[] asm("_binary_provision_index_html_start");
 extern const uint8_t _binary_provision_index_html_end[] asm("_binary_provision_index_html_end");
 
-extern const uint8_t _binary_provision_app_js_start[] asm("_binary_provision_app_js_start");
-extern const uint8_t _binary_provision_app_js_end[] asm("_binary_provision_app_js_end");
+extern const uint8_t _binary_embedded_app_js_start[] asm("_binary_embedded_app_js_start");
+extern const uint8_t _binary_embedded_app_js_end[] asm("_binary_embedded_app_js_end");
 
-extern const uint8_t _binary_provision_ui_js_start[] asm("_binary_provision_ui_js_start");
-extern const uint8_t _binary_provision_ui_js_end[] asm("_binary_provision_ui_js_end");
+extern const uint8_t _binary_embedded_ui_js_start[] asm("_binary_embedded_ui_js_start");
+extern const uint8_t _binary_embedded_ui_js_end[] asm("_binary_embedded_ui_js_end");
 
 extern const uint8_t _binary_provision_navigation_html_start[] asm("_binary_provision_navigation_html_start");
 extern const uint8_t _binary_provision_navigation_html_end[] asm("_binary_provision_navigation_html_end");
@@ -49,24 +49,21 @@ extern const uint8_t _binary_embedded_navigation_html_end[] asm("_binary_embedde
 extern const uint8_t _binary_runtime_index_html_start[] asm("_binary_runtime_index_html_start");
 extern const uint8_t _binary_runtime_index_html_end[] asm("_binary_runtime_index_html_end");
 
-extern const uint8_t _binary_runtime_app_js_start[] asm("_binary_runtime_app_js_start");
-extern const uint8_t _binary_runtime_app_js_end[] asm("_binary_runtime_app_js_end");
-
 // Common shared JS/CSS
-extern const uint8_t _binary_common_api_js_start[] asm("_binary_common_api_js_start");
-extern const uint8_t _binary_common_api_js_end[] asm("_binary_common_api_js_end");
+extern const uint8_t _binary_embedded_api_js_start[] asm("_binary_embedded_api_js_start");
+extern const uint8_t _binary_embedded_api_js_end[] asm("_binary_embedded_api_js_end");
 
-extern const uint8_t _binary_common_ui_js_start[] asm("_binary_common_ui_js_start");
-extern const uint8_t _binary_common_ui_js_end[] asm("_binary_common_ui_js_end");
+extern const uint8_t _binary_embedded_common_ui_js_start[] asm("_binary_embedded_common_ui_js_start");
+extern const uint8_t _binary_embedded_common_ui_js_end[] asm("_binary_embedded_common_ui_js_end");
 
-extern const uint8_t _binary_common_modal_js_start[] asm("_binary_common_modal_js_start");
-extern const uint8_t _binary_common_modal_js_end[] asm("_binary_common_modal_js_end");
+extern const uint8_t _binary_embedded_modal_js_start[] asm("_binary_embedded_modal_js_start");
+extern const uint8_t _binary_embedded_modal_js_end[] asm("_binary_embedded_modal_js_end");
 
 extern const uint8_t _binary_common_state_js_start[] asm("_binary_common_state_js_start");
 extern const uint8_t _binary_common_state_js_end[] asm("_binary_common_state_js_end");
 
-extern const uint8_t _binary_common_styles_css_start[] asm("_binary_common_styles_css_start");
-extern const uint8_t _binary_common_styles_css_end[] asm("_binary_common_styles_css_end");
+extern const uint8_t _binary_embedded_styles_css_start[] asm("_binary_embedded_styles_css_start");
+extern const uint8_t _binary_embedded_styles_css_end[] asm("_binary_embedded_styles_css_end");
 
 // ------------------------------------------------------------
 // Static table of embedded files
@@ -82,7 +79,7 @@ static const FileEntry files[] = {
     {"/favicon.ico", _binary__favicon_ico_start, _binary__favicon_ico_end},
 
     // Provisioning UI
-	{"/provision/ui.js", _binary_provision_ui_js_start, _binary_provision_ui_js_end},
+	{"/embedded/ui.js", _binary_embedded_ui_js_start, _binary_embedded_ui_js_end},
     {"/provision/index.html", _binary_provision_index_html_start, _binary_provision_index_html_end},
 	{"/provision/navigation.html", _binary_provision_navigation_html_start, _binary_provision_navigation_html_end},
 
@@ -97,11 +94,11 @@ static const FileEntry files[] = {
     {"/runtime/index.html", _binary_runtime_index_html_start, _binary_runtime_index_html_end},
 
     // Shared JS/CSS
-    {"/common/api.js", _binary_common_api_js_start, _binary_common_api_js_end},
-    {"/common/ui.js", _binary_common_ui_js_start, _binary_common_ui_js_end},
-    {"/common/modal.js", _binary_common_modal_js_start, _binary_common_modal_js_end},
+    {"/embedded/api.js", _binary_embedded_api_js_start, _binary_embedded_api_js_end},
+    {"/embedded/common_ui.js", _binary_embedded_common_ui_js_start, _binary_embedded_common_ui_js_end},
+    {"/embedded/modal.js", _binary_embedded_modal_js_start, _binary_embedded_modal_js_end},
     {"/common/state.js", _binary_common_state_js_start, _binary_common_state_js_end},
-    {"/common/styles.css", _binary_common_styles_css_start, _binary_common_styles_css_end},
+    {"/embedded/styles.css", _binary_embedded_styles_css_start, _binary_embedded_styles_css_end},
 };
 
 // ------------------------------------------------------------
