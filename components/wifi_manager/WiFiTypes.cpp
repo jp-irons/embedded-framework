@@ -1,6 +1,6 @@
-#include "wifi_types/WiFiTypes.hpp"
+#include "wifi_manager/WiFiTypes.hpp"
 
-namespace wifi_types {
+namespace wifi_manager {
 
 const char *toString(WiFiAuthMode auth) {
     switch (auth) {

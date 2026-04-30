@@ -11,5 +11,4 @@ idf_component_register(
   		nvs_flash
     	http
         logger
-        wifi_types
 )

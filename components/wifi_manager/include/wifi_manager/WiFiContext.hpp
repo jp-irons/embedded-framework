@@ -1,6 +1,7 @@
 #pragma once
 
-#include "wifi_types/WiFiTypes.hpp"
+#include "credential_store/CredentialStore.hpp"
+#include "wifi_manager/WiFiTypes.hpp"
 namespace credential_store {
 class CredentialStore;
 }
@@ -18,8 +19,8 @@ struct WiFiContext {
     WiFiInterface *wifiInterface = nullptr;
 	WiFiManager *wifiManager = nullptr;
 
-    wifi_types::ApConfig apConfig;
-    wifi_types::WiFiCredential currentWiFiCred;
+    ApConfig apConfig;
+    credential_store::WiFiCredential currentWiFiCred;
 	
 	std::string rootUri;
 

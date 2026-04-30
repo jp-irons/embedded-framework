@@ -11,12 +11,11 @@
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiHelper.hpp"
 #include "wifi_manager/WiFiManager.hpp"
-#include "wifi_types/WiFiTypes.hpp"
+#include "wifi_manager/WiFiTypes.hpp"
 
 namespace wifi_manager {
 
 using namespace common;
-using namespace wifi_types;
 
 static logger::Logger log{"WiFiInterface"};
 
@@ -34,6 +33,7 @@ void WiFiInterface::startDriver() {
 
     // 2. Initialize Wi-Fi driver
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+	// TODO get rid of the ESP_ERROR_CHECKs
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
     // Register WiFi event handler
@@ -97,7 +97,7 @@ void WiFiInterface::stopAp() {
     currentMode = mode;
 }
 
-wifi_config_t WiFiInterface::makeStaConfig(const wifi_types::WiFiCredential &cred) {
+wifi_config_t WiFiInterface::makeStaConfig(const credential_store::WiFiCredential &cred) {
     wifi_config_t cfg = {};
     auto &sta = cfg.sta;
 
@@ -115,7 +115,7 @@ wifi_config_t WiFiInterface::makeStaConfig(const wifi_types::WiFiCredential &cre
 /**
  * STA MODE
  */
-WiFiStatus WiFiInterface::connectSta(const wifi_types::WiFiCredential &cred) {
+WiFiStatus WiFiInterface::connectSta(const credential_store::WiFiCredential &cred) {
     log.info("Connecting STA to SSID: %s", cred.ssid.c_str());
 
     wifi_config_t cfg = makeStaConfig(cred);

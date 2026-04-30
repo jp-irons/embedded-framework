@@ -10,5 +10,4 @@ idf_component_register(
         logger
         embedded_files
         wifi_manager
-        wifi_types
 )

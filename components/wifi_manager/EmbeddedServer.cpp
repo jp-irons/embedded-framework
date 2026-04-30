@@ -9,7 +9,7 @@
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
 #include "wifi_manager/WiFiStateMachine.hpp"
-#include "wifi_types/WiFiTypes.hpp"
+#include "wifi_manager/WiFiTypes.hpp"
 
 namespace wifi_manager {
 
@@ -49,7 +49,7 @@ bool EmbeddedServer::start() {
     }
 
 	log.debug("EmbeddedServer up");
-	wifi_types::IpAddress ip = ctx.wifiInterface->getStaIp();
+	IpAddress ip = ctx.wifiInterface->getStaIp();
 	if (ip.valid) {
 	    log.info("EmbeddedServer started on http://%s", ip.value.c_str());
 	} else {
@@ -84,7 +84,7 @@ common::Result EmbeddedServer::handle(http::HttpRequest &req, http::HttpResponse
 	}
 	
 	for (auto& r : routes) {
-		log.debug("check route '%s' uri '%s'", r.prefix.c_str(), effectivePath.c_str());
+//		log.debug("check route '%s' uri '%s'", r.prefix.c_str(), effectivePath.c_str());
 
 	    if (effectivePath.rfind(r.prefix, 0) == 0) {
 			log.debug("matched '%s' to '%s'", r.prefix.c_str(), path.c_str());

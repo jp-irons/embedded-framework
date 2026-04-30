@@ -6,6 +6,7 @@ idf_component_register(
         WiFiInterface.cpp
         WiFiManager.cpp
         WiFiStateMachine.cpp
+        WiFiTypes.cpp
     INCLUDE_DIRS
         include
    REQUIRES
@@ -21,5 +22,4 @@ idf_component_register(
         embedded_files
         http
         logger
-        wifi_types
 )

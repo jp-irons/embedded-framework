@@ -1,6 +1,7 @@
 #pragma once
 
-#include "wifi_types/WiFiTypes.hpp"
+#include "credential_store/WiFiCredential.hpp"
+#include "wifi_manager/WiFiTypes.hpp"
 #include "esp_event_base.h"
 #include "esp_netif_types.h"
 #include "esp_wifi_types_generic.h"
@@ -24,18 +25,18 @@ class WiFiInterface {
     void startDriver();
     void stopDriver();
 
-    void startAp(const wifi_types::ApConfig &cfg);
+    void startAp(const wifi_manager::ApConfig &cfg);
     void stopAp();
 
-	wifi_config_t makeStaConfig(const wifi_types::WiFiCredential& cred);
+	wifi_config_t makeStaConfig(const credential_store::WiFiCredential& cred);
 
-    wifi_types::WiFiStatus connectSta(const wifi_types::WiFiCredential& cred);
+    WiFiStatus connectSta(const credential_store::WiFiCredential& cred);
     void disconnectSta();
 
-	common::Result scan(std::vector<wifi_types::WiFiAp>& results);
+	common::Result scan(std::vector<WiFiAp>& results);
 	
-	wifi_types::IpAddress getApIp() const;
-	wifi_types::IpAddress getStaIp() const;
+	IpAddress getApIp() const;
+	IpAddress getStaIp() const;
 
   private:
     WiFiContext &ctx;
@@ -58,11 +59,11 @@ class WiFiInterface {
 
     void handleIPEvent(esp_event_base_t base, int32_t id, void *data);
 
-    void connectTo(const wifi_types::WiFiCredential &cred);
+    void connectTo(const credential_store::WiFiCredential &cred);
 
     void onSTAConnected();
     void onSTADisconnected(uint8_t reason);
-	static wifi_types::WiFiAuthMode toAuthMode(wifi_auth_mode_t mode);
+	static WiFiAuthMode toAuthMode(wifi_auth_mode_t mode);
 	wifi_mode_t computeMode() const;
 	common::Result setStaState(bool enable);
 

@@ -15,7 +15,6 @@
 namespace wifi_manager {
 
 using namespace http;
-using namespace wifi_types;
 using namespace common;
 
 static logger::Logger log{"WiFiApiHandler"};
@@ -95,7 +94,7 @@ common::Result WiFiApiHandler::handleStatus(HttpRequest &req, HttpResponse &res)
 		return res.sendJsonError(403, "Method not supported");
     }
 
-    wifi_types::WiFiStaStatus st = wifiCtx.wifiManager->getStaStatus();
+    WiFiStaStatus st = wifiCtx.wifiManager->getStaStatus();
 
     // Create root JSON object
     cJSON *root = cJSON_CreateObject();

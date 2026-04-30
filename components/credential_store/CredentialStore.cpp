@@ -8,12 +8,10 @@
 #include <algorithm>
 #include <cstring>
 #include "device/EspTypeAdapter.hpp"
-#include "wifi_types/WiFiTypes.hpp"
 
 namespace credential_store {
 
 using namespace common;
-using namespace wifi_types;
 
 static logger::Logger log{"CredentialStore"};
 

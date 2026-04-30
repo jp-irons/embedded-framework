@@ -21,14 +21,14 @@ FrameworkContext::FrameworkContext() {
     initialize(apConfig);
 }
 
-FrameworkContext::FrameworkContext(const wifi_types::ApConfig &apConfig, std::string rootUri)
+FrameworkContext::FrameworkContext(const wifi_manager::ApConfig &apConfig, std::string rootUri)
     : apConfig(apConfig)
     , rootUri_(std::move(rootUri)) {
     log.debug("constructor");
     initialize(apConfig);
 }
 
-void FrameworkContext::initialize(const wifi_types::ApConfig &apConfig) {
+void FrameworkContext::initialize(const wifi_manager::ApConfig &apConfig) {
     log.debug("initializing framework context with root: {}", rootUri_.c_str());
 	
 	device::init();

@@ -13,7 +13,6 @@ namespace credential_store {
 
 using namespace http;
 using namespace common;
-using namespace wifi_types;
 
 static logger::Logger log{"CredentialApiHandler"};
 

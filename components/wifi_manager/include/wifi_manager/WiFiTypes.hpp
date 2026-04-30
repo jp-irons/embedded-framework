@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace wifi_types {
+namespace wifi_manager {
 
 enum class WiFiAuthMode { 
 	Open, WEP, WPA_PSK, WPA2_PSK, WPA_WPA2_PSK, WPA3_PSK, Unknown 
@@ -23,12 +23,6 @@ struct ApConfig {
     uint8_t maxConnections = 4;
     bool hidden = false;
 	WiFiAuthMode auth = WiFiAuthMode::WPA2_PSK;
-};
-
-struct WiFiCredential {
-    std::string ssid;
-    std::string password;
-    int priority = 0;
 };
 
 struct StaIpInfo {

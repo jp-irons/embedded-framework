@@ -2,7 +2,7 @@ idf_component_register(
     SRCS
     	DeferredExecutor.cpp
     	DeviceApiHandler.cpp
-    	DeviceService.cpp
+    	DeviceInterface.cpp
     INCLUDE_DIRS
         include
     REQUIRES

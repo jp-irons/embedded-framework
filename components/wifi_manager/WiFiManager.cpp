@@ -104,7 +104,7 @@ void WiFiManager::loadInitialCredential() {
     if (!ctx.credentialStore)
         return;
 
-    std::vector<wifi_types::WiFiCredential> all;
+    std::vector<credential_store::WiFiCredential> all;
     if (Result::Ok == ctx.credentialStore->loadAllSortedByPriority(all) && !all.empty()) {
         ctx.currentWiFiCred = all.front();
     }
@@ -156,7 +156,7 @@ void WiFiManager::scheduleRetry() {
     });
 }
 
-void WiFiManager::onStaGotIp(const wifi_types::StaIpInfo &info) {
+void WiFiManager::onStaGotIp(const StaIpInfo &info) {
     log.info("STA got IP: %s (mask %s, gw %s)", info.ip.c_str(), info.netmask.c_str(), info.gateway.c_str());
 
     // Feed the state machine
@@ -168,8 +168,8 @@ void WiFiManager::onStaGotIp(const wifi_types::StaIpInfo &info) {
     }
 }
 
-wifi_types::WiFiStaStatus WiFiManager::getStaStatus() const {
-    wifi_types::WiFiStaStatus st;
+WiFiStaStatus WiFiManager::getStaStatus() const {
+    WiFiStaStatus st;
 
     // 1. State (stringified)
     st.state = sm.toString(sm.getState());

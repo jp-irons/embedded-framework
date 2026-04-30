@@ -52,7 +52,7 @@ common::Result DeviceApiHandler::handlePost(http::HttpRequest& req, http::HttpRe
 
 common::Result DeviceApiHandler::handleClearNvs(http::HttpRequest& req, http::HttpResponse& res) {
     log.info("handleClearNvs not implemented");
-	Result r = deviceService.clearNvs();
+	Result r = device::clearNvs();
     if (r != common::Result::Ok) {
         res.sendJson(500, std::string("Error ") + toString(r) + " clearing NVS");
 		return common::Result::Ok;
