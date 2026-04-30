@@ -45,6 +45,8 @@ extern "C" void app_main(void) {
 }
 
 extern "C" void setupLogging() {
+	
+	// TODO refactor logging TAG settings.
     static EspIdfLogSink uartSink;
     LogSinkRegistry::setSink(&uartSink);
 
@@ -56,6 +58,8 @@ extern "C" void setupLogging() {
     LogSinkRegistry::setLevelForTag("CredentialApiHandler", LogLevel::Debug);
 	LogSinkRegistry::setLevelForTag("DeviceApiHandler", LogLevel::Debug);
     LogSinkRegistry::setLevelForTag("WiFiApiHandler", LogLevel::Debug);
+	// Device tier
+	LogSinkRegistry::setLevelForTag("DeviceInterface", LogLevel::Debug);
     // credential_store
     LogSinkRegistry::setLevelForTag("CredentialStore", LogLevel::Debug);
     // framework
@@ -68,7 +72,6 @@ extern "C" void setupLogging() {
 	LogSinkRegistry::setLevelForTag("WiFiManager", LogLevel::Debug);
     LogSinkRegistry::setLevelForTag("WiFiStateMachine", LogLevel::Debug);
     // static_assets
-    LogSinkRegistry::setLevelForTag("ContentType", LogLevel::Debug);
     LogSinkRegistry::setLevelForTag("EmbeddedAssetTable", LogLevel::Debug);
     LogSinkRegistry::setLevelForTag("StaticFileHandler", LogLevel::Debug);
 	

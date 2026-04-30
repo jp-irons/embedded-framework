@@ -20,6 +20,7 @@ import {
     deleteCredential as apiDeleteCredential,
     clearCredentials as apiClearCredentials,
     clearNvs as apiClearNvs,
+	loadDeviceInfo as apiLoadDeviceInfo,
     rebootDevice
 } from "/embedded/api.js";
 
@@ -80,12 +81,112 @@ export function initUI({ mode }) {
     // Initial loads
     loadScanResults();
     refreshCredentials();
-
+	
+	// Device Info page
+	const deviceInfoContainer = document.getElementById("device-info-container");
+	if (deviceInfoContainer) {
+	    refreshDeviceInfo();
+	    const btnRefreshInfo = document.getElementById("btn-refresh-device-info");
+	    if (btnRefreshInfo) btnRefreshInfo.onclick = refreshDeviceInfo;
+	}
+	
     if (mode === "runtime") {
         startStatusPolling();
     }
 }
 
+async function refreshDeviceInfo() {
+    const container = document.getElementById("device-info-container");
+    if (!container) return;
+
+    container.innerHTML = `<div class="text-gray-500">Loading…</div>`;
+
+    const res = await apiLoadDeviceInfo();
+    //if (!res.ok) {
+     //   container.innerHTML = `<div class="text-red-600">Failed to load device info</div>`;
+     //   return;
+    //}
+
+    //const info = res.data;
+	const info = res;
+
+	container.innerHTML = `
+	    <table class="text-sm">
+	        <tr>
+	            <td class="pr-4 font-semibold text-right">Chip Model:</td>
+	            <td>${info.chipModel}</td>
+	        </tr>
+	        <tr>
+	            <td class="pr-4 font-semibold text-right">Revision:</td>
+	            <td>${info.revision}</td>
+	        </tr>
+	        <tr>
+	            <td class="pr-4 font-semibold text-right">MAC Address:</td>
+	            <td>${info.mac}</td>
+	        </tr>
+	        <tr>
+	            <td class="pr-4 font-semibold text-right">Flash Size:</td>
+	            <td>${info.flashSize} bytes</td>
+	        </tr>
+	        <tr>
+	            <td class="pr-4 font-semibold text-right">Free Heap:</td>
+	            <td>${info.freeHeap} bytes</td>
+	        </tr>
+	    </table>
+	`;
+
+}
+
+
+// ------------------------------------------------------------
+// Device Info Page
+// ------------------------------------------------------------
+function initDeviceInfoPage() {
+    const container = document.getElementById("device-info-container");
+    if (!container) return; // Not on this page
+
+    async function refresh() {
+        clear(container);
+        container.append(el("div", { class: "text-gray-500" }, "Loading…"));
+
+        const res = await loadDeviceInfo();
+        if (!res.ok) {
+            clear(container);
+            container.append(
+                el("div", { class: "text-red-600" }, "Failed to load device info")
+            );
+            return;
+        }
+
+        const info = res.data;
+
+        clear(container);
+        container.append(
+            el("div", { class: "grid grid-cols-2 gap-2 text-sm" },
+                el("div", { class: "font-medium" }, "Chip Model"),
+                el("div", {}, info.chipModel),
+
+                el("div", { class: "font-medium" }, "Revision"),
+                el("div", {}, info.revision),
+
+                el("div", { class: "font-medium" }, "MAC Address"),
+                el("div", {}, info.mac),
+
+                el("div", { class: "font-medium" }, "Flash Size"),
+                el("div", {}, info.flashSize + " bytes"),
+
+                el("div", { class: "font-medium" }, "Free Heap"),
+                el("div", {}, info.freeHeap + " bytes")
+            )
+        );
+    }
+
+    // Wire refresh button
+    const refreshBtn = document.getElementById("device-info-refresh");
+    if (refreshBtn) refreshBtn.onclick = refresh;
+
+    refresh();
+}
 
 // ------------------------------------------------------------
 // Scan UI

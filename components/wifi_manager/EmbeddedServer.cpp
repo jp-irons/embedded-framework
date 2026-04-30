@@ -8,7 +8,6 @@
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
-#include "wifi_manager/WiFiStateMachine.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
 
 namespace wifi_manager {

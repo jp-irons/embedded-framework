@@ -1,6 +1,6 @@
 #pragma once
 
-#include "credential_store/CredentialStore.hpp"
+#include "credential_store/WiFiCredential.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
 #include "esp_wifi_types_generic.h"
 

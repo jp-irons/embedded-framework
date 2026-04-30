@@ -2,6 +2,7 @@
 
 #include "credential_store/CredentialApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
+#include "device/DeviceInterface.hpp"
 #include "logger/Logger.hpp"
 #include "wifi_manager/EmbeddedServer.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"

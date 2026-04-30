@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/Result.hpp"
-#include "device/DeviceInterface.hpp"
 #include "http/HttpHandler.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
@@ -20,5 +19,6 @@ private:
 	common::Result handlePost(http::HttpRequest& req, http::HttpResponse& res);
 	common::Result handleClearNvs(http::HttpRequest& req, http::HttpResponse& res);
 	common::Result handleReboot(http::HttpRequest& req, http::HttpResponse& res);
+	common::Result handleInfo(http::HttpRequest& req, http::HttpResponse& res);
 };
 } // namespace

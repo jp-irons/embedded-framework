@@ -73,3 +73,7 @@ export function clearNvs() {
 export function rebootDevice() {
     return post("/framework/api/device/reboot");
 }
+
+export function loadDeviceInfo() {
+    return get(`/framework/api/device/info?ts=${Date.now()}`);
+}
