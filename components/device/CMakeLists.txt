@@ -10,5 +10,6 @@ idf_component_register(
         http
         logger
         esp_timer
+        esp_netif
         nvs_flash
 )

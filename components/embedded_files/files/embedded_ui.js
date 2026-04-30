@@ -348,13 +348,13 @@ async function pollStatus() {
                 `State: ${status.state}, SSID: ${status.ssid}, Error: ${status.lastErrorReason}`;
         }
 
-		if (status.state === "Got IP" && status.connected) {
+		if (status.state === "STA Connected") {
 		    stopStatusPolling();
-		    if (el) el.textContent = "Connected!";
+		    if (el) el.textContent = "Connected";
 		}
-		if (status.state === "Unprovisioned AP") {
+		if (status.state === "AP Mode") {
             stopStatusPolling();
-            if (el) el.textContent = "Unprovisioned AP";
+            if (el) el.textContent = "AP Mode";
         }
     } catch (err) {
         console.error("Status poll failed:", err);

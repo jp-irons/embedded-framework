@@ -55,9 +55,9 @@ const char* WiFiStateMachine::toString(WiFiState s)
 {
     switch (s) {
     case WiFiState::Idle:           return "Idle";
-    case WiFiState::AP_Mode:        return "AP_Mode";
-    case WiFiState::STA_Connecting: return "STA_Connecting";
-    case WiFiState::STA_Connected:  return "STA_Connected";
+    case WiFiState::AP_Mode:        return "AP Mode";
+    case WiFiState::STA_Connecting: return "STA Connecting";
+    case WiFiState::STA_Connected:  return "STA Connected";
     default:                        return "Unknown";
     }
 }

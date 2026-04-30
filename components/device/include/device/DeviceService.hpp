@@ -4,6 +4,8 @@
 
 namespace device {
 	
+common::Result init();
+
 class DeviceService {
 public:
     explicit DeviceService();

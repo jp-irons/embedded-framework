@@ -8,10 +8,6 @@
 #include "wifi_manager/WiFiInterface.hpp"
 #include "wifi_manager/WiFiManager.hpp"
 
-#include "esp_event.h"
-#include "esp_netif.h"
-#include "nvs_flash.h"
-
 namespace framework {
 
 static constexpr const char *DEFAULT_ROOT_URI = "/framework/api";
@@ -34,23 +30,8 @@ FrameworkContext::FrameworkContext(const wifi_types::ApConfig &apConfig, std::st
 
 void FrameworkContext::initialize(const wifi_types::ApConfig &apConfig) {
     log.debug("initializing framework context with root: {}", rootUri_.c_str());
-
-    // 1. Initialize NVS
-    log.debug("nvs_flash_init");
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        log.error("flash erase then init");
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ESP_ERROR_CHECK(nvs_flash_init());
-    }
-
-    // 2. Initialize event loop
-    log.debug("init event loop");
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-
-    // 3. Initialize netif
-    log.debug("init netif");
-    ESP_ERROR_CHECK(esp_netif_init());
+	
+	device::init();
 
     // 4. Populate wifiCtx with config and core pointers
     log.debug("AP SSID %s", apConfig.ssid.c_str());
