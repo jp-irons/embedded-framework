@@ -32,12 +32,6 @@ class WiFiInterface {
     wifi_types::WiFiStatus connectSta(const wifi_types::WiFiCredential& cred);
     void disconnectSta();
 
-    void startProvisioningServer();
-    void stopProvisioningServer();
-
-    void startRuntimeServer();
-    void stopRuntimeServer();
-
 	common::Result scan(std::vector<wifi_types::WiFiAp>& results);
 	
 	wifi_types::IpAddress getApIp() const;

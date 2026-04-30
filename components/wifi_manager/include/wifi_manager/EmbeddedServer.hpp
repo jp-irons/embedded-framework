@@ -20,6 +20,9 @@ class EmbeddedServer : public http::HttpHandler {
 
     bool start(); // start HTTP server
     void stop(); // stop HTTP server
+	
+	void startProvisioningMode();   // configure for provisioning
+	void startRuntimeMode();        // configure for runtime
 
     common::Result handle(http::HttpRequest &req, http::HttpResponse &res) override;
 

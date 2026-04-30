@@ -31,28 +31,10 @@ struct WiFiCredential {
     int priority = 0;
 };
 
-enum class WiFiState {
-    UNINITIALISED, // Before WiFiInterface::start()
-    STARTING, // WiFi driver is being initialised
-
-    // Provisioning path
-    UNPROVISIONED_AP, // SoftAP running for provisioning
-    PROVISIONING, // Handling provisioning requests
-    PROVISIONING_TEST_STA, // Testing STA credentials
-
-    // Runtime path
-    STA_CONNECTING, // Attempting STA connection
-    STA_CONNECTED, // Connected, waiting for IP
-    GOT_IP, // Fully online
-
-    // Error / fallback
-    STA_DISCONNECTED, // Lost connection
-    STA_CONNECT_FAILED, // Credentials invalid or AP unreachable
-    FALLBACK_AP, // Returning to AP mode after failure
-
-    // Terminal / maintenance
-    STOPPING,
-    STOPPED
+struct StaIpInfo {
+    std::string ip;
+    std::string netmask;
+    std::string gateway;
 };
 
 enum class WiFiError {
@@ -94,8 +76,6 @@ struct IpAddress {
     bool valid = false;
 };
 
-
-const char *toString(WiFiState state);
 
 const char *toString(WiFiError err);
 

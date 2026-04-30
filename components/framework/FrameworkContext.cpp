@@ -2,20 +2,23 @@
 
 #include "credential_store/CredentialApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
-#include "esp_event.h"
-#include "esp_netif.h"
 #include "logger/Logger.hpp"
-#include "nvs_flash.h"
 #include "wifi_manager/EmbeddedServer.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
-#include "wifi_manager/WiFiStateMachine.hpp"
+#include "wifi_manager/WiFiManager.hpp"
+
+#include "esp_event.h"
+#include "esp_netif.h"
+#include "nvs_flash.h"
 
 namespace framework {
 
 static constexpr const char *DEFAULT_ROOT_URI = "/framework/api";
 
-static logger::Logger log{"FrameworkContext"};
+static const char* TAG = "FrameworkContext";
+
+static logger::Logger log{TAG};
 
 FrameworkContext::FrameworkContext() {
     log.debug("constructor default apConfig and rootUri");
@@ -55,12 +58,9 @@ void FrameworkContext::initialize(const wifi_types::ApConfig &apConfig) {
     wifiCtx.rootUri = rootUri_;
     wifiCtx.credentialStore = &credentialStore;
 
-    // 5. Ensure credential store is ready before anything uses it
-    //    credentialStore.loadAll();   // or initialize(), if you have one
-
     // 6. Create state machine first (so it exists before any events)
-    wifiStateMachine = new wifi_manager::WiFiStateMachine(wifiCtx);
-    wifiCtx.stateMachine = wifiStateMachine;
+    wifiManager = new wifi_manager::WiFiManager(wifiCtx);
+    wifiCtx.wifiManager = wifiManager;
 
     // 7. Create API handlers
     wifiApi = new wifi_manager::WiFiApiHandler(wifiCtx);
@@ -81,14 +81,14 @@ FrameworkContext::~FrameworkContext() {
     stop();
     delete embeddedServer;
     delete wifiInterface;
-    delete wifiStateMachine;
+    delete wifiManager;
     delete wifiApi;
     delete credentialApi;
 }
 
 void FrameworkContext::start() {
     log.debug("start");
-    wifiStateMachine->start();
+    wifiManager->start();
 }
 
 void FrameworkContext::stop() {}

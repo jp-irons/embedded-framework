@@ -63,6 +63,14 @@ void EmbeddedServer::stop() {
     server.stop();
 }
 
+void EmbeddedServer::startRuntimeMode() {
+    log.debug("startRuntimeMode (stub)");
+}
+
+void EmbeddedServer::startProvisioningMode() {
+    log.debug("startProvisioningMode (stub)");
+}
+
 // handle requests not handled elsewhere
 common::Result EmbeddedServer::handle(http::HttpRequest &req, http::HttpResponse &res) {
     log.debug("handle");

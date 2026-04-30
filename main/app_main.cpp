@@ -35,7 +35,6 @@ extern "C" void app_main(void) {
 
 	ApplicationContext app{fw};
 	app.start();
-    app.start();
     log.info("System initialised");
 
     // Main loop
@@ -52,8 +51,6 @@ extern "C" void setupLogging() {
     // --- 2. Configure filtering ---
     LogSinkRegistry::setDefaultLevel(LogLevel::Info);
     LogSinkRegistry::setLevelForTag("app_main", LogLevel::Debug);
-    LogSinkRegistry::setLevelForTag("ProvisioningServer", LogLevel::Debug);
-    LogSinkRegistry::setLevelForTag("app_main", LogLevel::Debug);
     LogSinkRegistry::setLevelForTag("ApplicationContext", LogLevel::Debug);
     // core_api API Handlers
     LogSinkRegistry::setLevelForTag("CredentialApiHandler", LogLevel::Debug);
@@ -68,6 +65,7 @@ extern "C" void setupLogging() {
     // wifi_manager
     LogSinkRegistry::setLevelForTag("EmbeddedServer", LogLevel::Debug);
     LogSinkRegistry::setLevelForTag("WiFiInterface", LogLevel::Debug);
+	LogSinkRegistry::setLevelForTag("WiFiManager", LogLevel::Debug);
     LogSinkRegistry::setLevelForTag("WiFiStateMachine", LogLevel::Debug);
     // static_assets
     LogSinkRegistry::setLevelForTag("ContentType", LogLevel::Debug);

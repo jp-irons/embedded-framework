@@ -4,6 +4,7 @@ idf_component_register(
         WiFiApiHandler.cpp
         WiFiHelper.cpp
         WiFiInterface.cpp
+        WiFiManager.cpp
         WiFiStateMachine.cpp
     INCLUDE_DIRS
         include

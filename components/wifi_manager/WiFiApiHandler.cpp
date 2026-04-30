@@ -8,7 +8,7 @@
 #include "logger/Logger.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
-#include "wifi_manager/WiFiStateMachine.hpp"
+#include "wifi_manager/WiFiManager.hpp"
 
 #include <vector>
 
@@ -95,7 +95,7 @@ common::Result WiFiApiHandler::handleStatus(HttpRequest &req, HttpResponse &res)
 		return res.sendJsonError(403, "Method not supported");
     }
 
-    wifi_types::WiFiStaStatus st = wifiCtx.stateMachine->getStaStatus();
+    wifi_types::WiFiStaStatus st = wifiCtx.wifiManager->getStaStatus();
 
     // Create root JSON object
     cJSON *root = cJSON_CreateObject();

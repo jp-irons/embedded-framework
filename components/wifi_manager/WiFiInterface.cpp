@@ -1,8 +1,7 @@
 #include "wifi_manager/WiFiInterface.hpp"
 
-#include "device/EspTypeAdapter.hpp"
-#include "wifi_types/WiFiTypes.hpp"
 #include "common/Result.hpp"
+#include "device/EspTypeAdapter.hpp"
 #include "esp_event.h"
 #include "esp_event_base.h"
 #include "esp_wifi.h"
@@ -11,10 +10,11 @@
 #include "wifi_manager/EmbeddedServer.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiHelper.hpp"
-#include "wifi_manager/WiFiStateMachine.hpp"
+#include "wifi_manager/WiFiManager.hpp"
+#include "wifi_types/WiFiTypes.hpp"
 
 namespace wifi_manager {
-	
+
 using namespace common;
 using namespace wifi_types;
 
@@ -25,11 +25,6 @@ WiFiInterface::WiFiInterface(WiFiContext &ctx)
     log.debug("constructor");
 }
 
-/**
- * Driver init — ONLY WiFi driver + handlers.
- * DO NOT create event loop or netifs here.
- * Those belong in app_main().
- */
 void WiFiInterface::startDriver() {
     log.info("startDriver");
 
@@ -102,12 +97,12 @@ void WiFiInterface::stopAp() {
     currentMode = mode;
 }
 
-wifi_config_t WiFiInterface::makeStaConfig(const wifi_types::WiFiCredential& cred) {
+wifi_config_t WiFiInterface::makeStaConfig(const wifi_types::WiFiCredential &cred) {
     wifi_config_t cfg = {};
-    auto& sta = cfg.sta;
+    auto &sta = cfg.sta;
 
-    strncpy((char*)sta.ssid, cred.ssid.c_str(), sizeof(sta.ssid));
-    strncpy((char*)sta.password, cred.password.c_str(), sizeof(sta.password));
+    strncpy((char *) sta.ssid, cred.ssid.c_str(), sizeof(sta.ssid));
+    strncpy((char *) sta.password, cred.password.c_str(), sizeof(sta.password));
 
     // These are safe, modern defaults
     sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
@@ -120,27 +115,26 @@ wifi_config_t WiFiInterface::makeStaConfig(const wifi_types::WiFiCredential& cre
 /**
  * STA MODE
  */
- WiFiStatus WiFiInterface::connectSta(const wifi_types::WiFiCredential& cred) {
-     log.info("Connecting STA to SSID: %s", cred.ssid.c_str());
+WiFiStatus WiFiInterface::connectSta(const wifi_types::WiFiCredential &cred) {
+    log.info("Connecting STA to SSID: %s", cred.ssid.c_str());
 
-     wifi_config_t cfg = makeStaConfig(cred);
+    wifi_config_t cfg = makeStaConfig(cred);
 
-     staActive = true;
-     wifi_mode_t mode = computeMode();
+    staActive = true;
+    wifi_mode_t mode = computeMode();
 
-     if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK)
-         return WiFiStatus::DriverError;
+    if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK)
+        return WiFiStatus::DriverError;
 
-     if (esp_wifi_set_config(WIFI_IF_STA, &cfg) != ESP_OK)
-         return WiFiStatus::ConfigError;
+    if (esp_wifi_set_config(WIFI_IF_STA, &cfg) != ESP_OK)
+        return WiFiStatus::ConfigError;
 
-     if (esp_wifi_connect() != ESP_OK)
-         return WiFiStatus::ConnectError;
+    if (esp_wifi_connect() != ESP_OK)
+        return WiFiStatus::ConnectError;
 
-     currentMode = mode;
-     return WiFiStatus::Ok;
- }
-
+    currentMode = mode;
+    return WiFiStatus::Ok;
+}
 
 void WiFiInterface::disconnectSta() {
     log.debug("Disconnecting STA");
@@ -152,40 +146,16 @@ void WiFiInterface::disconnectSta() {
 }
 
 /**
- * Provisioning server control
- */
-void WiFiInterface::startProvisioningServer() {
-    log.debug("Starting embedded server");
-    ctx.embeddedServer->start();
-}
-
-void WiFiInterface::stopProvisioningServer() {
-    log.info("Stopping embedded server");
-    ctx.embeddedServer->stop();
-}
-
-/**
- * Runtime server control
- */
-void WiFiInterface::startRuntimeServer() {
-    log.info("Starting runtime server");
-    ctx.embeddedServer->start();
-}
-
-void WiFiInterface::stopRuntimeServer() {
-    log.info("Stopping runtime server");
-    ctx.embeddedServer->stop();
-}
-
-/**
  * STATIC EVENT HANDLERS
  */
 void WiFiInterface::wifiEventHandler(void *arg, esp_event_base_t base, int32_t id, void *data) {
+    log.debug("wifiEventHandler()");
     auto *self = static_cast<WiFiInterface *>(arg);
     self->handleWiFiEvent(base, id, data);
 }
 
 void WiFiInterface::ipEventHandler(void *arg, esp_event_base_t base, int32_t id, void *data) {
+    log.debug("ipEventHandler()");
     auto *self = static_cast<WiFiInterface *>(arg);
     self->handleIPEvent(base, id, data);
 }
@@ -193,61 +163,58 @@ void WiFiInterface::ipEventHandler(void *arg, esp_event_base_t base, int32_t id,
 /**
  * INSTANCE EVENT HANDLERS
  */
+
 void WiFiInterface::handleWiFiEvent(esp_event_base_t base, int32_t id, void *data) {
     log.debug("handleWiFiEvent");
+    if (!ctx.wifiManager)
+        return;
+
     switch (id) {
-        case WIFI_EVENT_STA_START:
-            log.debug("WIFI_EVENT_STA_START");
-            break;
 
         case WIFI_EVENT_STA_CONNECTED:
-            log.info("STA connected");
-            ctx.stateMachine->onStaConnected();
+            ctx.wifiManager->onConnectSuccess();
             break;
 
-        case WIFI_EVENT_STA_DISCONNECTED: {
-            auto *event = (wifi_event_sta_disconnected_t *) data;
-            log.warn("STA disconnected, reason=%d", event->reason);
-            ctx.stateMachine->onStaDisconnected(toWiFiError(event->reason));
-            break;
-        }
-
-        case WIFI_EVENT_AP_START:
-            log.info("AP started");
+        case WIFI_EVENT_STA_DISCONNECTED:
+            ctx.wifiManager->onDisconnect();
             break;
 
-        case WIFI_EVENT_AP_STOP:
-            log.info("AP stopped");
+        case WIFI_EVENT_STA_AUTHMODE_CHANGE:
+            ctx.wifiManager->onConnectFail();
             break;
 
-        case WIFI_EVENT_AP_STACONNECTED:
-            log.info("STA connected");
-            break;
-        case WIFI_EVENT_STA_STOP:
-            log.info("STA stopped");
-            break;
-        case WIFI_EVENT_AP_STADISCONNECTED:
-            log.info("STA disconnected");
-            break;
-        case WIFI_EVENT_HOME_CHANNEL_CHANGE:
-            log.info("Home channel changed");
-            break;
-
-        case WIFI_EVENT_SCAN_DONE:
-            log.info("Scan done");
+        case IP_EVENT_STA_GOT_IP:
+            ctx.wifiManager->onConnectSuccess();
             break;
 
         default:
-            log.debug("Unhandled WiFi event: %ld", id);
             break;
     }
 }
 
 void WiFiInterface::handleIPEvent(esp_event_base_t base, int32_t id, void *data) {
-    if (id == IP_EVENT_STA_GOT_IP) {
-        auto *event = (ip_event_got_ip_t *) data;
-        log.info("Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
-        ctx.stateMachine->onStaGotIp(event);
+    log.debug("handleIPEvent");
+    if (id != IP_EVENT_STA_GOT_IP) {
+        return;
+    }
+
+    auto *event = static_cast<ip_event_got_ip_t *>(data);
+
+    // Convert ESP-IDF IPs to strings
+    char ipStr[16];
+    char maskStr[16];
+    char gwStr[16];
+
+    snprintf(ipStr, sizeof(ipStr), IPSTR, IP2STR(&event->ip_info.ip));
+    snprintf(maskStr, sizeof(maskStr), IPSTR, IP2STR(&event->ip_info.netmask));
+    snprintf(gwStr, sizeof(gwStr), IPSTR, IP2STR(&event->ip_info.gw));
+
+    StaIpInfo info{.ip = ipStr, .netmask = maskStr, .gateway = gwStr};
+
+    log.info("Got IP: %s", ipStr);
+
+    if (ctx.wifiManager) {
+        ctx.wifiManager->onStaGotIp(info);
     }
 }
 
@@ -261,17 +228,17 @@ Result WiFiInterface::scan(std::vector<WiFiAp> &outAps) {
     const bool initialStaActive = staActive;
 
     // Ensure STA is enabled
-	Result r = setStaState(true);
-    if (r!=Result::Ok) {
+    Result r = setStaState(true);
+    if (r != Result::Ok) {
         log.error("scan() setStaState true error '%s'", r);
         return Result::InternalError;
     }
-	
+
     wifi_scan_config_t scanConfig = {};
-	log.debug("scan starting scan");
+    log.debug("scan starting scan");
     esp_err_t err = esp_wifi_scan_start(&scanConfig, true);
     if (err != ESP_OK) {
-		Result r = device::toResult(err);
+        Result r = device::toResult(err);
         log.error("scan esp_wifi_scan_start returned %s", r);
         setStaState(initialStaActive); // restore before returning
         return r;
@@ -279,18 +246,18 @@ Result WiFiInterface::scan(std::vector<WiFiAp> &outAps) {
 
     // Retrieve AP records
     uint16_t apCount = 0;
-	err = esp_wifi_scan_get_ap_num(&apCount);
-	if (err != ESP_OK) {
-		Result r = device::toResult(err);
-	    log.error("scan() esp_wifi_scan_get_ap_number error %s", r);
-	    setStaState(initialStaActive);
-	    return r;
-	}
+    err = esp_wifi_scan_get_ap_num(&apCount);
+    if (err != ESP_OK) {
+        Result r = device::toResult(err);
+        log.error("scan() esp_wifi_scan_get_ap_number error %s", r);
+        setStaState(initialStaActive);
+        return r;
+    }
 
     std::vector<wifi_ap_record_t> records(apCount);
     err = esp_wifi_scan_get_ap_records(&apCount, records.data());
     if (err != ESP_OK) {
-		Result r = device::toResult(err);
+        Result r = device::toResult(err);
         log.error("scan() esp_wifi_scan_get_ap_records error %s", r);
         setStaState(initialStaActive);
         return r;
@@ -356,7 +323,7 @@ Result WiFiInterface::setStaState(bool enable) {
 
     esp_err_t err = esp_wifi_set_mode(mode);
     if (err != ESP_OK) {
-		Result r = device::toResult(err);
+        Result r = device::toResult(err);
         log.error("setStaState() esp_wifi_set_mode error %s", r);
         // rollback
         staActive = !enable;
@@ -375,7 +342,7 @@ IpAddress WiFiInterface::getApIp() const {
 
     char buf[32];
     esp_ip4addr_ntoa(&ip.ip, buf, sizeof(buf));
-    return { std::string(buf), true };
+    return {std::string(buf), true};
 }
 
 IpAddress WiFiInterface::getStaIp() const {
@@ -386,8 +353,7 @@ IpAddress WiFiInterface::getStaIp() const {
 
     char buf[32];
     esp_ip4addr_ntoa(&ip.ip, buf, sizeof(buf));
-    return { std::string(buf), true };
+    return {std::string(buf), true};
 }
-
 
 } // namespace wifi_manager

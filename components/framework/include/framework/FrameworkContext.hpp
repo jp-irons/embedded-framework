@@ -3,12 +3,14 @@
 #include "credential_store/CredentialApiHandler.hpp"
 #include "credential_store/CredentialStore.hpp"
 #include "device/DeviceApiHandler.hpp"
-#include "wifi_manager/EmbeddedServer.hpp"
-#include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 
 namespace credential_store {
 class CredentialStore;
+}
+
+namespace wifi_manager {
+class WiFiApiHandler;
 }
 
 namespace framework {
@@ -45,7 +47,7 @@ class FrameworkContext {
     // Owned components
     wifi_manager::EmbeddedServer *embeddedServer = nullptr;
     wifi_manager::WiFiInterface *wifiInterface = nullptr;
-    wifi_manager::WiFiStateMachine *wifiStateMachine = nullptr;
+    wifi_manager::WiFiManager *wifiManager = nullptr;
 
     // API handlers
     wifi_manager::WiFiApiHandler *wifiApi = nullptr;

@@ -5,14 +5,10 @@ namespace credential_store {
 class CredentialStore;
 }
 
-namespace wifi_types {
-enum class WiFiState;
-}
-
 namespace wifi_manager {
 
 class WiFiInterface;
-class WiFiStateMachine;
+class WiFiManager;
 class EmbeddedServer;
 
 struct WiFiContext {
@@ -20,7 +16,7 @@ struct WiFiContext {
     credential_store::CredentialStore *credentialStore = nullptr;
 
     WiFiInterface *wifiInterface = nullptr;
-    WiFiStateMachine *stateMachine = nullptr;
+	WiFiManager *wifiManager = nullptr;
 
     wifi_types::ApConfig apConfig;
     wifi_types::WiFiCredential currentWiFiCred;
