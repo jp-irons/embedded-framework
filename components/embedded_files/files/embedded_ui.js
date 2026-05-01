@@ -8,7 +8,12 @@
 // Requires:
 //   /embedded/api.js
 //   /embedded/modal.js
-//   /embedded/common_ui.js   (optional helpers)
+//   /embedded/common_ui.js
+//
+// SPA entry points (called by app.js after each route mounts its HTML):
+//   initWifiView()         — WiFi provisioning page
+//   initDeviceInfoView()   — Device info page
+//   initDeviceControlView()— Device control page
 //
 
 import {
@@ -20,7 +25,7 @@ import {
     deleteCredential as apiDeleteCredential,
     clearCredentials as apiClearCredentials,
     clearNvs as apiClearNvs,
-	loadDeviceInfo as apiLoadDeviceInfo,
+    loadDeviceInfo as apiLoadDeviceInfo,
     rebootDevice
 } from "/embedded/api.js";
 
@@ -31,10 +36,10 @@ import {
     wireConfirmButtons
 } from "/embedded/modal.js";
 
-import { 
-	el, 
-	button, 
-	clear 
+import {
+    el,
+    button,
+    clear
 } from "/embedded/common_ui.js";
 
 // ------------------------------------------------------------
@@ -45,55 +50,60 @@ let scanResults = [];
 let statusTimer = null;
 
 
-// ------------------------------------------------------------
-// Public entry point
-// ------------------------------------------------------------
+// ============================================================
+// SPA view initialisers  (called by router after HTML is mounted)
+// ============================================================
 
-export function initUI({ mode }) {
-    // mode = "provision" or "runtime"
-
-    wireConfirmButtons();
-
-    // Message modal OK button
-    const msgOk = document.getElementById("message-ok-btn");
-    if (msgOk) msgOk.onclick = hideMessageModal;
-
-    // Scan refresh
+/**
+ * Initialise the WiFi provisioning view.
+ * Expects the DOM nodes from the #wifi route template to be present.
+ */
+export function initWifiView() {
     const btnRefresh = document.getElementById("btn-refresh");
     if (btnRefresh) btnRefresh.onclick = loadScanResults;
 
-    // Reboot
     const btnReboot = document.getElementById("btn-reboot");
     if (btnReboot) btnReboot.onclick = requestReboot;
 
-    // Clear NVS
-    const btnClearNvs = document.getElementById("btn-clear-nvs");
-    if (btnClearNvs) btnClearNvs.onclick = requestClearNvs;
-
-    // Clear credentials
     const btnClearCreds = document.getElementById("btn-clear-creds");
     if (btnClearCreds) btnClearCreds.onclick = requestClearCredentials;
 
-    // Provisioning save
     const btnSave = document.getElementById("btn-save");
     if (btnSave) btnSave.onclick = submitProvisioning;
 
-    // Initial loads
+    // Stop any previous polling cycle (e.g. user navigated away and back)
+    stopStatusPolling();
+
     loadScanResults();
     refreshCredentials();
-	
-	// Device Info page
-	const deviceInfoContainer = document.getElementById("device-info-container");
-	if (deviceInfoContainer) {
-	    refreshDeviceInfo();
-	    const btnRefreshInfo = document.getElementById("btn-refresh-device-info");
-	    if (btnRefreshInfo) btnRefreshInfo.onclick = refreshDeviceInfo;
-	}
-	
-    if (mode === "runtime") {
-        startStatusPolling();
-    }
+    startStatusPolling();
 }
+
+/**
+ * Initialise the Device Info view.
+ */
+export function initDeviceInfoView() {
+    refreshDeviceInfo();
+
+    const btnRefreshInfo = document.getElementById("btn-refresh-device-info");
+    if (btnRefreshInfo) btnRefreshInfo.onclick = refreshDeviceInfo;
+}
+
+/**
+ * Initialise the Device Control view.
+ */
+export function initDeviceControlView() {
+    const btnClearNvs = document.getElementById("btn-clear-nvs");
+    if (btnClearNvs) btnClearNvs.onclick = requestClearNvs;
+
+    const btnReboot = document.getElementById("btn-reboot");
+    if (btnReboot) btnReboot.onclick = requestReboot;
+}
+
+
+// ============================================================
+// Device Info
+// ============================================================
 
 async function refreshDeviceInfo() {
     const container = document.getElementById("device-info-container");
@@ -101,96 +111,38 @@ async function refreshDeviceInfo() {
 
     container.innerHTML = `<div class="text-gray-500">Loading…</div>`;
 
-    const res = await apiLoadDeviceInfo();
-    //if (!res.ok) {
-     //   container.innerHTML = `<div class="text-red-600">Failed to load device info</div>`;
-     //   return;
-    //}
+    const info = await apiLoadDeviceInfo();
 
-    //const info = res.data;
-	const info = res;
-
-	container.innerHTML = `
-	    <table class="text-sm">
-	        <tr>
-	            <td class="pr-4 font-semibold text-right">Chip Model:</td>
-	            <td>${info.chipModel}</td>
-	        </tr>
-	        <tr>
-	            <td class="pr-4 font-semibold text-right">Revision:</td>
-	            <td>${info.revision}</td>
-	        </tr>
-	        <tr>
-	            <td class="pr-4 font-semibold text-right">MAC Address:</td>
-	            <td>${info.mac}</td>
-	        </tr>
-	        <tr>
-	            <td class="pr-4 font-semibold text-right">Flash Size:</td>
-	            <td>${info.flashSize} bytes</td>
-	        </tr>
-	        <tr>
-	            <td class="pr-4 font-semibold text-right">Free Heap:</td>
-	            <td>${info.freeHeap} bytes</td>
-	        </tr>
-	    </table>
-	`;
-
+    container.innerHTML = `
+        <table class="text-sm">
+            <tr>
+                <td class="pr-4 font-semibold text-right">Chip Model:</td>
+                <td>${info.chipModel}</td>
+            </tr>
+            <tr>
+                <td class="pr-4 font-semibold text-right">Revision:</td>
+                <td>${info.revision}</td>
+            </tr>
+            <tr>
+                <td class="pr-4 font-semibold text-right">MAC Address:</td>
+                <td>${info.mac}</td>
+            </tr>
+            <tr>
+                <td class="pr-4 font-semibold text-right">Flash Size:</td>
+                <td>${info.flashSize} bytes</td>
+            </tr>
+            <tr>
+                <td class="pr-4 font-semibold text-right">Free Heap:</td>
+                <td>${info.freeHeap} bytes</td>
+            </tr>
+        </table>
+    `;
 }
 
 
-// ------------------------------------------------------------
-// Device Info Page
-// ------------------------------------------------------------
-function initDeviceInfoPage() {
-    const container = document.getElementById("device-info-container");
-    if (!container) return; // Not on this page
-
-    async function refresh() {
-        clear(container);
-        container.append(el("div", { class: "text-gray-500" }, "Loading…"));
-
-        const res = await loadDeviceInfo();
-        if (!res.ok) {
-            clear(container);
-            container.append(
-                el("div", { class: "text-red-600" }, "Failed to load device info")
-            );
-            return;
-        }
-
-        const info = res.data;
-
-        clear(container);
-        container.append(
-            el("div", { class: "grid grid-cols-2 gap-2 text-sm" },
-                el("div", { class: "font-medium" }, "Chip Model"),
-                el("div", {}, info.chipModel),
-
-                el("div", { class: "font-medium" }, "Revision"),
-                el("div", {}, info.revision),
-
-                el("div", { class: "font-medium" }, "MAC Address"),
-                el("div", {}, info.mac),
-
-                el("div", { class: "font-medium" }, "Flash Size"),
-                el("div", {}, info.flashSize + " bytes"),
-
-                el("div", { class: "font-medium" }, "Free Heap"),
-                el("div", {}, info.freeHeap + " bytes")
-            )
-        );
-    }
-
-    // Wire refresh button
-    const refreshBtn = document.getElementById("device-info-refresh");
-    if (refreshBtn) refreshBtn.onclick = refresh;
-
-    refresh();
-}
-
-// ------------------------------------------------------------
+// ============================================================
 // Scan UI
-// ------------------------------------------------------------
+// ============================================================
 
 async function loadScanResults() {
     try {
@@ -218,7 +170,6 @@ function renderScanList(networks) {
                 <span class="font-medium">${net.ssid}</span>
                 <span class="text-sm text-gray-500">(${net.rssi} dBm)</span>
             </label>
-
             <div class="ml-6 mt-1 text-sm text-gray-600">
                 BSSID: ${net.bssid}
                 <label class="ml-3">
@@ -233,18 +184,16 @@ function renderScanList(networks) {
 }
 
 
-// ------------------------------------------------------------
+// ============================================================
 // Provisioning form
-// ------------------------------------------------------------
+// ============================================================
 
 function buildProvisioningPayload() {
     const checkboxes = document.querySelectorAll(".ssid-select");
     let selectedIndex = null;
 
     checkboxes.forEach(cb => {
-        if (cb.checked) {
-            selectedIndex = parseInt(cb.dataset.index, 10);
-        }
+        if (cb.checked) selectedIndex = parseInt(cb.dataset.index, 10);
     });
 
     if (selectedIndex === null) {
@@ -272,10 +221,8 @@ async function submitProvisioning() {
     try {
         await submitCredential(payload);
         document.getElementById("password").value = "";
-		// Clear all selected SSIDs
-		document.querySelectorAll('.ssid-select').forEach(cb => cb.checked = false);
-		// Clear all BSSID lock checkboxes too
-		document.querySelectorAll('.bssid-lock').forEach(cb => cb.checked = false);
+        document.querySelectorAll(".ssid-select").forEach(cb => cb.checked = false);
+        document.querySelectorAll(".bssid-lock").forEach(cb => cb.checked = false);
         showMessage("success", "Credential Saved", `${payload.ssid} added.`);
         await refreshCredentials();
     } catch (err) {
@@ -285,9 +232,9 @@ async function submitProvisioning() {
 }
 
 
-// ------------------------------------------------------------
+// ============================================================
 // Credential list UI
-// ------------------------------------------------------------
+// ============================================================
 
 async function refreshCredentials() {
     try {
@@ -307,12 +254,7 @@ function renderCredList(creds) {
 
     creds.forEach((c, i) => {
         const li = document.createElement("li");
-        const isLast = i === creds.length - 1;
-
-        li.className =
-            "flex justify-between items-center py-2 ";
-			// +
-            //(isLast ? "border-b border-gray-200" : "");
+        li.className = "flex justify-between items-center py-2";
 
         const name = document.createElement("span");
         name.textContent = c.ssid;
@@ -330,8 +272,7 @@ function renderCredList(creds) {
 
         const btnDelete = document.createElement("button");
         btnDelete.textContent = "Delete";
-        btnDelete.className =
-            "px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700";
+        btnDelete.className = "px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700";
         btnDelete.onclick = () => requestDeleteCredential(c.ssid);
         btnGroup.appendChild(btnDelete);
 
@@ -372,9 +313,9 @@ async function handleMakeFirst(ssid) {
 }
 
 
-// ------------------------------------------------------------
+// ============================================================
 // System actions
-// ------------------------------------------------------------
+// ============================================================
 
 function requestClearCredentials() {
     showConfirm(
@@ -436,26 +377,26 @@ async function handleReboot() {
 }
 
 
-// ------------------------------------------------------------
-// Status polling (runtime mode)
-// ------------------------------------------------------------
+// ============================================================
+// Status polling
+// ============================================================
 
 async function pollStatus() {
     try {
         const status = await wifiStatus();
-        const el = document.getElementById("status");
-        if (el) {
-            el.textContent =
+        const statusEl = document.getElementById("status");
+        if (statusEl) {
+            statusEl.textContent =
                 `State: ${status.state}, SSID: ${status.ssid}, Error: ${status.lastErrorReason}`;
         }
 
-		if (status.state === "STA Connected") {
-		    stopStatusPolling();
-		    if (el) el.textContent = "Connected";
-		}
-		if (status.state === "AP Mode") {
+        if (status.state === "STA Connected") {
             stopStatusPolling();
-            if (el) el.textContent = "AP Mode";
+            if (statusEl) statusEl.textContent = "Connected";
+        }
+        if (status.state === "AP Mode") {
+            stopStatusPolling();
+            if (statusEl) statusEl.textContent = "AP Mode";
         }
     } catch (err) {
         console.error("Status poll failed:", err);

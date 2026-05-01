@@ -21,29 +21,20 @@ extern const uint8_t _binary_embedded_app_js_end[] asm("_binary_embedded_app_js_
 extern const uint8_t _binary_embedded_common_ui_js_start[] asm("_binary_embedded_common_ui_js_start");
 extern const uint8_t _binary_embedded_common_ui_js_end[] asm("_binary_embedded_common_ui_js_end");
 
-extern const uint8_t _binary_embedded_device_control_html_start[] asm("_binary_embedded_device_control_html_start");
-extern const uint8_t _binary_embedded_device_control_html_end[] asm("_binary_embedded_device_control_html_end");
-
-extern const uint8_t _binary_embedded_device_info_html_start[] asm("_binary_embedded_device_info_html_start");
-extern const uint8_t _binary_embedded_device_info_html_end[] asm("_binary_embedded_device_info_html_end");
-
 extern const uint8_t _binary_embedded_index_html_start[] asm("_binary_embedded_index_html_start");
 extern const uint8_t _binary_embedded_index_html_end[] asm("_binary_embedded_index_html_end");
 
 extern const uint8_t _binary_embedded_modal_js_start[] asm("_binary_embedded_modal_js_start");
 extern const uint8_t _binary_embedded_modal_js_end[] asm("_binary_embedded_modal_js_end");
 
-extern const uint8_t _binary_embedded_navigation_html_start[] asm("_binary_embedded_navigation_html_start");
-extern const uint8_t _binary_embedded_navigation_html_end[] asm("_binary_embedded_navigation_html_end");
+extern const uint8_t _binary_embedded_router_js_start[] asm("_binary_embedded_router_js_start");
+extern const uint8_t _binary_embedded_router_js_end[] asm("_binary_embedded_router_js_end");
 
 extern const uint8_t _binary_embedded_styles_css_start[] asm("_binary_embedded_styles_css_start");
 extern const uint8_t _binary_embedded_styles_css_end[] asm("_binary_embedded_styles_css_end");
 
 extern const uint8_t _binary_embedded_ui_js_start[] asm("_binary_embedded_ui_js_start");
 extern const uint8_t _binary_embedded_ui_js_end[] asm("_binary_embedded_ui_js_end");
-
-extern const uint8_t _binary_embedded_wifi_html_start[] asm("_binary_embedded_wifi_html_start");
-extern const uint8_t _binary_embedded_wifi_html_end[] asm("_binary_embedded_wifi_html_end");
 
 // Top-level UI
 extern const uint8_t _binary__favicon_ico_start[] asm("_binary__favicon_ico_start");
@@ -68,14 +59,11 @@ static const FileEntry files[] = {
     {"/embedded/api.js", _binary_embedded_api_js_start, _binary_embedded_api_js_end},
 	{"/embedded/app.js", _binary_embedded_app_js_start, _binary_embedded_app_js_end},
     {"/embedded/common_ui.js", _binary_embedded_common_ui_js_start, _binary_embedded_common_ui_js_end},
-	{"/embedded/device_control.html", _binary_embedded_device_control_html_start, _binary_embedded_device_control_html_end},
-	{"/embedded/device_info.html", _binary_embedded_device_info_html_start, _binary_embedded_device_info_html_end},
 	{"/embedded/index.html", _binary_embedded_index_html_start, _binary_embedded_index_html_end},
     {"/embedded/modal.js", _binary_embedded_modal_js_start, _binary_embedded_modal_js_end},
-	{"/embedded/navigation.html", _binary_embedded_navigation_html_start, _binary_embedded_navigation_html_end},
+	{"/embedded/router.js", _binary_embedded_router_js_start, _binary_embedded_router_js_end},
     {"/embedded/styles.css", _binary_embedded_styles_css_start, _binary_embedded_styles_css_end},
 	{"/embedded/ui.js", _binary_embedded_ui_js_start, _binary_embedded_ui_js_end},
-	{"/embedded/wifi.html", _binary_embedded_wifi_html_start, _binary_embedded_wifi_html_end},
 
     // Top‑level UI
     {"/favicon.ico", _binary__favicon_ico_start, _binary__favicon_ico_end},

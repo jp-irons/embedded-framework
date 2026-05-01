@@ -4,90 +4,52 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Device Management</title>
-
+  <script type="module" src="/embedded/app.js" defer></script>
   <link rel="stylesheet" href="/embedded/styles.css">
 </head>
 
 <body class="bg-gray-100 text-gray-900 min-h-screen relative">
 
-  <!-- Recovery Card -->
+  <!-- App Shell -->
   <div class="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded-lg overflow-visible">
 
-    <h1 class="text-2xl font-semibold mb-4">Device Management</h1>
+    <!-- Navigation (rendered once, always visible) -->
+    <nav class="flex gap-3 mb-6">
+      <a href="#home"           class="nav-link px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">Home</a>
+      <a href="#wifi"           class="nav-link px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">WiFi</a>
+      <a href="#device-info"    class="nav-link px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">Device Info</a>
+      <a href="#device-control" class="nav-link px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">Device Control</a>
+    </nav>
 
-	<!-- Shared Header -->
-	<div id="navigation"></div>
-
-	<p class="text-gray-700 mb-6">
-      This interface supports configuration of device features,
-	  including WiFi, Firmware, and Reboot.
-    </p>
-
-    <!-- Horizontal Menu Bar -->
-    <div class="flex gap-6 mb-6 border-b border-gray-300 pb-3">
-
-      <!-- WiFi Menu -->
-      <div class="relative menu-group">
-        <button class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
-          WiFi
-        </button>
-
-        <div class="absolute left-0 mt-0 hidden group-hover:block bg-white border border-gray-300 rounded shadow w-48 z-10">
-          <a href="/embedded/wifi.html" class="block px-4 py-2 hover:bg-gray-100">
-            Configure WiFi
-          </a>
-          <a href="/embedded/wifi-status.html" class="block px-4 py-2 hover:bg-gray-100">
-            WiFi Status
-          </a>
-        </div>
-      </div>
-
-      <!-- OTA Menu -->
-      <div class="relative menu-group">
-        <button class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
-          OTA
-        </button>
-
-        <div class="absolute left-0 mt-0 hidden group-hover:block bg-white border border-gray-300 rounded shadow w-48 z-10">
-          <a href="/embedded/ota.html" class="block px-4 py-2 hover:bg-gray-100">
-            Firmware Update
-          </a>
-          <a href="/embedded/ota-fs.html" class="block px-4 py-2 hover:bg-gray-100">
-            Filesystem Update
-          </a>
-        </div>
-      </div>
-
-      <!-- System Menu -->
-      <div class="relative menu-group">
-        <button class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
-          Device
-        </button>
-
-        <div class="absolute left-0 mt-0 hidden group-hover:block bg-white border border-gray-300 rounded shadow w-48 z-10">
-          <a href="/embedded/device_control.html" class="block px-4 py-2 hover:bg-gray-100">
-            Control
-          </a>
-          <a href="/embedded/device_info.html" class="block px-4 py-2 hover:bg-gray-100">
-            Info
-          </a>
-        </div>
-      </div>
-
-    </div>
-
-    <p class="text-sm text-gray-500 mt-6">
-      This interface is embedded in firmware and always available.
-    </p>
+    <!-- View container — router swaps content here -->
+    <div id="app"></div>
 
   </div>
 
-<script>
-  fetch('/embedded/navigation.html')
-    .then(r => r.text())
-    .then(html => {
-      document.getElementById('navigation').innerHTML = html;
-    });
-</script>
+  <!-- Message Modal (once, shared across all views) -->
+  <div id="message-modal"
+       class="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center hidden">
+    <div class="bg-white rounded shadow-lg p-6 w-80">
+      <h2 id="message-modal-title" class="text-lg font-semibold mb-4"></h2>
+      <p  id="message-modal-message" class="text-sm text-gray-700 mb-6"></p>
+      <div class="flex justify-end mt-4">
+        <button id="message-ok-btn" class="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal (once, shared across all views) -->
+  <div id="confirm-modal"
+       class="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center hidden">
+    <div class="bg-white rounded shadow-lg p-6 w-80">
+      <h2 id="confirm-modal-title" class="text-lg font-semibold mb-4"></h2>
+      <p  id="confirm-modal-message" class="text-sm text-gray-700 mb-6"></p>
+      <div class="flex justify-end gap-3">
+        <button id="confirm-cancel-btn" class="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
+        <button id="confirm-ok-btn"     class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">OK</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
