@@ -20,7 +20,6 @@ struct WiFiContext {
 	WiFiManager *wifiManager = nullptr;
 
     ApConfig apConfig;
-    credential_store::WiFiCredential currentWiFiCred;
 	
 	std::string rootUri;
 

@@ -9,7 +9,7 @@
 
 import { initRouter }         from "/embedded/router.js";
 import { wireConfirmButtons, hideMessageModal } from "/embedded/modal.js";
-import { initWifiView, teardownWifiView, initDeviceInfoView, initDeviceControlView } from "/embedded/ui.js";
+import { initWifiView, teardownWifiView, initDeviceView } from "/embedded/ui.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -97,33 +97,22 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         },
         {
-            hash: "#device-info",
+            hash: "#device",
             mount(app) {
                 app.innerHTML = `
-                    <h1 class="text-2xl font-semibold mb-4">Device Information</h1>
+                    <h1 class="text-2xl font-semibold mb-4">Device</h1>
 
-                    <div class="p-4 space-y-4">
-                        <div id="device-info-container"
-                             class="border rounded p-4 bg-white shadow-sm text-sm">
-                            Loading…
-                        </div>
+                    <div id="device-info-container"
+                         class="border rounded p-4 bg-white shadow-sm text-sm">
+                        Loading…
+                    </div>
+
+                    <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-300">
                         <button id="btn-refresh-device-info"
-                                class="mt-2 px-4 py-2 bg-blue-600 text-white rounded">
+                                class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                             Refresh
                         </button>
-                    </div>
-                `;
-                initDeviceInfoView();
-            }
-        },
-        {
-            hash: "#device-control",
-            mount(app) {
-                app.innerHTML = `
-                    <h1 class="text-2xl font-semibold mb-4">Device Control</h1>
-
-                    <div class="mt-8">
-                        <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-300">
+                        <div class="flex gap-3">
                             <button id="btn-clear-nvs"
                                     class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
                                 Clear NVS
@@ -135,7 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                     </div>
                 `;
-                initDeviceControlView();
+                initDeviceView();
             }
         }
     ];

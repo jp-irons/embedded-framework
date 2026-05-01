@@ -88,19 +88,14 @@ export function teardownWifiView() {
 }
 
 /**
- * Initialise the Device Info view.
+ * Initialise the combined Device view (info + controls).
  */
-export function initDeviceInfoView() {
+export function initDeviceView() {
     refreshDeviceInfo();
 
     const btnRefreshInfo = document.getElementById("btn-refresh-device-info");
     if (btnRefreshInfo) btnRefreshInfo.onclick = refreshDeviceInfo;
-}
 
-/**
- * Initialise the Device Control view.
- */
-export function initDeviceControlView() {
     const btnClearNvs = document.getElementById("btn-clear-nvs");
     if (btnClearNvs) btnClearNvs.onclick = requestClearNvs;
 

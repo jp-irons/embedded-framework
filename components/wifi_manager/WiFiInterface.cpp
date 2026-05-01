@@ -112,27 +112,39 @@ wifi_config_t WiFiInterface::makeStaConfig(const credential_store::WiFiCredentia
     return cfg;
 }
 
-/**
- * STA MODE
- */
 WiFiStatus WiFiInterface::connectSta(const credential_store::WiFiCredential &cred) {
     log.info("Connecting STA to SSID: %s", cred.ssid.c_str());
 
     wifi_config_t cfg = makeStaConfig(cred);
 
-    staActive = true;
-    wifi_mode_t mode = computeMode();
+    // --- Ensure STA is in a clean idle state ---
+    // Safe to call even if not connected
+    esp_wifi_disconnect();
 
-    if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK)
+    // Stop WiFi to clear any pending connect attempts
+    esp_wifi_stop();
+
+    // Restart WiFi so STA is guaranteed idle
+    if (esp_wifi_start() != ESP_OK) {
         return WiFiStatus::DriverError;
+    }
 
-    if (esp_wifi_set_config(WIFI_IF_STA, &cfg) != ESP_OK)
+    // --- Apply new config ---
+    if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK) {
+        return WiFiStatus::DriverError;
+    }
+
+    if (esp_wifi_set_config(WIFI_IF_STA, &cfg) != ESP_OK) {
         return WiFiStatus::ConfigError;
+    }
 
-    if (esp_wifi_connect() != ESP_OK)
+    // --- Connect ---
+    if (esp_wifi_connect() != ESP_OK) {
         return WiFiStatus::ConnectError;
+    }
 
-    currentMode = mode;
+    staActive = true;
+    currentMode = computeMode();
     return WiFiStatus::Ok;
 }
 
