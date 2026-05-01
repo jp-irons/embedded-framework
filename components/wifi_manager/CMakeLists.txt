@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         EmbeddedServer.cpp
+        MdnsManager.cpp
         WiFiApiHandler.cpp
         WiFiHelper.cpp
         WiFiInterface.cpp
@@ -9,12 +10,13 @@ idf_component_register(
         WiFiTypes.cpp
     INCLUDE_DIRS
         include
-   REQUIRES
+    REQUIRES
         esp_wifi
         esp_event
         esp_netif
         nvs_flash
         esp_timer
+        espressif__mdns
         cjson
         common
         credential_store

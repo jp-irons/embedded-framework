@@ -7,7 +7,11 @@ idf_component_register(
         include
     REQUIRES
         esp_http_server
+        esp_https_server
         common
         device
         logger
+    EMBED_TXTFILES
+        certs/servercert.pem
+        certs/prvtkey.pem
 )

@@ -6,6 +6,8 @@ idf_component_register(
     REQUIRES
         common
         credential_store
+        device_cert
+        esp_wifi
         http
         logger
         embedded_files

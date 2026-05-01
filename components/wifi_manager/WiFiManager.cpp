@@ -65,6 +65,7 @@ void WiFiManager::onStateChanged(WiFiState oldState, WiFiState newState) {
         case WiFiState::Idle:
             stopAP();
             stopSTA();
+            mdns.stop();
             break;
 
         default:
@@ -84,6 +85,9 @@ void WiFiManager::onConnectFail() {
 }
 
 void WiFiManager::onDisconnect() {
+    // Stop mDNS — IP is no longer valid
+    mdns.stop();
+
     // Retry the same credential first
     if (retryCount < MAX_RETRIES) {
         retryCount++;
@@ -189,6 +193,10 @@ void WiFiManager::scheduleRetry() {
 
 void WiFiManager::onStaGotIp(const StaIpInfo &info) {
     log.info("STA got IP: %s (mask %s, gw %s)", info.ip.c_str(), info.netmask.c_str(), info.gateway.c_str());
+
+    // Advertise via mDNS so the device is reachable by hostname regardless of IP
+    mdns.start(ctx.mdnsHostname);
+    log.info("Device reachable at https://%s.local", ctx.mdnsHostname.c_str());
 
     // Feed the state machine
     sm.onEvent(WiFiEvent::ConnectSuccess);

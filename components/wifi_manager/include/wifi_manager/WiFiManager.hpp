@@ -1,6 +1,7 @@
 #pragma once
 
 #include "device/DeferredExecutor.hpp"
+#include "wifi_manager/MdnsManager.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiStateMachine.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
@@ -36,6 +37,7 @@ class WiFiManager {
     std::string lastErrorReason;
 
     device::DeferredExecutor deferred;
+    MdnsManager mdns;
 
     // Load credentials only at boot
     void loadInitialCredential();

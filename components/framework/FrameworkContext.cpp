@@ -8,55 +8,98 @@
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
 #include "wifi_manager/WiFiManager.hpp"
+#include "esp_mac.h"
+
+#include <cstdio>
 
 namespace framework {
 
 static constexpr const char *DEFAULT_ROOT_URI = "/framework/api";
 
-static const char* TAG = "FrameworkContext";
+static const char *TAG = "FrameworkContext";
 
 static logger::Logger log{TAG};
+
+// ---------------------------------------------------------------------------
+// Build a unique mDNS hostname from a prefix + last 3 bytes of WiFi STA MAC.
+// e.g. prefix="esp32"  →  "esp32-a1b2c3"
+// ---------------------------------------------------------------------------
+static std::string macBasedHostname(const std::string &prefix) {
+    uint8_t mac[6] = {};
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    char suffix[8];
+    snprintf(suffix, sizeof(suffix), "%02x%02x%02x", mac[3], mac[4], mac[5]);
+    return prefix + "-" + suffix;
+}
+
+// ---------------------------------------------------------------------------
+// Constructors
+// ---------------------------------------------------------------------------
 
 FrameworkContext::FrameworkContext() {
     log.debug("constructor default apConfig and rootUri");
     initialize(apConfig);
 }
 
-FrameworkContext::FrameworkContext(const wifi_manager::ApConfig &apConfig, std::string rootUri)
+FrameworkContext::FrameworkContext(const wifi_manager::ApConfig &apConfig,
+                                   std::string rootUri,
+                                   std::string mdnsPrefix)
     : apConfig(apConfig)
-    , rootUri_(std::move(rootUri)) {
+    , rootUri_(std::move(rootUri))
+    , mdnsPrefix_(std::move(mdnsPrefix)) {
     log.debug("constructor");
     initialize(apConfig);
 }
 
-void FrameworkContext::initialize(const wifi_manager::ApConfig &apConfig) {
-    log.debug("initializing framework context with root: {}", rootUri_.c_str());
-	
-	device::init();
+// ---------------------------------------------------------------------------
+// Initialization
+// ---------------------------------------------------------------------------
 
-    // 4. Populate wifiCtx with config and core pointers
+void FrameworkContext::initialize(const wifi_manager::ApConfig &apConfig) {
+    device::init();
+
+    // Build the per-device hostname from MAC address
+    const std::string hostname = macBasedHostname(mdnsPrefix_);
+    log.info("Device hostname: %s.local", hostname.c_str());
+
+    // Ensure a per-device TLS cert exists (generates + stores on first boot)
+    esp_err_t certErr = deviceCert_.ensure(hostname);
+    if (certErr != ESP_OK) {
+        log.warn("DeviceCert::ensure failed (%s) — falling back to embedded cert",
+                 esp_err_to_name(certErr));
+    }
+
+    // Populate WiFi context
     log.debug("AP SSID %s", apConfig.ssid.c_str());
-    wifiCtx.apConfig = apConfig;
-    wifiCtx.rootUri = rootUri_;
+    wifiCtx.apConfig      = apConfig;
+    wifiCtx.rootUri       = rootUri_;
+    wifiCtx.mdnsHostname  = hostname;
     wifiCtx.credentialStore = &credentialStore;
 
-    // 6. Create state machine first (so it exists before any events)
+    // Create state machine first (so it exists before any events fire)
     wifiManager = new wifi_manager::WiFiManager(wifiCtx);
     wifiCtx.wifiManager = wifiManager;
 
-    // 7. Create API handlers
-    wifiApi = new wifi_manager::WiFiApiHandler(wifiCtx);
+    // Create API handlers
+    wifiApi      = new wifi_manager::WiFiApiHandler(wifiCtx);
     credentialApi = new credential_store::CredentialApiHandler(credentialStore);
-	deviceApi = new device::DeviceApiHandler();
+    deviceApi    = new device::DeviceApiHandler();
 
-    // 8. Create servers
-    embeddedServer= new wifi_manager::EmbeddedServer(wifiCtx, *wifiApi, *credentialApi, *deviceApi);
+    // Create server and inject the per-device cert before start()
+    embeddedServer = new wifi_manager::EmbeddedServer(wifiCtx, *wifiApi, *credentialApi, *deviceApi);
+    if (deviceCert_.isLoaded()) {
+        embeddedServer->setCert(deviceCert_.certPem(), deviceCert_.keyPem());
+    }
     wifiCtx.embeddedServer = embeddedServer;
 
-    // 9. Create WiFiInterface LAST (this registers event handlers and may trigger events)
+    // Create WiFiInterface LAST — registers event handlers, may trigger events
     wifiInterface = new wifi_manager::WiFiInterface(wifiCtx);
     wifiCtx.wifiInterface = wifiInterface;
 }
+
+// ---------------------------------------------------------------------------
+// Lifecycle
+// ---------------------------------------------------------------------------
 
 FrameworkContext::~FrameworkContext() {
     log.info("destructor");

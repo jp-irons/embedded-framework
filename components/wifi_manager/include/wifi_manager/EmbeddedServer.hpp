@@ -20,7 +20,10 @@ class EmbeddedServer : public http::HttpHandler {
 
     bool start(); // start HTTP server
     void stop(); // stop HTTP server
-	
+
+    /** Pass a per-device cert through to HttpServer. Call before start(). */
+    void setCert(std::string certPem, std::string keyPem);
+
 	void startProvisioningMode();   // configure for provisioning
 	void startRuntimeMode();        // configure for runtime
 

@@ -20,9 +20,12 @@ struct WiFiContext {
 	WiFiManager *wifiManager = nullptr;
 
     ApConfig apConfig;
-	
+
 	std::string rootUri;
 
+    // Hostname advertised via mDNS (without the .local suffix).
+    // Set before WiFiManager::start() -- typically via FrameworkContext.
+    std::string mdnsHostname = "esp32";
 };
 
 } // namespace wifi_manager

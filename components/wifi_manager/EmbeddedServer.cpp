@@ -57,6 +57,10 @@ bool EmbeddedServer::start() {
     return true;
 }
 
+void EmbeddedServer::setCert(std::string certPem, std::string keyPem) {
+    server.setCert(std::move(certPem), std::move(keyPem));
+}
+
 void EmbeddedServer::stop() {
     log.debug("Stopping EmbeddedServer");
     server.stop();
