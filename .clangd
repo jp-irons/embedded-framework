@@ -1,7 +1,5 @@
 CompileFlags:
   CompilationDatabase: C:\Users\jon\Workspace\ESP\esp32_app_framework\build
   Remove: [-m*, -f*]
-
 Diagnostics:
-  Suppress:
-    - attribute_not_type_attr
+  Suppress: [attribute_not_type_attr]
