@@ -1,37 +1,46 @@
 //
 // embedded/router.js
 //
-// Minimal hash-based SPA router.
+// Minimal hash-based SPA router with teardown support.
 // Usage:
 //   import { initRouter } from "/embedded/router.js";
 //   initRouter({ routes, fallback: "#home" });
 //
-// Each route is: { hash: "#wifi", mount: async (container) => { ... } }
-// mount() receives the #app container and is responsible for populating it.
+// Each route:
+//   {
+//     hash:     "#wifi",
+//     mount:    async (container) => { ... },  // required
+//     teardown: () => { ... }                  // optional, called before next route mounts
+//   }
 //
+
+let currentRoute = null;
 
 export function initRouter({ routes, fallback = "#home" }) {
     const app = document.getElementById("app");
 
     async function navigate() {
         const hash = location.hash || fallback;
-        const route = routes.find(r => r.hash === hash) 
+        const route = routes.find(r => r.hash === hash)
                    ?? routes.find(r => r.hash === fallback);
+
+        // Teardown the current route before leaving it
+        if (currentRoute?.teardown) {
+            currentRoute.teardown();
+        }
+
+        currentRoute = null;
+        app.innerHTML = "";
 
         if (!route) {
             app.innerHTML = `<p class="text-red-600">404 — no route for ${hash}</p>`;
             return;
         }
 
-        // Clear previous view
-        app.innerHTML = "";
-
-        // Let the route populate the container
         await route.mount(app);
+        currentRoute = route;
     }
 
     window.addEventListener("hashchange", navigate);
-
-    // Handle initial load (page load or hard refresh)
     navigate();
 }

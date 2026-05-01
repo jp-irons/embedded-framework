@@ -91,7 +91,6 @@ common::Result DeviceApiHandler::handleInfo(http::HttpRequest &req, http::HttpRe
 
     device::DeviceInfo info = device::info();
 
-	log.debug("handleInfo building json");
     // Build JSON
     std::string json = "{"
                        "\"chipModel\":\"" +
@@ -109,7 +108,6 @@ common::Result DeviceApiHandler::handleInfo(http::HttpRequest &req, http::HttpRe
                        "\"freeHeap\":" +
                        std::to_string(info.freeHeap) + "}";
 
-	log.debug("handleInfo responding with %s", json.c_str());
     res.sendJson(json);
     return common::Result::Ok;
 }

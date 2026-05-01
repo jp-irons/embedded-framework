@@ -9,7 +9,7 @@
 
 import { initRouter }         from "/embedded/router.js";
 import { wireConfirmButtons, hideMessageModal } from "/embedded/modal.js";
-import { initWifiView, initDeviceInfoView, initDeviceControlView } from "/embedded/ui.js";
+import { initWifiView, teardownWifiView, initDeviceInfoView, initDeviceControlView } from "/embedded/ui.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -91,16 +91,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 `;
                 initWifiView();
+            },
+            teardown() {
+                teardownWifiView();
             }
         },
         {
             hash: "#device-info",
             mount(app) {
                 app.innerHTML = `
-                    <h1 class="text-2xl font-semibold mb-4">Device Info</h1>
+                    <h1 class="text-2xl font-semibold mb-4">Device Information</h1>
 
                     <div class="p-4 space-y-4">
-                        <h2 class="text-xl font-semibold">Device Information</h2>
                         <div id="device-info-container"
                              class="border rounded p-4 bg-white shadow-sm text-sm">
                             Loading…

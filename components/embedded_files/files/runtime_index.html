@@ -17,20 +17,23 @@
 
     <h1 class="text-2xl font-semibold mb-4">Runtime</h1>
 
+	
+	
+	
 	<!-- Shared Header -->
-	<div id="navigation"></div>
+	<div id="navigation">
+		<nav class="flex gap-3 mb-6">
+	  	<a href="/embedded/index.html"           class="nav-link px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">Home</a>
+	  	<a href="/embedded/index.html#wifi"           class="nav-link px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">WiFi</a>
+	  	<a href="/embedded/index.html#device-info"    class="nav-link px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">Device Info</a>
+	  	<a href="/embedded/index.html#device-control" class="nav-link px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">Device Control</a>
+		</nav>
+	</div>
 
 	<p class="text-gray-700 mb-6">
 	  Users are expected to implement their own runtime application.
 	  This embedded runtime index.html page is not expected to be seen in actual applications.
 	</p>
 
-  <script>
-      fetch('/embedded/navigation.html')
-        .then(r => r.text())
-        .then(html => {
-          document.getElementById('navigation').innerHTML = html;
-        });
-  </script>
 </body>
 </html>

@@ -80,6 +80,14 @@ export function initWifiView() {
 }
 
 /**
+ * Teardown the WiFi view — stops polling so it doesn't run in the background.
+ * Called by the router before the next route mounts.
+ */
+export function teardownWifiView() {
+    stopStatusPolling();
+}
+
+/**
  * Initialise the Device Info view.
  */
 export function initDeviceInfoView() {
@@ -117,11 +125,7 @@ async function refreshDeviceInfo() {
         <table class="text-sm">
             <tr>
                 <td class="pr-4 font-semibold text-right">Chip Model:</td>
-                <td>${info.chipModel}</td>
-            </tr>
-            <tr>
-                <td class="pr-4 font-semibold text-right">Revision:</td>
-                <td>${info.revision}</td>
+                <td>${info.chipModel} rev ${info.revision}</td>
             </tr>
             <tr>
                 <td class="pr-4 font-semibold text-right">MAC Address:</td>
