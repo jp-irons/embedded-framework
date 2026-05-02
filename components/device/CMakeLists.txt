@@ -12,4 +12,6 @@ idf_component_register(
         esp_timer
         esp_netif
         nvs_flash
+        esp_psram
+        app_update
 )

@@ -116,6 +116,13 @@ async function refreshDeviceInfo() {
 
     const info = await apiLoadDeviceInfo();
 
+    const flashMB = (info.flashSize / (1024 * 1024)).toFixed(0);
+    const psramRow = info.psramSize
+        ? `<tr><td class="pr-4 font-semibold text-right">PSRAM Size:</td><td>${(info.psramSize / (1024 * 1024)).toFixed(0)} MB</td></tr>`
+        : "";
+    const freeHeapKB = (info.freeHeap / 1024).toFixed(0);
+    const minFreeHeapKB = (info.minFreeHeap / 1024).toFixed(0);
+
     container.innerHTML = `
         <table class="text-sm">
             <tr>
@@ -128,11 +135,36 @@ async function refreshDeviceInfo() {
             </tr>
             <tr>
                 <td class="pr-4 font-semibold text-right">Flash Size:</td>
-                <td>${info.flashSize} bytes</td>
+                <td>${flashMB} MB</td>
             </tr>
+            ${psramRow}
             <tr>
                 <td class="pr-4 font-semibold text-right">Free Heap:</td>
-                <td>${info.freeHeap} bytes</td>
+                <td>${freeHeapKB} KB</td>
+            </tr>
+            <tr>
+                <td class="pr-4 font-semibold text-right">Min Free Heap:</td>
+                <td>${minFreeHeapKB} KB</td>
+            </tr>
+            <tr>
+                <td class="pr-4 font-semibold text-right">CPU Frequency:</td>
+                <td>${info.cpuFreqMhz} MHz</td>
+            </tr>
+            <tr>
+                <td class="pr-4 font-semibold text-right">ESP-IDF Version:</td>
+                <td>${info.idfVersion}</td>
+            </tr>
+            <tr>
+                <td class="pr-4 font-semibold text-right">Last Reset:</td>
+                <td>${info.lastReset}</td>
+            </tr>
+            <tr>
+                <td class="pr-4 font-semibold text-right">Uptime:</td>
+                <td>${info.uptime}</td>
+            </tr>
+            <tr>
+                <td class="pr-4 font-semibold text-right">OTA Partition:</td>
+                <td>${info.otaPartition}</td>
             </tr>
         </table>
     `;

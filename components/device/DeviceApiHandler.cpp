@@ -92,21 +92,21 @@ common::Result DeviceApiHandler::handleInfo(http::HttpRequest &req, http::HttpRe
     device::DeviceInfo info = device::info();
 
     // Build JSON
-    std::string json = "{"
-                       "\"chipModel\":\"" +
-                       info.chipModel +
-                       "\","
-                       "\"revision\":" +
-                       std::to_string(info.revision) +
-                       ","
-                       "\"mac\":\"" +
-                       info.mac +
-                       "\","
-                       "\"flashSize\":" +
-                       std::to_string(info.flashSize) +
-                       ","
-                       "\"freeHeap\":" +
-                       std::to_string(info.freeHeap) + "}";
+    std::string json =
+        "{"
+        "\"chipModel\":\""    + info.chipModel                       + "\","
+        "\"revision\":"       + std::to_string(info.revision)        + ","
+        "\"mac\":\""          + info.mac                             + "\","
+        "\"flashSize\":"      + std::to_string(info.flashSize)       + ","
+        "\"psramSize\":"      + std::to_string(info.psramSize)       + ","
+        "\"freeHeap\":"       + std::to_string(info.freeHeap)        + ","
+        "\"minFreeHeap\":"    + std::to_string(info.minFreeHeap)     + ","
+        "\"cpuFreqMhz\":"     + std::to_string(info.cpuFreqMhz)     + ","
+        "\"idfVersion\":\""   + info.idfVersion                      + "\","
+        "\"lastReset\":\""    + info.lastReset                       + "\","
+        "\"uptime\":\""       + info.uptime                          + "\","
+        "\"otaPartition\":\"" + info.otaPartition                    + "\""
+        "}";
 
     res.sendJson(json);
     return common::Result::Ok;
