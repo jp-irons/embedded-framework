@@ -44,7 +44,7 @@ void WiFiManager::loop() {
 //
 
 void WiFiManager::onStateChanged(WiFiState oldState, WiFiState newState) {
-    log.debug("onStateChanged: %s → %s", WiFiStateMachine::toString(oldState), WiFiStateMachine::toString(newState));
+    log.debug("onStateChanged: %s -> %s", WiFiStateMachine::toString(oldState), WiFiStateMachine::toString(newState));
 
     switch (newState) {
 

@@ -47,7 +47,7 @@ void MdnsManager::start(const std::string &hostname) {
 
     hostname_ = hostname;
     running_  = true;
-    log.info("mDNS started — hostname: %s.local", hostname_.c_str());
+    log.info("mDNS started - hostname: %s.local", hostname_.c_str());
 }
 
 void MdnsManager::stop() {
