@@ -4,6 +4,7 @@
 #include "device/DeviceApiHandler.hpp"
 #include "device/DeviceInterface.hpp"
 #include "logger/Logger.hpp"
+#include "ota/OtaApiHandler.hpp"
 #include "wifi_manager/EmbeddedServer.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
@@ -81,12 +82,14 @@ void FrameworkContext::initialize(const wifi_manager::ApConfig &apConfig) {
     wifiCtx.wifiManager = wifiManager;
 
     // Create API handlers
-    wifiApi      = new wifi_manager::WiFiApiHandler(wifiCtx);
+    wifiApi       = new wifi_manager::WiFiApiHandler(wifiCtx);
     credentialApi = new credential_store::CredentialApiHandler(credentialStore);
-    deviceApi    = new device::DeviceApiHandler();
+    deviceApi     = new device::DeviceApiHandler();
+    otaApi        = new ota::OtaApiHandler();
 
     // Create server and inject the per-device cert before start()
-    embeddedServer = new wifi_manager::EmbeddedServer(wifiCtx, *wifiApi, *credentialApi, *deviceApi);
+    embeddedServer = new wifi_manager::EmbeddedServer(
+        wifiCtx, *wifiApi, *credentialApi, *deviceApi, *otaApi);
     if (deviceCert_.isLoaded()) {
         embeddedServer->setCert(deviceCert_.certPem(), deviceCert_.keyPem());
     }
@@ -109,6 +112,7 @@ FrameworkContext::~FrameworkContext() {
     delete wifiManager;
     delete wifiApi;
     delete credentialApi;
+    delete otaApi;
 }
 
 void FrameworkContext::start() {

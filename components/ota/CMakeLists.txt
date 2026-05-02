@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS
+        OtaApiHandler.cpp
+        OtaManager.cpp
+        OtaWriter.cpp
+    INCLUDE_DIRS
+        include
+    REQUIRES
+        common
+        http
+        logger
+        app_update
+        esp_partition
+)

@@ -21,6 +21,7 @@ idf_component_register(
         common
         credential_store
         device
+        ota
         embedded_files
         http
         logger

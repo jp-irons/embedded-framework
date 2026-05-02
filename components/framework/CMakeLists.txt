@@ -6,10 +6,12 @@ idf_component_register(
     REQUIRES
         common
         credential_store
+        device
         device_cert
         esp_wifi
         http
         logger
+        ota
         embedded_files
         wifi_manager
 )

@@ -9,7 +9,7 @@
 
 import { initRouter }         from "/embedded/router.js";
 import { wireConfirmButtons, hideMessageModal } from "/embedded/modal.js";
-import { initWifiView, teardownWifiView, initDeviceView } from "/embedded/ui.js";
+import { initWifiView, teardownWifiView, initDeviceView, initFirmwareView, teardownFirmwareView } from "/embedded/ui.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -94,6 +94,55 @@ document.addEventListener("DOMContentLoaded", () => {
             },
             teardown() {
                 teardownWifiView();
+            }
+        },
+        {
+            hash: "#firmware",
+            mount(app) {
+                app.innerHTML = `
+                    <h1 class="text-2xl font-semibold mb-4">Firmware</h1>
+
+                    <div id="firmware-partitions" class="space-y-3">
+                        <div class="text-gray-500 text-sm">Loading partition info…</div>
+                    </div>
+
+                    <!-- Upload progress (hidden until an upload is in progress) -->
+                    <div id="fw-upload-progress" class="hidden mt-4">
+                        <div class="flex items-center gap-3 text-sm text-gray-700">
+                            <span>Uploading…</span>
+                            <div class="flex-grow bg-gray-200 rounded-full h-3">
+                                <div id="fw-progress-bar"
+                                     class="bg-blue-500 h-3 rounded-full transition-all"
+                                     style="width:0%"></div>
+                            </div>
+                            <span id="fw-progress-pct" class="w-10 text-right">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Hidden file input — triggered by the Upload button -->
+                    <input id="fw-file-input" type="file" accept=".bin" class="hidden" />
+
+                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-300">
+                        <button id="btn-fw-upload"
+                                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Upload Firmware
+                        </button>
+                        <button id="btn-fw-rollback"
+                                class="px-4 py-2 bg-gray-600 text-white rounded
+                                       opacity-50 cursor-default"
+                                disabled>
+                            Rollback
+                        </button>
+                        <button id="btn-fw-factory"
+                                class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                            Factory Reset
+                        </button>
+                    </div>
+                `;
+                initFirmwareView();
+            },
+            teardown() {
+                teardownFirmwareView();
             }
         },
         {

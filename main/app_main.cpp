@@ -2,9 +2,10 @@
 #include "logger/EspIdfLogSink.hpp"
 #include "logger/LogSinkRegistry.hpp"
 #include "logger/Logger.hpp"
+#include "ota/OtaManager.hpp"
 
 extern "C" {
-#include "freertos/FreeRTOS.h"
+//#include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 }
 
@@ -14,6 +15,11 @@ extern "C" void setupLogging();
 static Logger log{"app_main"};
 
 extern "C" void app_main(void) {
+    // ── OTA boot guardian ─────────────────────────────────────────────────
+    // Must be called before any tasks are started so that, if this image
+    // has exceeded its boot-attempt budget, we restart before doing anything.
+    ota::OtaManager::checkOnBoot();
+
     // Logging
     setupLogging();
 	Logger log{"app_main"};

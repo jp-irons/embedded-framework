@@ -26,6 +26,10 @@ import {
     clearCredentials as apiClearCredentials,
     clearNvs as apiClearNvs,
     loadDeviceInfo as apiLoadDeviceInfo,
+    loadFirmwareStatus as apiLoadFirmwareStatus,
+    uploadFirmware as apiUploadFirmware,
+    rollbackFirmware as apiRollbackFirmware,
+    factoryResetFirmware as apiFactoryResetFirmware,
     rebootDevice
 } from "/embedded/api.js";
 
@@ -46,8 +50,9 @@ import {
 // Internal state
 // ------------------------------------------------------------
 
-let scanResults = [];
-let statusTimer = null;
+let scanResults     = [];
+let statusTimer     = null;
+let fwUploadBusy    = false;   // prevents double-submit during upload
 
 
 // ============================================================
@@ -85,6 +90,246 @@ export function initWifiView() {
  */
 export function teardownWifiView() {
     stopStatusPolling();
+}
+
+// ============================================================
+// Firmware view
+// ============================================================
+
+let _lastPartitions = [];   // cache for rollback availability check
+
+/**
+ * Initialise the Firmware view — loads partition status and wires buttons.
+ */
+export function initFirmwareView() {
+    fwUploadBusy = false;
+
+    // Upload button → open hidden file picker
+    const btnUpload = document.getElementById("btn-fw-upload");
+    const fileInput = document.getElementById("fw-file-input");
+    if (btnUpload && fileInput) {
+        btnUpload.onclick = () => { if (!fwUploadBusy) fileInput.click(); };
+        fileInput.onchange = (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (file) requestFirmwareUpload(file);
+        };
+    }
+
+    // Rollback button (enabled/disabled after partition data loads)
+    const btnRollback = document.getElementById("btn-fw-rollback");
+    if (btnRollback) btnRollback.onclick = requestRollback;
+
+    // Factory Reset button
+    const btnFactory = document.getElementById("btn-fw-factory");
+    if (btnFactory) btnFactory.onclick = requestFactoryReset;
+
+    loadFirmwareStatus();
+}
+
+/** Called by the router when navigating away — nothing to clean up for now. */
+export function teardownFirmwareView() {
+    fwUploadBusy = false;
+}
+
+async function loadFirmwareStatus() {
+    const container = document.getElementById("firmware-partitions");
+    if (!container) return;
+
+    try {
+        const data = await apiLoadFirmwareStatus();
+        _lastPartitions = data.partitions || [];
+        renderPartitionCards(_lastPartitions);
+        updateRollbackButton(_lastPartitions);
+    } catch (err) {
+        console.error("Failed to load firmware status:", err);
+        if (container) {
+            container.innerHTML =
+                `<div class="text-red-600 text-sm">Failed to load firmware status.</div>`;
+        }
+    }
+}
+
+/** Enable the Rollback button only when a VALID non-running OTA partition exists. */
+function updateRollbackButton(partitions) {
+    const btn = document.getElementById("btn-fw-rollback");
+    if (!btn) return;
+
+    const canRollback = partitions.some(
+        p => !p.isRunning && p.state === "valid" &&
+             (p.label === "ota_0" || p.label === "ota_1")
+    );
+
+    if (canRollback) {
+        btn.disabled = false;
+        btn.classList.remove("opacity-50", "cursor-default");
+        btn.classList.add("hover:bg-gray-700");
+    } else {
+        btn.disabled = true;
+        btn.classList.add("opacity-50", "cursor-default");
+        btn.classList.remove("hover:bg-gray-700");
+    }
+}
+
+function partitionBadges(p) {
+    const badges = [];
+
+    if (p.isRunning) {
+        badges.push(`<span class="fw-badge fw-badge-running">Running</span>`);
+    }
+    if (p.isNextBoot && !p.isRunning) {
+        badges.push(`<span class="fw-badge fw-badge-next">Next Boot</span>`);
+    }
+
+    if (!p.isRunning) {
+        const stateMap = {
+            valid:   "fw-badge-valid",
+            pending: "fw-badge-pending",
+            invalid: "fw-badge-invalid",
+            aborted: "fw-badge-aborted",
+            new:     "fw-badge-new",
+            empty:   "fw-badge-empty",
+        };
+        const cls   = stateMap[p.state] || "fw-badge-empty";
+        const label = p.state.charAt(0).toUpperCase() + p.state.slice(1);
+        badges.push(`<span class="fw-badge ${cls}">${label}</span>`);
+    }
+
+    return badges.join(" ");
+}
+
+function renderPartitionCards(partitions) {
+    const container = document.getElementById("firmware-partitions");
+    if (!container) return;
+
+    if (partitions.length === 0) {
+        container.innerHTML =
+            `<div class="text-gray-500 text-sm">No partition data available.</div>`;
+        return;
+    }
+
+    container.innerHTML = partitions.map(p => {
+        const isEmpty = !p.version;
+        const cardBg  = isEmpty ? "bg-gray-50" : "bg-white";
+
+        const infoRows = isEmpty ? "" : `
+            <table class="text-sm mt-3">
+                <tr><td class="pr-6 text-gray-500">Version</td><td>${p.version}</td></tr>
+                <tr><td class="pr-6 text-gray-500">Project</td><td>${p.project}</td></tr>
+                <tr><td class="pr-6 text-gray-500">Built</td>  <td>${p.buildDate}</td></tr>
+                <tr><td class="pr-6 text-gray-500">IDF</td>    <td>${p.idfVersion}</td></tr>
+            </table>`;
+
+        return `
+            <div class="border rounded p-4 ${cardBg} shadow-sm">
+                <div class="flex justify-between items-center">
+                    <span class="font-semibold">${p.label}</span>
+                    <div class="flex gap-2">${partitionBadges(p)}</div>
+                </div>
+                ${infoRows}
+            </div>`;
+    }).join("");
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────
+
+function requestFirmwareUpload(file) {
+    showConfirm(
+        "warning",
+        "Upload Firmware",
+        `Upload "${file.name}" (${(file.size / 1024).toFixed(0)} KB) and reboot?`,
+        () => handleFirmwareUpload(file)
+    );
+    // Clear the file input so the same file can be re-selected if needed
+    const fi = document.getElementById("fw-file-input");
+    if (fi) fi.value = "";
+}
+
+async function handleFirmwareUpload(file) {
+    if (fwUploadBusy) return;
+    fwUploadBusy = true;
+
+    // Disable all firmware buttons during upload
+    ["btn-fw-upload", "btn-fw-rollback", "btn-fw-factory"].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) { b.disabled = true; b.classList.add("opacity-50", "cursor-default"); }
+    });
+
+    // Show progress bar
+    const progressWrapper = document.getElementById("fw-upload-progress");
+    const progressBar     = document.getElementById("fw-progress-bar");
+    const progressPct     = document.getElementById("fw-progress-pct");
+    if (progressWrapper) progressWrapper.classList.remove("hidden");
+
+    try {
+        await apiUploadFirmware(file, (pct) => {
+            if (progressBar) progressBar.style.width = pct + "%";
+            if (progressPct) progressPct.textContent = pct + "%";
+        });
+        // Device reboots — show a message and stop trying to contact it
+        showMessage("success", "Upload Complete",
+                    "Firmware uploaded successfully. The device is rebooting…");
+        setTimeout(() => location.reload(), 8000);
+    } catch (err) {
+        console.error("Firmware upload failed:", err);
+        showMessage("error", "Upload Failed", err.message || "Could not upload firmware.");
+        // Re-enable buttons and hide progress on failure
+        fwUploadBusy = false;
+        if (progressWrapper) progressWrapper.classList.add("hidden");
+        ["btn-fw-upload", "btn-fw-factory"].forEach(id => {
+            const b = document.getElementById(id);
+            if (b) { b.disabled = false; b.classList.remove("opacity-50", "cursor-default"); }
+        });
+        // Re-evaluate rollback availability
+        updateRollbackButton(_lastPartitions);
+    }
+}
+
+// ── Rollback ──────────────────────────────────────────────────────────────
+
+function requestRollback() {
+    showConfirm(
+        "warning",
+        "Rollback Firmware",
+        "Revert to the previous firmware version and reboot?",
+        handleRollback
+    );
+}
+
+async function handleRollback() {
+    try {
+        await apiRollbackFirmware();
+        showMessage("success", "Rolling Back",
+                    "Rolling back to previous firmware. Device is rebooting…");
+        setTimeout(() => location.reload(), 8000);
+    } catch (err) {
+        console.error("Rollback failed:", err);
+        showMessage("error", "Rollback Failed",
+                    err.message || "No valid firmware to roll back to.");
+    }
+}
+
+// ── Factory Reset ─────────────────────────────────────────────────────────
+
+function requestFactoryReset() {
+    showConfirm(
+        "danger",
+        "Factory Reset",
+        "This will erase all OTA updates and reboot to the factory firmware. Continue?",
+        handleFactoryReset
+    );
+}
+
+async function handleFactoryReset() {
+    try {
+        await apiFactoryResetFirmware();
+        showMessage("success", "Factory Reset",
+                    "Factory reset complete. Device is rebooting to factory firmware…");
+        setTimeout(() => location.reload(), 10000);
+    } catch (err) {
+        console.error("Factory reset failed:", err);
+        showMessage("error", "Factory Reset Failed",
+                    err.message || "Could not perform factory reset.");
+    }
 }
 
 /**

@@ -4,9 +4,10 @@
 #include "credential_store/CredentialApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "logger/Logger.hpp"
+#include "ota/OtaApiHandler.hpp"
+#include "ota/OtaManager.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiContext.hpp"
-#include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
 
@@ -14,15 +15,18 @@ namespace wifi_manager {
 
 static logger::Logger log{"EmbeddedServer"};
 
-EmbeddedServer::EmbeddedServer(WiFiContext &ctx, WiFiApiHandler &wifiApi,
-                             credential_store::CredentialApiHandler &credentialApi,
-                             device::DeviceApiHandler &deviceHandler)
+EmbeddedServer::EmbeddedServer(WiFiContext &ctx,
+                               WiFiApiHandler &wifiApi,
+                               credential_store::CredentialApiHandler &credentialApi,
+                               device::DeviceApiHandler &deviceHandler,
+                               ota::OtaApiHandler &otaApi)
     : ctx(ctx)
     , server()
     , embeddedFileHandler("/", "index.html")
     , wifiHandler(wifiApi)
     , credentialHandler(credentialApi)
-    , deviceHandler(deviceHandler) {
+    , deviceHandler(deviceHandler)
+    , otaHandler(otaApi) {
     log.debug("constructor");
 }
 
@@ -39,9 +43,10 @@ bool EmbeddedServer::start() {
         log.debug("start() registering routes");
 		routes = {
 		{ctx.rootUri + "/credentials/", &credentialHandler},
-		{ctx.rootUri + "/device/", &deviceHandler},
-		{ctx.rootUri + "/wifi/", &wifiHandler},
-		{"/", &embeddedFileHandler}
+		{ctx.rootUri + "/device/",       &deviceHandler},
+		{ctx.rootUri + "/firmware/",     &otaHandler},
+		{ctx.rootUri + "/wifi/",         &wifiHandler},
+		{"/",                            &embeddedFileHandler}
 		};
         server.addRoutes("/*", this);
         routesRegistered = true;
@@ -54,6 +59,11 @@ bool EmbeddedServer::start() {
 	} else {
 	    log.warn("EmbeddedServer started but STA IP unknown");
 	}
+
+    // HTTP server is listening → system is healthy enough to validate the
+    // running OTA image and cancel the automatic rollback timer.
+    ota::OtaManager::markValid();
+
     return true;
 }
 

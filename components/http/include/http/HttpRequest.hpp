@@ -36,13 +36,26 @@ class HttpRequest {
     }
 
   private:
+    // Bodies larger than this threshold are NOT pre-loaded into memory.
+    // The handler must read them directly via req->raw() + httpd_req_recv().
+    // This prevents OTA firmware uploads (typically 0.5–2 MB) from exhausting
+    // the ESP32-S3's internal SRAM (~512 KB).
+    static constexpr size_t MAX_PRELOAD_BYTES = 65536; // 64 KB
+
     httpd_req_t *req;
-    std::string bodyStorage_; // owns the memory
+    std::string bodyStorage_; // owns the memory; empty when skipped
 
     void readBody() {
-        size_t len = req->content_len;
+        const size_t len = req->content_len;
 
         if (len == 0) {
+            bodyStorage_.clear();
+            return;
+        }
+
+        if (len > MAX_PRELOAD_BYTES) {
+            // Large body (e.g. firmware upload) — leave data in the socket
+            // buffer so the handler can stream it via httpd_req_recv().
             bodyStorage_.clear();
             return;
         }
@@ -55,7 +68,7 @@ class HttpRequest {
             return;
         }
 
-        // shrink to actual bytes received
+        // Shrink to actual bytes received
         bodyStorage_.resize(received);
     }
 };

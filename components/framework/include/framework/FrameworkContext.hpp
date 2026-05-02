@@ -4,6 +4,7 @@
 #include "credential_store/CredentialStore.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "device_cert/DeviceCert.hpp"
+#include "ota/OtaApiHandler.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 
 namespace credential_store {
@@ -60,6 +61,7 @@ class FrameworkContext {
     wifi_manager::WiFiApiHandler             *wifiApi        = nullptr;
     credential_store::CredentialApiHandler   *credentialApi  = nullptr;
     device::DeviceApiHandler                 *deviceApi      = nullptr;
+    ota::OtaApiHandler                       *otaApi         = nullptr;
 
     void initialize(const wifi_manager::ApConfig &apConfig);
 };

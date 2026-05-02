@@ -6,6 +6,7 @@
 #include "embedded_files/EmbeddedFileHandler.hpp"
 #include "http/HttpHandler.hpp"
 #include "http/HttpServer.hpp"
+#include "ota/OtaApiHandler.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 
 namespace wifi_manager {
@@ -14,8 +15,11 @@ struct WiFiContext;
 
 class EmbeddedServer : public http::HttpHandler {
   public:
-    explicit EmbeddedServer(WiFiContext &ctx, WiFiApiHandler &wifiApi,
-                           credential_store::CredentialApiHandler &credentialApi, device::DeviceApiHandler &deviceApi);
+    explicit EmbeddedServer(WiFiContext &ctx,
+                           WiFiApiHandler &wifiApi,
+                           credential_store::CredentialApiHandler &credentialApi,
+                           device::DeviceApiHandler &deviceApi,
+                           ota::OtaApiHandler &otaApi);
     ~EmbeddedServer();
 
     bool start(); // start HTTP server
@@ -42,6 +46,7 @@ class EmbeddedServer : public http::HttpHandler {
     wifi_manager::WiFiApiHandler wifiHandler;
     credential_store::CredentialApiHandler credentialHandler;
     device::DeviceApiHandler deviceHandler;
+    ota::OtaApiHandler otaHandler;
 	
 	std::vector<Route> routes;
     bool routesRegistered = false;

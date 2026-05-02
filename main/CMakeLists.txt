@@ -8,6 +8,7 @@ idf_component_register(
         framework
         http
         logger
+        ota
         wifi_manager
     INCLUDE_DIRS
         .

@@ -211,6 +211,28 @@ input[type="password"]:focus {
 .group-hover\:block { display: none; }
 
 /* ============================
+   Firmware partition badges
+   ============================ */
+.fw-badge {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.fw-badge-running  { background-color: #16a34a; color: #ffffff; }
+.fw-badge-next     { background-color: #2563eb; color: #ffffff; }
+.fw-badge-valid    { background-color: #d1d5db; color: #374151; }
+.fw-badge-pending  { background-color: #d97706; color: #ffffff; }
+.fw-badge-invalid  { background-color: #dc2626; color: #ffffff; }
+.fw-badge-aborted  { background-color: #dc2626; color: #ffffff; }
+.fw-badge-new      { background-color: #7c3aed; color: #ffffff; }
+.fw-badge-empty    { background-color: #f3f4f6; color: #9ca3af;
+                     border: 1px solid #d1d5db; }
+
+/* ============================
    Lists
    ============================ */
 ul {
