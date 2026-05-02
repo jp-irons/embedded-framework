@@ -3,7 +3,6 @@
 #include "common/Result.hpp"
 #include "device/DeviceInterface.hpp"
 #include "esp_system.h"
-#include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "logger/Logger.hpp"
 
