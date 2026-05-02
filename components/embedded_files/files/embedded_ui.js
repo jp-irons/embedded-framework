@@ -159,6 +159,10 @@ async function refreshDeviceInfo() {
                 <td>${info.lastReset}</td>
             </tr>
             <tr>
+                <td class="pr-4 font-semibold text-right">Temperature:</td>
+                <td>${info.temperature.toFixed(1)}°C</td>
+            </tr>
+            <tr>
                 <td class="pr-4 font-semibold text-right">Uptime:</td>
                 <td>${info.uptime}</td>
             </tr>

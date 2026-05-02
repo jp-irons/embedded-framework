@@ -1,6 +1,7 @@
 #include "device/DeviceInterface.hpp"
 
 #include "device/EspTypeAdapter.hpp"
+#include "driver/temperature_sensor.h"
 #include "esp_chip_info.h"
 #include "esp_event.h"
 #include "esp_idf_version.h"
@@ -129,6 +130,18 @@ size_t detectFlashSize() {
     return maxEnd;  // total flash size in bytes
 }
 
+static float readTemperature() {
+    static temperature_sensor_handle_t handle = nullptr;
+    if (handle == nullptr) {
+        temperature_sensor_config_t cfg = TEMPERATURE_SENSOR_CONFIG_DEFAULT(20, 100);
+        temperature_sensor_install(&cfg, &handle);
+        temperature_sensor_enable(handle);
+    }
+    float celsius = 0.0f;
+    temperature_sensor_get_celsius(handle, &celsius);
+    return celsius;
+}
+
 DeviceInfo info() {
 	log.debug("info()");
     DeviceInfo i;
@@ -167,6 +180,9 @@ DeviceInfo info() {
 
     // Reset reason
     i.lastReset = resetReasonStr(esp_reset_reason());
+
+    // Internal temperature sensor
+    i.temperature = readTemperature();
 
     // Uptime
     i.uptime = formatUptime(esp_timer_get_time());

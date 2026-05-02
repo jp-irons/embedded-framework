@@ -16,6 +16,7 @@ struct DeviceInfo {
     uint32_t    cpuFreqMhz;
     std::string idfVersion;
     std::string lastReset;
+    float       temperature;
     std::string uptime;
     std::string otaPartition;
 };

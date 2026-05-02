@@ -14,4 +14,5 @@ idf_component_register(
         nvs_flash
         esp_psram
         app_update
+        esp_driver_tsens
 )

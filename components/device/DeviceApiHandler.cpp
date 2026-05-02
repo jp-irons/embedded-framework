@@ -103,6 +103,7 @@ common::Result DeviceApiHandler::handleInfo(http::HttpRequest &req, http::HttpRe
         "\"cpuFreqMhz\":"     + std::to_string(info.cpuFreqMhz)     + ","
         "\"idfVersion\":\""   + info.idfVersion                      + "\","
         "\"lastReset\":\""    + info.lastReset                       + "\","
+        "\"temperature\":"    + [&]{ char b[16]; snprintf(b, sizeof(b), "%.1f", info.temperature); return std::string(b); }() + ","
         "\"uptime\":\""       + info.uptime                          + "\","
         "\"otaPartition\":\"" + info.otaPartition                    + "\""
         "}";
