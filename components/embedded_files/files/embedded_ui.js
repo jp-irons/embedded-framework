@@ -209,6 +209,28 @@ function partitionBadges(p) {
     return badges.join(" ");
 }
 
+/** Always render as MB with 2 decimal places for consistent image-size display. */
+function formatMB(n) {
+    return (n / (1024 * 1024)).toFixed(2) + " MB";
+}
+
+/**
+ * Tidy the combined build-date string that comes from the firmware descriptor.
+ * ESP-IDF produces e.g. "May  3 2026 14:48:23" — collapse double spaces and
+ * drop the seconds so it fits comfortably on one line.
+ */
+function formatBuildDate(dateStr) {
+    return (dateStr || "")
+        .replace(/\s+/g, " ")                       // "May  3" → "May 3"
+        .replace(/(\d{2}:\d{2}):\d{2}$/, "$1");     // "14:48:23" → "14:48"
+}
+
+/** Truncate "v6.0-dev-3948-gabcdef" → "v6.0". */
+function truncateIdfVer(ver) {
+    const m = (ver || "").match(/^(v[\d.]+)/);
+    return m ? m[1] : (ver || "");
+}
+
 function renderPartitionCards(partitions) {
     const container = document.getElementById("firmware-partitions");
     if (!container) return;
@@ -220,16 +242,39 @@ function renderPartitionCards(partitions) {
     }
 
     container.innerHTML = partitions.map(p => {
-        const isEmpty = !p.version;
-        const cardBg  = isEmpty ? "bg-gray-50" : "bg-white";
+        const hasFirmware = !!p.version;
+        const cardBg      = hasFirmware ? "bg-white" : "bg-gray-50";
 
-        const infoRows = isEmpty ? "" : `
-            <table class="text-sm mt-3">
-                <tr><td class="pr-6 text-gray-500">Version</td><td>${p.version}</td></tr>
-                <tr><td class="pr-6 text-gray-500">Project</td><td>${p.project}</td></tr>
-                <tr><td class="pr-6 text-gray-500">Built</td>  <td>${p.buildDate}</td></tr>
-                <tr><td class="pr-6 text-gray-500">IDF</td>    <td>${p.idfVersion}</td></tr>
-            </table>`;
+        // ── Version row (firmware only) ──────────────────────────────────
+        const versionRow = hasFirmware ? `
+            <tr>
+                <td class="pr-6 text-gray-500 align-top">Version</td>
+                <td>${p.version}<span class="text-gray-400 ml-2">· ${formatBuildDate(p.buildDate)}</span></td>
+            </tr>` : "";
+
+        // ── Image row (always shown) ──────────────────────────────────────
+        const pct        = p.partitionSize ? Math.round((p.firmwareSize / p.partitionSize) * 100) : 0;
+        const slotLabel  = p.partitionSize ? formatMB(p.partitionSize) : "—";
+        const imageCell  = p.firmwareSize
+            ? `<div class="flex items-center gap-2">
+                   <div class="w-20 bg-gray-200 rounded-full h-1.5 flex-shrink-0">
+                       <div class="bg-blue-500 h-1.5 rounded-full" style="width:${pct}%"></div>
+                   </div>
+                   <span>${formatMB(p.firmwareSize)} / ${slotLabel}</span>
+               </div>`
+            : `<span class="text-gray-400">— / ${slotLabel}</span>`;
+
+        const imageRow = `
+            <tr>
+                <td class="pr-6 text-gray-500 align-middle">Image</td>
+                <td>${imageCell}</td>
+            </tr>`;
+
+        // ── Project + IDF rows (firmware only) ───────────────────────────
+        const projectRow = hasFirmware
+            ? `<tr><td class="pr-6 text-gray-500">Project</td><td>${p.project}</td></tr>` : "";
+        const idfRow = hasFirmware
+            ? `<tr><td class="pr-6 text-gray-500">IDF</td><td>${truncateIdfVer(p.idfVersion)}</td></tr>` : "";
 
         return `
             <div class="border rounded p-4 ${cardBg} shadow-sm">
@@ -237,7 +282,12 @@ function renderPartitionCards(partitions) {
                     <span class="font-semibold">${p.label}</span>
                     <div class="flex gap-2">${partitionBadges(p)}</div>
                 </div>
-                ${infoRows}
+                <table class="text-sm mt-3">
+                    ${versionRow}
+                    ${imageRow}
+                    ${projectRow}
+                    ${idfRow}
+                </table>
             </div>`;
     }).join("");
 }

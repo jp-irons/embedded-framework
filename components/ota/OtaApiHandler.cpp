@@ -2,6 +2,7 @@
 #include "ota/OtaWriter.hpp"
 
 #include "esp_app_desc.h"
+#include "esp_app_format.h"
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
 #include "esp_system.h"
@@ -60,6 +61,40 @@ common::Result OtaApiHandler::handlePost(HttpRequest &req, HttpResponse &res) {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Walk the ESP image header stored at the beginning of @p part and return the
+ * total byte length of the firmware image (header + all segments + optional
+ * SHA-256 hash).  Returns 0 if the partition does not contain a valid image.
+ *
+ * This reads only a few small structs from flash — no SHA verification —
+ * so it is fast enough to call on every status request.
+ */
+static uint32_t getImageSize(const esp_partition_t *part) {
+    esp_image_header_t img_hdr = {};
+    if (esp_partition_read(part, 0, &img_hdr, sizeof(img_hdr)) != ESP_OK) {
+        return 0;
+    }
+    if (img_hdr.magic != ESP_IMAGE_HEADER_MAGIC) {
+        return 0;
+    }
+
+    uint32_t offset = sizeof(esp_image_header_t);
+    for (uint8_t i = 0; i < img_hdr.segment_count; i++) {
+        esp_image_segment_header_t seg = {};
+        if (esp_partition_read(part, offset, &seg, sizeof(seg)) != ESP_OK) {
+            return 0;
+        }
+        offset += sizeof(seg) + seg.data_len;
+    }
+    // Pad to 16-byte alignment
+    offset = (offset + 15u) & ~15u;
+    // Appended SHA-256 hash
+    if (img_hdr.hash_appended) {
+        offset += 32;
+    }
+    return offset;
+}
+
 static const char *otaStateStr(esp_ota_img_states_t s) {
     switch (s) {
         case ESP_OTA_IMG_NEW:            return "new";
@@ -104,12 +139,19 @@ static std::string partitionJson(const esp_partition_t *part,
     // so showing stale version strings alongside "Empty" is misleading.
     const bool showDesc = hasDesc && (isFactory || state != ESP_OTA_IMG_UNDEFINED);
 
+    // Sizes: partition capacity is always known; firmware image size is only
+    // meaningful when the partition has a valid image (showDesc guard).
+    const uint32_t partitionSize = part->size;
+    const uint32_t firmwareSize  = showDesc ? getImageSize(part) : 0;
+
     std::string j = "{";
-    j += "\"label\":\""    + std::string(part->label)          + "\",";
-    j += "\"state\":\""    + std::string(stateStr)             + "\",";
-    j += "\"otaState\":\""  + std::string(otaStateStr_)        + "\",";
-    j += "\"isRunning\":";  j += isRunning  ? "true" : "false"; j += ",";
-    j += "\"isNextBoot\":"; j += isNextBoot ? "true" : "false"; j += ",";
+    j += "\"label\":\""       + std::string(part->label)          + "\",";
+    j += "\"state\":\""       + std::string(stateStr)             + "\",";
+    j += "\"otaState\":\""    + std::string(otaStateStr_)         + "\",";
+    j += "\"isRunning\":";    j += isRunning  ? "true" : "false"; j += ",";
+    j += "\"isNextBoot\":";   j += isNextBoot ? "true" : "false"; j += ",";
+    j += "\"partitionSize\":" + std::to_string(partitionSize)     + ",";
+    j += "\"firmwareSize\":"  + std::to_string(firmwareSize)      + ",";
 
     if (showDesc) {
         std::string buildDate = std::string(desc.date) + " " + std::string(desc.time);

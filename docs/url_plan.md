@@ -69,37 +69,43 @@ Handler: `ota::OtaApiHandler`
 {
   "partitions": [
     {
-      "label":      "factory",
-      "state":      "factory",
-      "otaState":   "empty",
-      "isRunning":  true,
-      "isNextBoot": true,
-      "version":    "0.0.1",
-      "project":    "esp32_app_framework",
-      "buildDate":  "May  3 2026 10:00:00",
-      "idfVersion": "v6.0-..."
+      "label":         "factory",
+      "state":         "factory",
+      "otaState":      "empty",
+      "isRunning":     true,
+      "isNextBoot":    true,
+      "partitionSize": 2097152,
+      "firmwareSize":  913408,
+      "version":       "0.0.1",
+      "project":       "esp32_app_framework",
+      "buildDate":     "May  3 2026 10:00:00",
+      "idfVersion":    "v6.0-..."
     },
     {
-      "label":      "ota_0",
-      "state":      "valid",
-      "otaState":   "valid",
-      "isRunning":  false,
-      "isNextBoot": false,
-      "version":    "",
-      "project":    "",
-      "buildDate":  "",
-      "idfVersion": ""
+      "label":         "ota_0",
+      "state":         "valid",
+      "otaState":      "valid",
+      "isRunning":     false,
+      "isNextBoot":    false,
+      "partitionSize": 2097152,
+      "firmwareSize":  921600,
+      "version":       "0.0.2",
+      "project":       "esp32_app_framework",
+      "buildDate":     "May  3 2026 12:00:00",
+      "idfVersion":    "v6.0-..."
     },
     {
-      "label":      "ota_1",
-      "state":      "empty",
-      "otaState":   "empty",
-      "isRunning":  false,
-      "isNextBoot": false,
-      "version":    "",
-      "project":    "",
-      "buildDate":  "",
-      "idfVersion": ""
+      "label":         "ota_1",
+      "state":         "empty",
+      "otaState":      "empty",
+      "isRunning":     false,
+      "isNextBoot":    false,
+      "partitionSize": 2097152,
+      "firmwareSize":  0,
+      "version":       "",
+      "project":       "",
+      "buildDate":     "",
+      "idfVersion":    ""
     }
   ]
 }
