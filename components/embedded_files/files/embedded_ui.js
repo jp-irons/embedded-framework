@@ -253,15 +253,9 @@ function renderPartitionCards(partitions) {
             </tr>` : "";
 
         // ── Image row (always shown) ──────────────────────────────────────
-        const pct        = p.partitionSize ? Math.round((p.firmwareSize / p.partitionSize) * 100) : 0;
         const slotLabel  = p.partitionSize ? formatMB(p.partitionSize) : "—";
         const imageCell  = p.firmwareSize
-            ? `<div class="flex items-center gap-2">
-                   <div class="w-20 bg-gray-200 rounded-full h-1.5 flex-shrink-0">
-                       <div class="bg-blue-500 h-1.5 rounded-full" style="width:${pct}%"></div>
-                   </div>
-                   <span>${formatMB(p.firmwareSize)} / ${slotLabel}</span>
-               </div>`
+            ? `<span>${formatMB(p.firmwareSize)} / ${slotLabel}</span>`
             : `<span class="text-gray-400">— / ${slotLabel}</span>`;
 
         const imageRow = `
