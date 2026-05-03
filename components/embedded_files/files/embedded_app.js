@@ -122,21 +122,29 @@ document.addEventListener("DOMContentLoaded", () => {
                     <!-- Hidden file input — triggered by the Upload button -->
                     <input id="fw-file-input" type="file" accept=".bin" class="hidden" />
 
-                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-300">
-                        <button id="btn-fw-upload"
-                                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                            Upload Firmware
-                        </button>
-                        <button id="btn-fw-rollback"
-                                class="px-4 py-2 bg-gray-600 text-white rounded
-                                       opacity-50 cursor-default"
-                                disabled>
-                            Rollback
-                        </button>
-                        <button id="btn-fw-factory"
-                                class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                            Factory Reset
-                        </button>
+                    <div class="mt-6 pt-4 border-t border-gray-300">
+                        <p id="fw-rollback-note"
+                           class="hidden text-xs text-gray-500 mb-3 text-right">
+                            Rollback is available after a second OTA upgrade, when a
+                            previous valid OTA image exists. To return to factory firmware
+                            now, use Factory Reset.
+                        </p>
+                        <div class="flex justify-end gap-3">
+                            <button id="btn-fw-upload"
+                                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                Upload Firmware
+                            </button>
+                            <button id="btn-fw-rollback"
+                                    class="px-4 py-2 bg-blue-600 text-white rounded
+                                           opacity-50 cursor-default"
+                                    disabled>
+                                Rollback
+                            </button>
+                            <button id="btn-fw-factory"
+                                    class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                                Factory Reset
+                            </button>
+                        </div>
                     </div>
                 `;
                 initFirmwareView();

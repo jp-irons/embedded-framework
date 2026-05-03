@@ -77,23 +77,41 @@ static std::string partitionJson(const esp_partition_t *part,
                                  const esp_partition_t *nextBoot) {
     const bool isRunning  = running  && (part->address == running->address);
     const bool isNextBoot = nextBoot && (part->address == nextBoot->address);
+    const bool isFactory  = (part->subtype == ESP_PARTITION_SUBTYPE_APP_FACTORY);
 
     esp_ota_img_states_t state = ESP_OTA_IMG_UNDEFINED;
     esp_ota_get_state_partition(part, &state);
 
-    // Running partition always shows "running" as its primary state label
-    const char *stateStr = isRunning ? "running" : otaStateStr(state);
+    // Primary display state:
+    //   running  → "running"
+    //   factory  → "factory"  (always UNDEFINED but that's normal, not "empty")
+    //   other    → OTA state string
+    const char *stateStr = isRunning ? "running"
+                         : isFactory ? "factory"
+                         :             otaStateStr(state);
+
+    // The actual OTA state (valid/pending/invalid/…) for the running partition,
+    // so the UI can show e.g. "Running • Valid" or warn "Running • Pending".
+    const char *otaStateStr_ = otaStateStr(state);
 
     esp_app_desc_t desc  = {};
     const bool     hasDesc = (esp_ota_get_partition_description(part, &desc) == ESP_OK);
 
+    // Show version data only when the partition is actively managed by OTA.
+    // Factory is always UNDEFINED — that's normal, so always show its info.
+    // OTA slots with UNDEFINED state are unmanaged (e.g. after factory reset):
+    // flash content may still be present but it has no system-level meaning,
+    // so showing stale version strings alongside "Empty" is misleading.
+    const bool showDesc = hasDesc && (isFactory || state != ESP_OTA_IMG_UNDEFINED);
+
     std::string j = "{";
     j += "\"label\":\""    + std::string(part->label)          + "\",";
     j += "\"state\":\""    + std::string(stateStr)             + "\",";
+    j += "\"otaState\":\""  + std::string(otaStateStr_)        + "\",";
     j += "\"isRunning\":";  j += isRunning  ? "true" : "false"; j += ",";
     j += "\"isNextBoot\":"; j += isNextBoot ? "true" : "false"; j += ",";
 
-    if (hasDesc) {
+    if (showDesc) {
         std::string buildDate = std::string(desc.date) + " " + std::string(desc.time);
         j += "\"version\":\""    + std::string(desc.version)      + "\",";
         j += "\"project\":\""    + std::string(desc.project_name) + "\",";

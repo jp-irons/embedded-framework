@@ -151,7 +151,8 @@ async function loadFirmwareStatus() {
 
 /** Enable the Rollback button only when a VALID non-running OTA partition exists. */
 function updateRollbackButton(partitions) {
-    const btn = document.getElementById("btn-fw-rollback");
+    const btn  = document.getElementById("btn-fw-rollback");
+    const note = document.getElementById("fw-rollback-note");
     if (!btn) return;
 
     const canRollback = partitions.some(
@@ -162,33 +163,44 @@ function updateRollbackButton(partitions) {
     if (canRollback) {
         btn.disabled = false;
         btn.classList.remove("opacity-50", "cursor-default");
-        btn.classList.add("hover:bg-gray-700");
+        btn.classList.add("hover:bg-blue-700");
+        if (note) note.classList.add("hidden");
     } else {
         btn.disabled = true;
         btn.classList.add("opacity-50", "cursor-default");
-        btn.classList.remove("hover:bg-gray-700");
+        btn.classList.remove("hover:bg-blue-700");
+        if (note) note.classList.remove("hidden");
     }
 }
 
 function partitionBadges(p) {
     const badges = [];
+    const stateMap = {
+        valid:   "fw-badge-valid",
+        pending: "fw-badge-pending",
+        invalid: "fw-badge-invalid",
+        aborted: "fw-badge-aborted",
+        new:     "fw-badge-new",
+        empty:   "fw-badge-empty",
+        factory: "fw-badge-empty",
+    };
 
     if (p.isRunning) {
         badges.push(`<span class="fw-badge fw-badge-running">Running</span>`);
+        // Also show the actual OTA state for the running partition so the user
+        // can confirm it has been validated (valid) vs. still pending.
+        const otaCls   = stateMap[p.otaState] || "";
+        const otaLabel = p.otaState ? p.otaState.charAt(0).toUpperCase() + p.otaState.slice(1) : "";
+        if (otaLabel && p.otaState !== "empty") {
+            badges.push(`<span class="fw-badge ${otaCls}">${otaLabel}</span>`);
+        }
     }
+
     if (p.isNextBoot && !p.isRunning) {
         badges.push(`<span class="fw-badge fw-badge-next">Next Boot</span>`);
     }
 
     if (!p.isRunning) {
-        const stateMap = {
-            valid:   "fw-badge-valid",
-            pending: "fw-badge-pending",
-            invalid: "fw-badge-invalid",
-            aborted: "fw-badge-aborted",
-            new:     "fw-badge-new",
-            empty:   "fw-badge-empty",
-        };
         const cls   = stateMap[p.state] || "fw-badge-empty";
         const label = p.state.charAt(0).toUpperCase() + p.state.slice(1);
         badges.push(`<span class="fw-badge ${cls}">${label}</span>`);
