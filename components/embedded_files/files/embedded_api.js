@@ -12,11 +12,47 @@
 //
 // All helpers below include the Authorization header automatically.
 
-let _password        = null;
+// --- Credential persistence ---
+//
+// The password is kept in sessionStorage so it survives full page loads within
+// the same browser tab (e.g. the user clicking the "Embedded" nav link or
+// pressing F5) without forcing a re-login.  sessionStorage is tab-scoped and
+// cleared automatically when the tab is closed, which is the right lifetime
+// for a device management session.
+//
+// WHY NOT the browser's built-in password manager?
+//
+// Chrome (and other browsers) will not offer to save credentials for origins
+// that have a certificate error — including HTTPS sites using a self-signed
+// certificate, even after the user has clicked through the "proceed anyway"
+// interstitial.  The ESP32's embedded HTTPS server uses a self-signed cert by
+// default, so the origin is permanently flagged as "Not secure" and Chrome's
+// password manager is silently suppressed for it.
+//
+// The Credential Management API (navigator.credentials.store) is also
+// unavailable for the same reason: it requires a fully trusted secure context.
+//
+// Obtaining a CA-signed certificate for a .local mDNS hostname is not
+// practical for a general-purpose framework (Let's Encrypt does not issue
+// certs for .local; mkcert requires per-machine CA installation), so
+// sessionStorage is the deliberate persistence strategy here.
+//
+// The user experience is equivalent for a single-operator device management
+// UI: one login per browser session, transparent re-auth if the device
+// reboots mid-session, credential gone when the tab is closed.
+const SESSION_KEY = "emb_auth_pw";
+
+let _password        = (() => { try { return sessionStorage.getItem(SESSION_KEY); } catch { return null; } })();
 let _authRequiredCb  = null;
 
-export function setPassword(pw)         { _password = pw; }
-export function clearPassword()         { _password = null; }
+export function setPassword(pw) {
+    _password = pw;
+    try { sessionStorage.setItem(SESSION_KEY, pw); } catch {}
+}
+export function clearPassword() {
+    _password = null;
+    try { sessionStorage.removeItem(SESSION_KEY); } catch {}
+}
 export function onAuthRequired(fn)      { _authRequiredCb = fn; }
 export function isAuthenticated()       { return _password !== null; }
 

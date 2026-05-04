@@ -14,13 +14,25 @@
   <div class="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded-lg overflow-visible">
 
     <!-- Navigation (rendered once, always visible) -->
-    <nav class="flex gap-3 mb-6">
-      <a href="/"           class="nav-link px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Home</a>
-	  <a href="/embedded/index.html"           class="nav-link px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Embedded</a>
-      <a href="#wifi"           class="nav-link px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">WiFi</a>
-      <a href="#firmware"       class="nav-link px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Firmware</a>
-      <a href="#device"         class="nav-link px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Device</a>
-      <a href="#security"       class="nav-link px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Security</a>
+    <nav class="emb-nav">
+      <span class="emb-nav-title">Device Management</span>
+      <div class="emb-nav-actions">
+        <a href="/" class="emb-nav-link">Home</a>
+        <!-- Dev placeholder — reload the embedded UI; remove before production -->
+        <a href="/embedded/index.html" class="emb-nav-link">Embedded</a>
+        <div class="emb-nav-menu">
+          <button id="emb-nav-btn" class="emb-nav-btn"
+                  aria-haspopup="true" aria-expanded="false">
+            Settings
+          </button>
+          <ul id="emb-nav-dropdown" class="emb-nav-dropdown hidden" role="menu">
+            <li><a href="#wifi"     class="emb-nav-item" role="menuitem">Wi-Fi</a></li>
+            <li><a href="#firmware" class="emb-nav-item" role="menuitem">Firmware</a></li>
+            <li><a href="#device"   class="emb-nav-item" role="menuitem">Device</a></li>
+            <li><a href="#security" class="emb-nav-item" role="menuitem">Security</a></li>
+          </ul>
+        </div>
+      </div>
     </nav>
 
     <!-- View container — router swaps content here -->
@@ -36,8 +48,19 @@
         Enter the <strong>current</strong> API password to continue.
         The factory default is <code>esp32admin</code>.
       </p>
-      <form id="login-form">
-        <input id="login-password" type="password"
+      <!-- action="." is required: browsers only offer to save credentials when
+           the form has an action attribute, even when submit is preventDefault()d. -->
+      <form id="login-form" action=".">
+        <!-- Username anchor for credential managers.  Must be reachable by the
+             browser's form scanner — display:none hides it from some scanners,
+             so we use a visually-invisible-but-present element instead.
+             The device always uses "admin" as its username. -->
+        <input type="text" name="username" autocomplete="username"
+               value="admin" tabindex="-1" aria-hidden="true"
+               style="position:absolute;width:1px;height:1px;padding:0;
+                      border:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);
+                      white-space:nowrap;" />
+        <input id="login-password" type="password" name="password"
                class="input-field mb-3"
                placeholder="Password"
                autocomplete="current-password" />

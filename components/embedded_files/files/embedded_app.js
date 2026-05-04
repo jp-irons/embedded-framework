@@ -11,13 +11,39 @@ import { initRouter }         from "/embedded/router.js";
 import { wireConfirmButtons, hideMessageModal } from "/embedded/modal.js";
 import { initWifiView, teardownWifiView, initDeviceView, initFirmwareView, teardownFirmwareView,
          initHomeView, initSecurityView } from "/embedded/ui.js";
-import { setPassword, clearPassword, onAuthRequired, getAuthStatus } from "/embedded/api.js";
+import { setPassword, clearPassword, onAuthRequired, getAuthStatus, isAuthenticated } from "/embedded/api.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
     // Modals live in the shell — wire them once
     wireConfirmButtons();
     document.getElementById("message-ok-btn").onclick = hideMessageModal;
+
+    // ----- Dropdown nav -----
+    const navBtn      = document.getElementById("emb-nav-btn");
+    const navDropdown = document.getElementById("emb-nav-dropdown");
+
+    if (navBtn && navDropdown) {
+        // Toggle open/close on button click
+        navBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const isOpen = !navDropdown.classList.contains("hidden");
+            navDropdown.classList.toggle("hidden", isOpen);
+            navBtn.setAttribute("aria-expanded", String(!isOpen));
+        });
+
+        // Close immediately when any link inside is activated
+        navDropdown.addEventListener("click", () => {
+            navDropdown.classList.add("hidden");
+            navBtn.setAttribute("aria-expanded", "false");
+        });
+
+        // Close when clicking anywhere outside the menu
+        document.addEventListener("click", () => {
+            navDropdown.classList.add("hidden");
+            navBtn.setAttribute("aria-expanded", "false");
+        });
+    }
 
     // ----- Login overlay -----
     // fetch() never triggers the browser's built-in Basic Auth dialog on a 401,
@@ -43,8 +69,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function hideLoginOverlay() {
-        if (loginOverlay) loginOverlay.classList.add("hidden");
-        if (pageShell)    pageShell.inert = false;
+        if (loginOverlay)  loginOverlay.classList.add("hidden");
+        if (pageShell)     pageShell.inert = false;
+        // Clear the password field value AFTER hiding.  Chrome (and other
+        // credential managers) use "password field value goes empty after a
+        // form submit" as the signal that credentials were successfully consumed
+        // and should be offered for saving.  Without this the SPA never gives
+        // Chrome the confirmation it waits for, so the save prompt never appears.
+        if (loginPassword) loginPassword.value = "";
     }
 
     // Register for 401s that occur during normal app operation (e.g. after a
@@ -63,16 +95,34 @@ document.addEventListener("DOMContentLoaded", () => {
             setPassword(pw);
             try {
                 await getAuthStatus();
-                hideLoginOverlay();
                 if (!appStarted) {
-                    // First successful login — start the router now.
-                    // Doing this here (rather than unconditionally at startup)
-                    // guarantees _password is set before any view calls the API.
-                    appStarted = true;
-                    initRouter({ routes, fallback: "#home" });
+                    // Chrome's native password manager needs:
+                    //   form submitted  →  navigation to a DIFFERENT url  →  login form gone
+                    //
+                    // Reloading to the exact same pathname is treated as a
+                    // "same-page reload" — Chrome doesn't consider that a
+                    // post-login navigation and won't offer to save.  Adding
+                    // a harmless ?auth query string makes the destination URL
+                    // distinct.  ESP-IDF's httpd matches handlers on path
+                    // only, so the server serves the same file either way.
+                    // The auto-login path strips ?auth via history.replaceState
+                    // before the router renders, so the user never sees it.
+                    //
+                    // credentials.store() is fired fire-and-forget as a
+                    // belt-and-suspenders hint for browsers that support it;
+                    // it is NOT awaited because the user-gesture context is
+                    // consumed by the getAuthStatus() await above.
+                    if (navigator.credentials && window.PasswordCredential) {
+                        navigator.credentials
+                            .store(new PasswordCredential({ id: "admin", password: pw }))
+                            .catch(err => console.debug("[auth] credential store:", err));
+                    }
+                    console.debug("[auth] login ok — reloading for credential save");
+                    location.replace(location.pathname);
                 } else {
-                    // Re-authentication after session expiry — re-render the
-                    // current route so it reloads its data with new credentials.
+                    // Re-authentication after session expiry — no reload needed,
+                    // just dismiss the overlay and re-render the current route.
+                    hideLoginOverlay();
                     window.dispatchEvent(new Event("hashchange"));
                 }
             } catch {
@@ -83,11 +133,30 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    // Show the login overlay immediately on page load.  Credentials are
-    // required before any API call will succeed, so there is no point
-    // rendering any view until the user has authenticated.  This also
-    // eliminates the reactive 401-then-show race condition entirely.
-    showLoginOverlay();
+    // On page load, choose between two paths:
+    //
+    //  • No stored credential → show the login overlay immediately.
+    //
+    //  • Stored credential → attempt silent validation first; only show the
+    //    overlay if the credential turns out to be stale.  Showing it
+    //    unconditionally then hiding it once the round-trip completes causes a
+    //    visible flash on every navigation between pages.
+    if (isAuthenticated()) {
+        getAuthStatus()
+            .then(() => {
+                // Credential is still valid — start the app without ever
+                // showing the overlay.
+                appStarted = true;
+                initRouter({ routes, fallback: "#home" });
+            })
+            .catch(() => {
+                // Credential is stale (password changed, device rebooted, etc.)
+                // — show the overlay now so the user can re-authenticate.
+                showLoginOverlay();
+            });
+    } else {
+        showLoginOverlay();
+    }
 
     // Route table
     const routes = [
