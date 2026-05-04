@@ -94,6 +94,19 @@ common::Result HttpResponse::sendJsonStatus(std::string_view status) {
     return sendJson(body);
 }
 
+common::Result HttpResponse::sendUnauthorized(const char *realm) {
+    // Build:  Basic realm="<realm>"
+    std::string challenge;
+    challenge.reserve(strlen(realm) + 14); // Basic realm=""
+    challenge.append("Basic realm=\"");
+    challenge.append(realm);
+    challenge.append("\"");
+
+    warn_err(httpd_resp_set_status(req, "401 Unauthorized"));
+    warn_err(httpd_resp_set_hdr(req, "WWW-Authenticate", challenge.c_str()));
+    return sendJsonError(401, "Unauthorized");
+}
+
 void HttpResponse::warn_err(esp_err_t err) {
     if (err != ESP_OK) {
         log.warn(esp_err_to_name(err));

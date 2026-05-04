@@ -3,6 +3,7 @@ idf_component_register(
         app_main.cpp
         ApplicationContext.cpp
     REQUIRES
+        auth
         credential_store
         embedded_files
         framework

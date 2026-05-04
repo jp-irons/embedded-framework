@@ -1,5 +1,8 @@
 #pragma once
 
+#include "auth/AuthApiHandler.hpp"
+#include "auth/AuthConfig.hpp"
+#include "auth/AuthStore.hpp"
 #include "credential_store/CredentialApiHandler.hpp"
 #include "credential_store/CredentialStore.hpp"
 #include "device/DeviceApiHandler.hpp"
@@ -19,17 +22,25 @@ namespace framework {
 
 class FrameworkContext {
   public:
+    /**
+     * Default constructor.  Uses built-in AP config, root URI, and a fixed
+     * default password of "esp32admin" with restrictIfDefault() — non-GET API
+     * calls are blocked until the operator changes the password via the
+     * Security page.
+     */
     explicit FrameworkContext();
 
     /**
      * @param apConfig      AP-mode configuration (SSID, password, etc.)
+     * @param authConfig    Authentication policy.  See AuthConfig for options.
      * @param rootUri       API root path, e.g. "/framework/api"
      * @param mdnsPrefix    Prefix for the mDNS hostname; last 3 MAC bytes are
      *                      appended automatically, e.g. "esp32" → "esp32-a1b2c3".
      *                      Defaults to "esp32".
      */
     FrameworkContext(const wifi_manager::ApConfig &apConfig,
-                     std::string rootUri,
+                     auth::AuthConfig authConfig,
+                     std::string rootUri    = "/framework/api",
                      std::string mdnsPrefix = "esp32");
 
     ~FrameworkContext();
@@ -44,15 +55,19 @@ class FrameworkContext {
   private:
     wifi_manager::ApConfig apConfig = {
         .ssid = "ESP32 FW Test", .password = "password", .channel = 1, .maxConnections = 4};
-    std::string rootUri_    = "/framework/api";
-    std::string mdnsPrefix_ = "esp32";
+    std::string      rootUri_    = "/framework/api";
+    std::string      mdnsPrefix_ = "esp32";
+    auth::AuthConfig authConfig_ = auth::AuthConfig::withPassword("esp32admin")
+                                                    .restrictIfDefault();
 
     // Per-device TLS cert (generated on first boot, persisted in NVS)
     device_cert::DeviceCert deviceCert_;
 
     // Always-present value types
-    wifi_manager::WiFiContext        wifiCtx;
+    wifi_manager::WiFiContext         wifiCtx;
     credential_store::CredentialStore credentialStore;
+    auth::AuthStore                   authStore;
+    auth::AuthApiHandler              authApi{authStore};
 
     // Owned heap objects
     wifi_manager::EmbeddedServer             *embeddedServer = nullptr;
@@ -63,7 +78,7 @@ class FrameworkContext {
     device::DeviceApiHandler                 *deviceApi      = nullptr;
     ota::OtaApiHandler                       *otaApi         = nullptr;
 
-    void initialize(const wifi_manager::ApConfig &apConfig);
+    void initialize();
 };
 
 } // namespace framework

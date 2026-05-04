@@ -20,11 +20,37 @@
       <a href="#wifi"           class="nav-link px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">WiFi</a>
       <a href="#firmware"       class="nav-link px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Firmware</a>
       <a href="#device"         class="nav-link px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Device</a>
+      <a href="#security"       class="nav-link px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Security</a>
     </nav>
 
     <!-- View container — router swaps content here -->
     <div id="app"></div>
 
+  </div>
+
+  <!-- Login Overlay — shown when credentials are required or rejected -->
+  <div id="login-overlay" class="login-overlay hidden">
+    <div class="login-card">
+      <h2 class="text-lg font-semibold mb-4">Device Login</h2>
+      <p class="text-sm text-gray-600 mb-4">
+        Enter the <strong>current</strong> API password to continue.
+        The factory default is <code>esp32admin</code>.
+      </p>
+      <form id="login-form">
+        <input id="login-password" type="password"
+               class="input-field mb-3"
+               placeholder="Password"
+               autocomplete="current-password" />
+        <p id="login-error" class="text-sm hidden mb-3" style="color:#dc2626">
+          Incorrect password — please try again.
+        </p>
+        <button type="submit"
+                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                style="width:100%">
+          Login
+        </button>
+      </form>
+    </div>
   </div>
 
   <!-- Message Modal (once, shared across all views) -->

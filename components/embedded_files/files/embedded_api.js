@@ -2,10 +2,42 @@
 // embedded/api.js
 //
 
+// ---------- Auth state ----------
+//
+// The device uses HTTP Basic Auth.  fetch() does not trigger the browser's
+// built-in credentials dialog on a 401, so we manage the password ourselves:
+//   - setPassword(pw)       — store after successful login
+//   - clearPassword()       — clear on logout or 401
+//   - onAuthRequired(fn)    — register a callback invoked on every 401
+//
+// All helpers below include the Authorization header automatically.
+
+let _password        = null;
+let _authRequiredCb  = null;
+
+export function setPassword(pw)         { _password = pw; }
+export function clearPassword()         { _password = null; }
+export function onAuthRequired(fn)      { _authRequiredCb = fn; }
+export function isAuthenticated()       { return _password !== null; }
+
+function authHeaders(extra = {}) {
+    if (!_password) return extra;
+    return {
+        ...extra,
+        "Authorization": "Basic " + btoa("admin:" + _password)
+    };
+}
+
+function handle401() {
+    clearPassword();
+    if (_authRequiredCb) _authRequiredCb();
+}
+
 // ---------- Generic helpers ----------
 
 async function get(url) {
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: authHeaders() });
+    if (res.status === 401) { handle401(); throw new Error("Unauthorized"); }
     if (!res.ok) throw new Error(`GET ${url} failed`);
     return res.json();
 }
@@ -13,15 +45,17 @@ async function get(url) {
 async function post(url, body = null) {
     const res = await fetch(url, {
         method: "POST",
-        headers: body ? { "Content-Type": "application/json" } : undefined,
+        headers: authHeaders(body ? { "Content-Type": "application/json" } : {}),
         body: body ? JSON.stringify(body) : null
     });
+    if (res.status === 401) { handle401(); throw new Error("Unauthorized"); }
     if (!res.ok) throw new Error(`POST ${url} failed`);
-    return res.json().catch(() => ({}));   // allow empty JSON
+    return res.json().catch(() => ({}));
 }
 
 async function del(url) {
-    const res = await fetch(url, { method: "DELETE" });
+    const res = await fetch(url, { method: "DELETE", headers: authHeaders() });
+    if (res.status === 401) { handle401(); throw new Error("Unauthorized"); }
     if (!res.ok) throw new Error(`DELETE ${url} failed`);
     return res.json().catch(() => ({}));
 }
@@ -82,6 +116,9 @@ export function uploadFirmware(file, onProgress) {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", "/framework/api/firmware/upload");
         xhr.setRequestHeader("Content-Type", "application/octet-stream");
+        if (_password) {
+            xhr.setRequestHeader("Authorization", "Basic " + btoa("admin:" + _password));
+        }
 
         if (onProgress) {
             xhr.upload.onprogress = (e) => {
@@ -113,6 +150,17 @@ export function rollbackFirmware() {
 
 export function factoryResetFirmware() {
     return post("/framework/api/firmware/factoryReset");
+}
+
+
+// ---------- Auth ----------
+
+export function getAuthStatus() {
+    return get(`/framework/api/auth/status?ts=${Date.now()}`);
+}
+
+export function changePassword(newPassword) {
+    return post("/framework/api/auth/password", { newPassword });
 }
 
 

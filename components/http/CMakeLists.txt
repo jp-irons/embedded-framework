@@ -1,6 +1,6 @@
 idf_component_register(
     SRCS
- #       HttpRequest.cpp
+        HttpRequest.cpp
         HttpServer.cpp
         HttpResponse.cpp
     INCLUDE_DIRS
@@ -11,6 +11,7 @@ idf_component_register(
         common
         device
         logger
+        mbedtls
     EMBED_TXTFILES
         certs/servercert.pem
         certs/prvtkey.pem

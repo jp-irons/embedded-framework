@@ -1,0 +1,16 @@
+idf_component_register(
+    SRCS
+        AuthApiHandler.cpp
+        AuthStore.cpp
+    INCLUDE_DIRS
+        include
+    REQUIRES
+        cjson
+        common
+        device
+        esp_hw_support
+        http
+        logger
+        mbedtls
+        nvs_flash
+)

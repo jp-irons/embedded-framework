@@ -9,7 +9,9 @@
 
 import { initRouter }         from "/embedded/router.js";
 import { wireConfirmButtons, hideMessageModal } from "/embedded/modal.js";
-import { initWifiView, teardownWifiView, initDeviceView, initFirmwareView, teardownFirmwareView } from "/embedded/ui.js";
+import { initWifiView, teardownWifiView, initDeviceView, initFirmwareView, teardownFirmwareView,
+         initHomeView, initSecurityView } from "/embedded/ui.js";
+import { setPassword, clearPassword, onAuthRequired, getAuthStatus } from "/embedded/api.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -17,12 +19,87 @@ document.addEventListener("DOMContentLoaded", () => {
     wireConfirmButtons();
     document.getElementById("message-ok-btn").onclick = hideMessageModal;
 
+    // ----- Login overlay -----
+    // fetch() never triggers the browser's built-in Basic Auth dialog on a 401,
+    // so we manage credentials ourselves.  api.js calls onAuthRequired() whenever
+    // a 401 is received; we respond by showing this overlay.  On successful login
+    // we re-dispatch a hashchange so the current route re-mounts cleanly.
+    const loginOverlay  = document.getElementById("login-overlay");
+    const loginForm     = document.getElementById("login-form");
+    const loginPassword = document.getElementById("login-password");
+    const loginError    = document.getElementById("login-error");
+    // The page shell sits outside the overlay in the DOM — marking it inert
+    // while the overlay is visible traps keyboard focus inside the overlay and
+    // prevents Tab from reaching form elements on the page behind it.
+    const pageShell     = document.querySelector(".max-w-xl");
+
+    function showLoginOverlay() {
+        if (pageShell)     pageShell.inert = true;
+        if (loginPassword) loginPassword.value = "";
+        if (loginError)    loginError.classList.add("hidden");
+        if (loginOverlay)  loginOverlay.classList.remove("hidden");
+        // Delay focus so the element is visible before the browser scrolls to it
+        setTimeout(() => loginPassword?.focus(), 50);
+    }
+
+    function hideLoginOverlay() {
+        if (loginOverlay) loginOverlay.classList.add("hidden");
+        if (pageShell)    pageShell.inert = false;
+    }
+
+    // Register for 401s that occur during normal app operation (e.g. after a
+    // password change or session expiry).  On re-login the current route
+    // re-mounts via hashchange.
+    onAuthRequired(showLoginOverlay);
+
+    // Track whether the router has been started so the login handler knows
+    // whether to launch the app or just re-render the current route.
+    let appStarted = false;
+
+    if (loginForm) {
+        loginForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const pw = loginPassword?.value ?? "";
+            setPassword(pw);
+            try {
+                await getAuthStatus();
+                hideLoginOverlay();
+                if (!appStarted) {
+                    // First successful login — start the router now.
+                    // Doing this here (rather than unconditionally at startup)
+                    // guarantees _password is set before any view calls the API.
+                    appStarted = true;
+                    initRouter({ routes, fallback: "#home" });
+                } else {
+                    // Re-authentication after session expiry — re-render the
+                    // current route so it reloads its data with new credentials.
+                    window.dispatchEvent(new Event("hashchange"));
+                }
+            } catch {
+                // 401 — wrong password; clear stored credential and show error
+                clearPassword();
+                if (loginError) loginError.classList.remove("hidden");
+            }
+        };
+    }
+
+    // Show the login overlay immediately on page load.  Credentials are
+    // required before any API call will succeed, so there is no point
+    // rendering any view until the user has authenticated.  This also
+    // eliminates the reactive 401-then-show race condition entirely.
+    showLoginOverlay();
+
     // Route table
     const routes = [
         {
             hash: "#home",
             mount(app) {
                 app.innerHTML = `
+                    <div id="auth-warning-banner" class="auth-warning-banner hidden">
+                        <strong>Default password in use.</strong>
+                        Consider <a href="#security" class="auth-warning-link">changing your password</a>
+                        before putting this device into service.
+                    </div>
                     <h1 class="text-2xl font-semibold mb-4">Device Management</h1>
                     <p class="text-gray-700 mb-6">
                         This interface supports configuration of device features
@@ -32,6 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         This interface is embedded in firmware and always available.
                     </p>
                 `;
+                initHomeView();
             }
         },
         {
@@ -183,8 +261,53 @@ document.addEventListener("DOMContentLoaded", () => {
                 `;
                 initDeviceView();
             }
+        },
+        {
+            hash: "#security",
+            mount(app) {
+                app.innerHTML = `
+                    <h1 class="text-2xl font-semibold mb-4">Security</h1>
+
+                    <div id="auth-status-display" class="mb-6 p-3 bg-gray-50 border rounded text-sm text-gray-700">
+                        Checking status…
+                    </div>
+
+                    <div class="mt-6 pt-6 border-t border-gray-300">
+                        <h2 class="font-medium mb-4">Change API Password</h2>
+
+                        <form id="change-password-form">
+                            <div class="mb-4">
+                                <label class="block font-medium mb-1">New Password</label>
+                                <input id="new-password" type="password"
+                                       class="input-field"
+                                       placeholder="Min. 8 characters"
+                                       autocomplete="new-password" />
+                            </div>
+                            <div class="mb-4">
+                                <label class="block font-medium mb-1">Confirm Password</label>
+                                <input id="confirm-password" type="password"
+                                       class="input-field"
+                                       placeholder="Re-enter new password"
+                                       autocomplete="new-password" />
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit"
+                                        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    Change Password
+                                </button>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-3">
+                                Passwords must be 8–64 characters.
+                                You will be prompted to log in again after changing.
+                            </p>
+                        </form>
+                    </div>
+                `;
+                initSecurityView();
+            }
         }
     ];
 
-    initRouter({ routes, fallback: "#home" });
+    // Note: initRouter() is called inside the login handler above,
+    // after the first successful authentication.
 });

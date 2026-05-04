@@ -38,26 +38,32 @@ static std::string macBasedHostname(const std::string &prefix) {
 // ---------------------------------------------------------------------------
 
 FrameworkContext::FrameworkContext() {
-    log.debug("constructor default apConfig and rootUri");
-    initialize(apConfig);
+    log.debug("constructor (defaults)");
+    initialize();
 }
 
 FrameworkContext::FrameworkContext(const wifi_manager::ApConfig &apConfig,
+                                   auth::AuthConfig authConfig,
                                    std::string rootUri,
                                    std::string mdnsPrefix)
     : apConfig(apConfig)
     , rootUri_(std::move(rootUri))
-    , mdnsPrefix_(std::move(mdnsPrefix)) {
+    , mdnsPrefix_(std::move(mdnsPrefix))
+    , authConfig_(std::move(authConfig)) {
     log.debug("constructor");
-    initialize(apConfig);
+    initialize();
 }
 
 // ---------------------------------------------------------------------------
 // Initialization
 // ---------------------------------------------------------------------------
 
-void FrameworkContext::initialize(const wifi_manager::ApConfig &apConfig) {
+void FrameworkContext::initialize() {
     device::init();
+
+    // Read MAC once — used for hostname and AuthStore derivation
+    uint8_t mac[6] = {};
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
 
     // Build the per-device hostname from MAC address
     const std::string hostname = macBasedHostname(mdnsPrefix_);
@@ -70,11 +76,18 @@ void FrameworkContext::initialize(const wifi_manager::ApConfig &apConfig) {
                  esp_err_to_name(certErr));
     }
 
+    // Initialise auth — derives/loads password according to AuthConfig policy
+    common::Result authResult = authStore.init(authConfig_, mac);
+    if (authResult != common::Result::Ok) {
+        log.warn("AuthStore::init failed (%s) — auth will not be enforced",
+                 common::toString(authResult));
+    }
+
     // Populate WiFi context
     log.debug("AP SSID %s", apConfig.ssid.c_str());
-    wifiCtx.apConfig      = apConfig;
-    wifiCtx.rootUri       = rootUri_;
-    wifiCtx.mdnsHostname  = hostname;
+    wifiCtx.apConfig        = apConfig;
+    wifiCtx.rootUri         = rootUri_;
+    wifiCtx.mdnsHostname    = hostname;
     wifiCtx.credentialStore = &credentialStore;
 
     // Create state machine first (so it exists before any events fire)
@@ -87,12 +100,13 @@ void FrameworkContext::initialize(const wifi_manager::ApConfig &apConfig) {
     deviceApi     = new device::DeviceApiHandler();
     otaApi        = new ota::OtaApiHandler();
 
-    // Create server and inject the per-device cert before start()
+    // Create server, inject the per-device cert, and wire in auth
     embeddedServer = new wifi_manager::EmbeddedServer(
         wifiCtx, *wifiApi, *credentialApi, *deviceApi, *otaApi);
     if (deviceCert_.isLoaded()) {
         embeddedServer->setCert(deviceCert_.certPem(), deviceCert_.keyPem());
     }
+    embeddedServer->setAuth(authStore, authConfig_, authApi);
     wifiCtx.embeddedServer = embeddedServer;
 
     // Create WiFiInterface LAST — registers event handlers, may trigger events

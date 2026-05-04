@@ -11,6 +11,7 @@ idf_component_register(
     INCLUDE_DIRS
         include
     REQUIRES
+        auth
         esp_wifi
         esp_event
         esp_netif

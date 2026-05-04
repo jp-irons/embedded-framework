@@ -63,6 +63,14 @@ class HttpResponse {
 
     common::Result sendJsonStatus(std::string_view status);
 
+    /**
+     * Sends HTTP 401 Unauthorized with a WWW-Authenticate Basic challenge.
+     * The browser will show its built-in login dialog in response.
+     *
+     * @param realm  Shown in the browser login dialog (e.g. "ESP32").
+     */
+    common::Result sendUnauthorized(const char *realm);
+
   private:
     httpd_req *req;
     void warn_err(esp_err_t err);
