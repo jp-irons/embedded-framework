@@ -7,7 +7,7 @@
  *
  * Mirror of FrameworkFileTable: each file listed here has a corresponding
  * entry in AppFileTable.cpp that declares the EMBED_FILES linker symbols.
- * Add new app files to main/files/ and update AppFileTable.cpp to match.
+ * Add new app files to main/app/files/ and update AppFileTable.cpp to match.
  */
 class AppFileTable : public embedded_files::EmbeddedFileTable {
 public:

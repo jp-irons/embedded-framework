@@ -28,8 +28,8 @@ void ApplicationContext::start() {
     // line to fall back to the framework's own management UI (/framework/ui/).
     fw_.setEntryPoint("/app/ui/");
 
-    // ── Register app API routes (example — uncomment to use) ──────────────
-    // fw_.addRoute(http::HttpMethod::Get, "/app/api/status", &statusHandler_);
+    // ── Register app API routes ────────────────────────────────────────────
+    fw_.addRoute(http::HttpMethod::Get, "/app/api/temperature", &temperatureHandler_);
 
     // ── Start the framework (WiFi, server, OTA, …) ────────────────────────
     fw_.start();

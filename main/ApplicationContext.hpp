@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AppFileTable.hpp"
+#include "TemperatureHandler.hpp"
 #include "embedded_files/EmbeddedFileHandler.hpp"
 #include "framework/FrameworkContext.hpp"
 
@@ -33,6 +34,5 @@ class ApplicationContext {
     AppFileTable                         appFileTable_;
     embedded_files::EmbeddedFileHandler  appFileHandler_;
 
-    // Add app-specific API handlers here, e.g.:
-    // MyStatusHandler statusHandler_;
+    TemperatureHandler temperatureHandler_;
 };
