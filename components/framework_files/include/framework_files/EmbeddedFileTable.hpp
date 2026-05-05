@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace embedded_files {
+namespace framework_files {
 
 struct EmbeddedFile {
     const uint8_t* data;
@@ -41,4 +41,4 @@ public:
     const uint8_t* find(const char* path, size_t& outSize) const override;
 };
 
-} // namespace embedded_files
+} // namespace _framework_files

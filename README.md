@@ -115,7 +115,7 @@ components/
   credential_store/     NVS-backed Wi-Fi credential store + CredentialApiHandler
   device/               Device info, reboot, NVS clear + DeviceApiHandler
   device_cert/          Per-device TLS cert (generated on first boot, stored in NVS)
-  embedded_files/       LittleFS-backed static asset server + EmbeddedAssetTable
+  _framework_files/       LittleFS-backed static asset server + EmbeddedAssetTable
   framework/            FrameworkContext: owns and wires all components
   ota/                  OtaManager (boot guardian), OtaWriter (streaming flash), OtaApiHandler
   wifi_manager/         WiFiInterface, WiFiManager, WiFiStateMachine, EmbeddedServer, WiFiApiHandler

@@ -81,7 +81,7 @@ extern "C" void setupLogging() {
     LogSinkRegistry::setLevelForTag("WiFiInterface", LogLevel::Debug);
 	LogSinkRegistry::setLevelForTag("WiFiManager", LogLevel::Debug);
     LogSinkRegistry::setLevelForTag("WiFiStateMachine", LogLevel::Debug);
-    // embedded_files
+    // _framework_files
     LogSinkRegistry::setLevelForTag("EmbeddedFileHandler", LogLevel::Debug);
     LogSinkRegistry::setLevelForTag("EmbeddedFileTable",   LogLevel::Debug);
     LogSinkRegistry::setLevelForTag("AppFileTable",        LogLevel::Debug);

@@ -6,7 +6,7 @@
 
 #include "framework_files/EmbeddedFileTable.hpp"
 
-namespace embedded_files {
+namespace framework_files {
 
 /**
  * HTTP handler that serves files from an embedded file table.
@@ -39,4 +39,4 @@ class EmbeddedFileHandler : public http::HttpHandler {
     static const char *contentTypeForPath(const std::string &path);
 };
 
-} // namespace embedded_files
+} // namespace _framework_files

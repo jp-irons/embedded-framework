@@ -23,7 +23,7 @@ my_app/                          ← your git repository
       credential_store/
       device/
       device_cert/
-      embedded_files/
+      _framework_files/
       framework/
       http/
       logger/

@@ -9,8 +9,8 @@
  * entry in AppFileTable.cpp that declares the EMBED_FILES linker symbols.
  * Add new app files to main/app/files/ and update AppFileTable.cpp to match.
  */
-class AppFileTable : public embedded_files::EmbeddedFileTable {
+class AppFileTable : public framework_files::EmbeddedFileTable {
 public:
-    const embedded_files::EmbeddedFile* find(std::string_view path) const override;
+    const framework_files::EmbeddedFile* find(std::string_view path) const override;
     const uint8_t* find(const char* path, size_t& outSize) const override;
 };

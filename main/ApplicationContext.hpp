@@ -32,7 +32,7 @@ class ApplicationContext {
     // appFileTable_ MUST be declared before appFileHandler_ so it is
     // initialised first (appFileHandler_ holds a reference to it).
     AppFileTable                         appFileTable_;
-    embedded_files::EmbeddedFileHandler  appFileHandler_;
+    framework_files::EmbeddedFileHandler  appFileHandler_;
 
     TemperatureHandler temperatureHandler_;
 };

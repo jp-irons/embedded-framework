@@ -51,12 +51,12 @@ static const FileEntry files[] = {
 // AppFileTable implementation
 // ------------------------------------------------------------
 
-const embedded_files::EmbeddedFile *AppFileTable::find(std::string_view path) const {
+const framework_files::EmbeddedFile *AppFileTable::find(std::string_view path) const {
     log.debug("find '%.*s'", (int) path.size(), path.data());
 
     for (const auto &entry : files) {
         if (path == entry.path) {
-            static embedded_files::EmbeddedFile result;
+            static framework_files::EmbeddedFile result;
             result.data = entry.start;
             result.size = entry.end - entry.start;
             return &result;

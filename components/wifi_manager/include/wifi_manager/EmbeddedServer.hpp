@@ -120,8 +120,8 @@ class EmbeddedServer : public http::HttpHandler {
     // Framework file table + handler (fallback for /framework/ui/* and /favicon.ico)
     // frameworkFileTable_ MUST be declared before frameworkFileHandler_ so it is
     // initialised first.
-    embedded_files::FrameworkFileTable  frameworkFileTable_;
-    embedded_files::EmbeddedFileHandler frameworkFileHandler_;
+    framework_files::FrameworkFileTable  frameworkFileTable_;
+    framework_files::EmbeddedFileHandler frameworkFileHandler_;
 
     // Framework API handlers (value members — constructed from ctor args)
     wifi_manager::WiFiApiHandler                  wifiHandler;

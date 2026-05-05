@@ -3,7 +3,7 @@
 #include "framework_files/EmbeddedFileTable.hpp"
 #include "logger/Logger.hpp"
 
-namespace embedded_files {
+namespace framework_files {
 
 using namespace http;
 
@@ -54,4 +54,4 @@ const char *EmbeddedFileHandler::contentTypeForPath(const std::string &path) {
     return "application/octet-stream";
 }
 
-} // namespace embedded_files
+} // namespace _framework_files
