@@ -13,6 +13,17 @@
 #include "wifi_manager/WiFiManager.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
 
+// Logs the failing call and returns Result::InternalError from the enclosing
+// function.  Must only be used in functions that return common::Result.
+#define WIFI_CHECK(x)                                                        \
+    do {                                                                     \
+        esp_err_t _err = (x);                                                \
+        if (_err != ESP_OK) {                                                \
+            log.error(#x " failed: %s", esp_err_to_name(_err));             \
+            return Result::InternalError;                                    \
+        }                                                                    \
+    } while (0)
+
 namespace wifi_manager {
 
 using namespace common;
@@ -24,42 +35,49 @@ WiFiInterface::WiFiInterface(WiFiContext &ctx)
     log.debug("constructor");
 }
 
-void WiFiInterface::startDriver() {
+Result WiFiInterface::startDriver() {
     log.info("startDriver");
 
     // 1. Create default netifs
     apNetif = esp_netif_create_default_wifi_ap();
     staNetif = esp_netif_create_default_wifi_sta();
+    if (!apNetif || !staNetif) {
+        log.error("startDriver: failed to create default netifs");
+        return Result::InternalError;
+    }
 
     // 2. Initialize Wi-Fi driver
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-	// TODO get rid of the ESP_ERROR_CHECKs
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    WIFI_CHECK(esp_wifi_init(&cfg));
 
     // Register WiFi event handler
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &WiFiInterface::wifiEventHandler,
-                                                        this, nullptr));
+    WIFI_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
+               &WiFiInterface::wifiEventHandler, this, nullptr));
 
     // Register IP event handler
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &WiFiInterface::ipEventHandler,
-                                                        this, nullptr));
+    WIFI_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
+               &WiFiInterface::ipEventHandler, this, nullptr));
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_NULL));
-    ESP_ERROR_CHECK(esp_wifi_start()); // ← place it here
+    WIFI_CHECK(esp_wifi_set_mode(WIFI_MODE_NULL));
+    WIFI_CHECK(esp_wifi_start());
+
     driverStarted = true;
-    currentMode = WIFI_MODE_NULL; // not set until AP or STA is started
+    currentMode = WIFI_MODE_NULL;
+    return Result::Ok;
 }
 
-void WiFiInterface::stopDriver() {
+Result WiFiInterface::stopDriver() {
     log.info("Stopping WiFi driver");
-    ESP_ERROR_CHECK(esp_wifi_stop());
-    ESP_ERROR_CHECK(esp_wifi_deinit());
+    WIFI_CHECK(esp_wifi_stop());
+    WIFI_CHECK(esp_wifi_deinit());
+    driverStarted = false;
+    return Result::Ok;
 }
 
 /**
  * AP MODE
  */
-void WiFiInterface::startAp(const ApConfig &config) {
+Result WiFiInterface::startAp(const ApConfig &config) {
     log.info("Starting SoftAP: %s", config.ssid.c_str());
     /*        ***********************   */
     wifi_config_t ap_cfg = wifi_manager::makeApConfig(config);
@@ -84,17 +102,19 @@ void WiFiInterface::startAp(const ApConfig &config) {
     log.info("Starting SoftAP: %s (authmode=%s)", config.ssid.c_str(), useOpenAp ? "OPEN" : "WPA2");
     apActive = true;
     wifi_mode_t mode = computeMode();
-    ESP_ERROR_CHECK(esp_wifi_set_mode(mode));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
+    WIFI_CHECK(esp_wifi_set_mode(mode));
+    WIFI_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
     currentMode = mode;
+    return Result::Ok;
 }
 
-void WiFiInterface::stopAp() {
+Result WiFiInterface::stopAp() {
     log.info("Stopping SoftAP");
     apActive = false;
     wifi_mode_t mode = computeMode();
-    ESP_ERROR_CHECK(esp_wifi_set_mode(mode));
+    WIFI_CHECK(esp_wifi_set_mode(mode));
     currentMode = mode;
+    return Result::Ok;
 }
 
 wifi_config_t WiFiInterface::makeStaConfig(const credential_store::WiFiCredential &cred) {
@@ -148,13 +168,13 @@ WiFiStatus WiFiInterface::connectSta(const credential_store::WiFiCredential &cre
     return WiFiStatus::Ok;
 }
 
-void WiFiInterface::disconnectSta() {
+Result WiFiInterface::disconnectSta() {
     log.debug("Disconnecting STA");
     staActive = false;
     wifi_mode_t mode = computeMode();
-
-    ESP_ERROR_CHECK(esp_wifi_set_mode(mode));
+    WIFI_CHECK(esp_wifi_set_mode(mode));
     currentMode = mode;
+    return Result::Ok;
 }
 
 /**

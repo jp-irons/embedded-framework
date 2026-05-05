@@ -35,6 +35,11 @@ void WiFiStateMachine::onEvent(WiFiEvent ev)
         break;
 
     default:
+        // TODO WiFiEvent::FatalError is fired by WiFiManager::onFatalError() when
+        // startDriver() fails, but is not handled in any state.  Currently falls
+        // through silently — device stays alive and OTA rollback handles recovery
+        // after MAX_BOOT_ATTEMPTS.  Revisit once markValid() placement is settled:
+        // consider a dedicated DriverFailed state with a timed retry or safe-mode AP.
         break;
     }
 }

@@ -22,16 +22,16 @@ class WiFiInterface {
   public:
     explicit WiFiInterface(WiFiContext &ctx);
 
-    void startDriver();
-    void stopDriver();
+    common::Result startDriver();
+    common::Result stopDriver();
 
-    void startAp(const wifi_manager::ApConfig &cfg);
-    void stopAp();
+    common::Result startAp(const wifi_manager::ApConfig &cfg);
+    common::Result stopAp();
 
 	wifi_config_t makeStaConfig(const credential_store::WiFiCredential& cred);
 
     WiFiStatus connectSta(const credential_store::WiFiCredential& cred);
-    void disconnectSta();
+    common::Result disconnectSta();
 
 	common::Result scan(std::vector<WiFiAp>& results);
 	

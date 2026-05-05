@@ -24,9 +24,16 @@ WiFiManager::WiFiManager(WiFiContext &ctx)
 void WiFiManager::start() {
     log.debug("start()");
     loadInitialCredential();
-	log.debug("start embeddedServer");
-	ctx.wifiInterface->startDriver();
-	ctx.embeddedServer->start();
+
+    Result r = ctx.wifiInterface->startDriver();
+    if (r != Result::Ok) {
+        log.error("start(): startDriver() failed — triggering fatal error");
+        onFatalError();
+        return;
+    }
+
+    log.debug("start: starting embeddedServer");
+    ctx.embeddedServer->start();
 
     if (!currentCredential->ssid.empty()) {
         sm.onEvent(WiFiEvent::CredentialsProvided);
@@ -145,11 +152,18 @@ void WiFiManager::loadInitialCredential() {
 
 void WiFiManager::startAP() {
     log.info("Starting AP mode");
-	ctx.wifiInterface->startAp(ctx.apConfig);
+    Result r = ctx.wifiInterface->startAp(ctx.apConfig);
+    if (r != Result::Ok) {
+        log.error("startAP(): startAp() failed (%s)", common::toString(r));
+    }
 }
 
 void WiFiManager::stopAP() {
     log.info("Stopping AP mode");
+    Result r = ctx.wifiInterface->stopAp();
+    if (r != Result::Ok) {
+        log.error("stopAP(): stopAp() failed (%s)", common::toString(r));
+    }
 }
 
 void WiFiManager::startSTA() {
@@ -169,7 +183,10 @@ void WiFiManager::startSTA() {
 
 void WiFiManager::stopSTA() {
     log.info("Stopping STA mode");
-    ctx.wifiInterface->disconnectSta();
+    Result r = ctx.wifiInterface->disconnectSta();
+    if (r != Result::Ok) {
+        log.error("stopSTA(): disconnectSta() failed (%s)", common::toString(r));
+    }
 }
 
 //
