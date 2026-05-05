@@ -9,9 +9,9 @@ idf_component_register(
     REQUIRES
         auth
         credential_store
-        embedded_files
-        esp_driver_tsens
         framework
+        esp_driver_tsens
+        core
         http
         logger
         ota

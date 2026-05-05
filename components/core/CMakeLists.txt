@@ -1,0 +1,18 @@
+idf_component_register(
+    SRCS
+        FrameworkContext.cpp
+    INCLUDE_DIRS
+        include
+    REQUIRES
+        auth
+        common
+        credential_store
+        device
+        device_cert
+        esp_wifi
+        http
+        logger
+        ota
+        framework
+        wifi_manager
+)

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/Result.hpp"
-#include "embedded_files/EmbeddedFileTable.hpp"
+#include "framework/EmbeddedFileTable.hpp"
 #include "http/HttpHandler.hpp"
 #include <string>
 

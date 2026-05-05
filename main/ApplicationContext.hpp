@@ -2,8 +2,8 @@
 
 #include "AppFileTable.hpp"
 #include "TemperatureHandler.hpp"
-#include "embedded_files/EmbeddedFileHandler.hpp"
-#include "framework/FrameworkContext.hpp"
+#include "framework/EmbeddedFileHandler.hpp"
+#include "core/FrameworkContext.hpp"
 
 /**
  * ApplicationContext — the app-side counterpart to FrameworkContext.

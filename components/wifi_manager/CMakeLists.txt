@@ -23,7 +23,7 @@ idf_component_register(
         credential_store
         device
         ota
-        embedded_files
+        framework
         http
         logger
 )

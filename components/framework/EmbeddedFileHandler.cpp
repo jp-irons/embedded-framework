@@ -1,5 +1,5 @@
-#include "embedded_files/EmbeddedFileHandler.hpp"
-#include "embedded_files/EmbeddedFileTable.hpp"
+#include "framework/EmbeddedFileHandler.hpp"
+#include "framework/EmbeddedFileTable.hpp"
 
 #include "logger/Logger.hpp"
 

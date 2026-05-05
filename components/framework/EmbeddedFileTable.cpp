@@ -1,4 +1,4 @@
-#include "embedded_files/EmbeddedFileTable.hpp"
+#include "framework/EmbeddedFileTable.hpp"
 
 #include "logger/Logger.hpp"
 
@@ -36,9 +36,8 @@ extern const uint8_t _binary_embedded_styles_css_end[]     asm("_binary_embedded
 extern const uint8_t _binary_embedded_ui_js_start[]        asm("_binary_embedded_ui_js_start");
 extern const uint8_t _binary_embedded_ui_js_end[]          asm("_binary_embedded_ui_js_end");
 
-// Top-level
-extern const uint8_t _binary__favicon_ico_start[]          asm("_binary__favicon_ico_start");
-extern const uint8_t _binary__favicon_ico_end[]            asm("_binary__favicon_ico_end");
+ extern const uint8_t _binary__favicon_ico_start[]          asm("_binary__favicon_ico_start");
+ extern const uint8_t _binary__favicon_ico_end[]            asm("_binary__favicon_ico_end");
 
 // ------------------------------------------------------------
 // Static table of framework-owned embedded files
@@ -61,8 +60,7 @@ static const FileEntry files[] = {
     {"/styles.css",   _binary_embedded_styles_css_start,   _binary_embedded_styles_css_end},
     {"/ui.js",        _binary_embedded_ui_js_start,        _binary_embedded_ui_js_end},
 
-    // Top-level assets served from any path (e.g. /favicon.ico)
-    {"/favicon.ico",  _binary__favicon_ico_start,          _binary__favicon_ico_end},
+     {"/favicon.ico",  _binary__favicon_ico_start,          _binary__favicon_ico_end},
 };
 
 // ------------------------------------------------------------

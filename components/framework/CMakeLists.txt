@@ -1,18 +1,15 @@
+file(GLOB_RECURSE EMBED_FILES "files/*")
+
 idf_component_register(
     SRCS
-        FrameworkContext.cpp
+        EmbeddedFileHandler.cpp
+        EmbeddedFileTable.cpp
     INCLUDE_DIRS
         include
     REQUIRES
-        auth
         common
-        credential_store
-        device
-        device_cert
-        esp_wifi
         http
         logger
-        ota
-        embedded_files
-        wifi_manager
+    EMBED_FILES
+        ${EMBED_FILES}
 )

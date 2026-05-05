@@ -29,9 +29,9 @@ body {
    Display & Layout
    ============================ */
 .block { display: block; }
-	
+
 .flex { display: flex; }
-.hidden { display: none; } 
+.hidden { display: none; }
 .flex-col { flex-direction: column; }
 .flex-row { flex-direction: row; }
 .flex-grow { flex-grow: 1; }
