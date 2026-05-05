@@ -95,4 +95,4 @@ const uint8_t *FrameworkFileTable::find(const char *path, size_t &outSize) const
     return nullptr;
 }
 
-} // namespace embedded_files
+} // namespace framework_files

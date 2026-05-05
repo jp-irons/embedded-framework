@@ -39,4 +39,4 @@ class EmbeddedFileHandler : public http::HttpHandler {
     static const char *contentTypeForPath(const std::string &path);
 };
 
-} // namespace _framework_files
+} // namespace framework_files

@@ -41,4 +41,4 @@ public:
     const uint8_t* find(const char* path, size_t& outSize) const override;
 };
 
-} // namespace _framework_files
+} // namespace framework_files

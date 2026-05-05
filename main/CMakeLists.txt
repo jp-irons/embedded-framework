@@ -11,7 +11,7 @@ idf_component_register(
         credential_store
         framework_files
         esp_driver_tsens
-        core
+        framework
         http
         logger
         ota

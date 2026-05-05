@@ -54,4 +54,4 @@ const char *EmbeddedFileHandler::contentTypeForPath(const std::string &path) {
     return "application/octet-stream";
 }
 
-} // namespace _framework_files
+} // namespace framework_files
