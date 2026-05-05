@@ -20,6 +20,16 @@ The framework is aimed at engineers who need predictable behaviour, maintainable
 
 ESP32-S3. The framework uses `RTC_DATA_ATTR` for boot-attempt tracking and references ESP32-S3-specific partition offsets. Porting to other ESP32 variants requires adjusting `partitions.csv` and reviewing PSRAM usage in the `device` component.
 
+## Using this framework in your own project
+
+The framework is designed to be consumed as a git submodule. Your application lives in its own repository, provides its own `main/`, and pulls in the framework's `components/` via ESP-IDF's `EXTRA_COMPONENT_DIRS` mechanism. You control when to take framework updates, and can pin to a specific release for production stability.
+
+See [Creating an application](docs/creating-an-app.md) for a complete step-by-step guide.
+
+The remainder of this document covers building and running the **demo application** included in this repository.
+
+---
+
 ## Prerequisites
 
 - ESP-IDF v6.0 installed and on `PATH` (`idf.py` must be accessible)
