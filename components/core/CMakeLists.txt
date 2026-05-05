@@ -13,6 +13,6 @@ idf_component_register(
         http
         logger
         ota
-        framework
+        framework_files
         wifi_manager
 )

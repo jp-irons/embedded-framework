@@ -1,8 +1,8 @@
 #pragma once
 
+#include "framework_files/EmbeddedFileHandler.hpp"
 #include "AppFileTable.hpp"
 #include "TemperatureHandler.hpp"
-#include "framework/EmbeddedFileHandler.hpp"
 #include "core/FrameworkContext.hpp"
 
 /**

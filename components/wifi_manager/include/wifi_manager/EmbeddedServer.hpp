@@ -1,13 +1,13 @@
 #pragma once
 
+#include "framework_files/EmbeddedFileHandler.hpp"
+#include "framework_files/EmbeddedFileTable.hpp"
 #include "auth/AuthApiHandler.hpp"
 #include "auth/AuthConfig.hpp"
 #include "auth/AuthStore.hpp"
 #include "common/Result.hpp"
 #include "credential_store/CredentialApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
-#include "framework/EmbeddedFileHandler.hpp"
-#include "framework/EmbeddedFileTable.hpp"
 #include "http/HttpHandler.hpp"
 #include "http/HttpServer.hpp"
 #include "http/HttpTypes.hpp"

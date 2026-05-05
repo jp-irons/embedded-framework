@@ -1,6 +1,6 @@
 #pragma once
 
-#include "framework/EmbeddedFileTable.hpp"
+#include "framework_files/EmbeddedFileTable.hpp"
 
 /**
  * Concrete EmbeddedFileTable for the application's own static files.

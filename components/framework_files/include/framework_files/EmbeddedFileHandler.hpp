@@ -1,9 +1,10 @@
 #pragma once
 
 #include "common/Result.hpp"
-#include "framework/EmbeddedFileTable.hpp"
 #include "http/HttpHandler.hpp"
 #include <string>
+
+#include "framework_files/EmbeddedFileTable.hpp"
 
 namespace embedded_files {
 

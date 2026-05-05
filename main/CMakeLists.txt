@@ -9,7 +9,7 @@ idf_component_register(
     REQUIRES
         auth
         credential_store
-        framework
+        framework_files
         esp_driver_tsens
         core
         http

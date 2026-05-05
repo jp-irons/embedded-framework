@@ -1,6 +1,6 @@
-#include "framework/EmbeddedFileHandler.hpp"
-#include "framework/EmbeddedFileTable.hpp"
+#include "framework_files/EmbeddedFileHandler.hpp"
 
+#include "framework_files/EmbeddedFileTable.hpp"
 #include "logger/Logger.hpp"
 
 namespace embedded_files {
