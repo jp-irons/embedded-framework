@@ -33,14 +33,17 @@ class FrameworkContext {
     /**
      * @param apConfig      AP-mode configuration (SSID, password, etc.)
      * @param authConfig    Authentication policy.  See AuthConfig for options.
-     * @param rootUri       API root path, e.g. "/framework/api"
+     * @param rootUri       Framework root path.  API endpoints are mounted at
+     *                      rootUri/api/..., UI assets at rootUri/ui/...
+     *                      e.g. "/framework" → "/framework/api/wifi",
+     *                                          "/framework/ui/index.html"
      * @param mdnsPrefix    Prefix for the mDNS hostname; last 3 MAC bytes are
      *                      appended automatically, e.g. "esp32" → "esp32-a1b2c3".
      *                      Defaults to "esp32".
      */
     FrameworkContext(const wifi_manager::ApConfig &apConfig,
                      auth::AuthConfig authConfig,
-                     std::string rootUri    = "/framework/api",
+                     std::string rootUri    = "/framework",
                      std::string mdnsPrefix = "esp32");
 
     ~FrameworkContext();
@@ -55,7 +58,7 @@ class FrameworkContext {
   private:
     wifi_manager::ApConfig apConfig = {
         .ssid = "ESP32 FW Test", .password = "password", .channel = 1, .maxConnections = 4};
-    std::string      rootUri_    = "/framework/api";
+    std::string      rootUri_    = "/framework";
     std::string      mdnsPrefix_ = "esp32";
     auth::AuthConfig authConfig_ = auth::AuthConfig::withPassword("esp32admin")
                                                     .restrictIfDefault();

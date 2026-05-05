@@ -54,16 +54,16 @@ struct FileEntry {
 };
 
 static const FileEntry files[] = {
-    // Provisioning UI
-	// Embedded UI
-    {"/embedded/api.js", _binary_embedded_api_js_start, _binary_embedded_api_js_end},
-	{"/embedded/app.js", _binary_embedded_app_js_start, _binary_embedded_app_js_end},
-    {"/embedded/common_ui.js", _binary_embedded_common_ui_js_start, _binary_embedded_common_ui_js_end},
-	{"/embedded/index.html", _binary_embedded_index_html_start, _binary_embedded_index_html_end},
-    {"/embedded/modal.js", _binary_embedded_modal_js_start, _binary_embedded_modal_js_end},
-	{"/embedded/router.js", _binary_embedded_router_js_start, _binary_embedded_router_js_end},
-    {"/embedded/styles.css", _binary_embedded_styles_css_start, _binary_embedded_styles_css_end},
-	{"/embedded/ui.js", _binary_embedded_ui_js_start, _binary_embedded_ui_js_end},
+    // Framework UI — paths are relative to the /ui/ prefix, which is stripped
+    // by EmbeddedFileHandler before the lookup reaches this table.
+    {"/api.js",       _binary_embedded_api_js_start,       _binary_embedded_api_js_end},
+    {"/app.js",       _binary_embedded_app_js_start,       _binary_embedded_app_js_end},
+    {"/common_ui.js", _binary_embedded_common_ui_js_start, _binary_embedded_common_ui_js_end},
+    {"/index.html",   _binary_embedded_index_html_start,   _binary_embedded_index_html_end},
+    {"/modal.js",     _binary_embedded_modal_js_start,     _binary_embedded_modal_js_end},
+    {"/router.js",    _binary_embedded_router_js_start,    _binary_embedded_router_js_end},
+    {"/styles.css",   _binary_embedded_styles_css_start,   _binary_embedded_styles_css_end},
+    {"/ui.js",        _binary_embedded_ui_js_start,        _binary_embedded_ui_js_end},
 
     // Top‑level UI
     {"/favicon.ico", _binary__favicon_ico_start, _binary__favicon_ico_end},

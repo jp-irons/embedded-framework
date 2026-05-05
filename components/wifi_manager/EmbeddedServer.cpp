@@ -25,8 +25,9 @@ EmbeddedServer::EmbeddedServer(WiFiContext &ctx,
                                device::DeviceApiHandler &deviceHandler,
                                ota::OtaApiHandler &otaApi)
     : ctx(ctx)
+    , apiUri_(ctx.rootUri + "/api")
     , server()
-    , embeddedFileHandler("/", "index.html")
+    , embeddedFileHandler(ctx.rootUri + "/ui", "index.html")
     , wifiHandler(wifiApi)
     , credentialHandler(credentialApi)
     , deviceHandler(deviceHandler)
@@ -46,15 +47,18 @@ bool EmbeddedServer::start() {
     if (!routesRegistered) {
         log.debug("start() registering routes");
         routes = {
-            {ctx.rootUri + "/credentials/", &credentialHandler},
-            {ctx.rootUri + "/device/",       &deviceHandler},
-            {ctx.rootUri + "/firmware/",     &otaHandler},
-            {ctx.rootUri + "/wifi/",         &wifiHandler},
-            {"/",                            &embeddedFileHandler},
+            {apiUri_ + "/credentials/", &credentialHandler},
+            {apiUri_ + "/device/",       &deviceHandler},
+            {apiUri_ + "/firmware/",     &otaHandler},
+            {apiUri_ + "/wifi/",         &wifiHandler},
+            // UI assets: prefix is stripped by EmbeddedFileHandler before table lookup
+            {ctx.rootUri + "/ui/",       &embeddedFileHandler},
+            // Catch-all for root-level files (/runtime/index.html, /favicon.ico, etc.)
+            {"/",                        &embeddedFileHandler},
         };
         if (authApiHandler_) {
             routes.insert(routes.begin(),
-                Route{ctx.rootUri + "/auth/", authApiHandler_});
+                Route{apiUri_ + "/auth/", authApiHandler_});
         }
         server.addRoutes("/*", this);
         routesRegistered = true;
@@ -115,7 +119,7 @@ common::Result EmbeddedServer::checkAuth(http::HttpRequest &req,
 
     // Only API paths require authentication — static files are served freely
     // so the browser can load the UI and display its built-in login dialog
-    if (path.rfind(ctx.rootUri, 0) != 0) {
+    if (path.rfind(apiUri_, 0) != 0) {
         return common::Result::Ok;
     }
 
@@ -139,7 +143,7 @@ common::Result EmbeddedServer::checkAuth(http::HttpRequest &req,
     // Block all API endpoints except the change-password path itself,
     // so the operator has a route to lift the restriction.
     if (authConfig_->isRequireChangeOnFirstBoot() && !authStore_->isPasswordChanged()) {
-        const std::string changePasswordPath = ctx.rootUri + AUTH_PASSWORD_SUFFIX;
+        const std::string changePasswordPath = apiUri_ + AUTH_PASSWORD_SUFFIX;
         if (path != changePasswordPath) {
             log.warn("requireChangeOnFirstBoot: blocking '%s'", path.c_str());
             res.sendJsonError(403, "Password change required before access is granted");
@@ -152,7 +156,7 @@ common::Result EmbeddedServer::checkAuth(http::HttpRequest &req,
     // the operator has changed the password from its default.
     if (authConfig_->isRestrictIfDefault() && !authStore_->isPasswordChanged()) {
         if (req.method() != http::HttpMethod::Get) {
-            const std::string changePasswordPath = ctx.rootUri + AUTH_PASSWORD_SUFFIX;
+            const std::string changePasswordPath = apiUri_ + AUTH_PASSWORD_SUFFIX;
             if (path != changePasswordPath) {
                 log.warn("restrictIfDefault: blocking mutating request to '%s'", path.c_str());
                 res.sendJsonError(403, "Password must be changed before write access is granted");

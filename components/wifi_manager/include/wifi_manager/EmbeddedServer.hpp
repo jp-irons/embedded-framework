@@ -56,6 +56,7 @@ class EmbeddedServer : public http::HttpHandler {
     };
 
     WiFiContext &ctx;
+    std::string apiUri_;   // ctx.rootUri + "/api"
 
     http::HttpServer server;
     embedded_files::EmbeddedFileHandler embeddedFileHandler;

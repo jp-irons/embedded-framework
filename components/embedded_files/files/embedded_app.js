@@ -7,11 +7,11 @@
 // - Each route renders its view HTML then calls the appropriate initXxx() from ui.js
 //
 
-import { initRouter }         from "/embedded/router.js";
-import { wireConfirmButtons, hideMessageModal } from "/embedded/modal.js";
+import { initRouter }         from "./router.js";
+import { wireConfirmButtons, hideMessageModal } from "./modal.js";
 import { initWifiView, teardownWifiView, initDeviceView, initFirmwareView, teardownFirmwareView,
-         initHomeView, initSecurityView } from "/embedded/ui.js";
-import { setPassword, clearPassword, onAuthRequired, getAuthStatus, isAuthenticated } from "/embedded/api.js";
+         initHomeView, initSecurityView } from "./ui.js";
+import { setPassword, clearPassword, onAuthRequired, getAuthStatus, isAuthenticated } from "./api.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 

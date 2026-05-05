@@ -3,7 +3,7 @@
 //
 // Minimal hash-based SPA router with teardown support.
 // Usage:
-//   import { initRouter } from "/embedded/router.js";
+//   import { initRouter } from "./router.js";
 //   initRouter({ routes, fallback: "#home" });
 //
 // Each route:

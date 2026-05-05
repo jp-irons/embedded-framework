@@ -28,14 +28,16 @@ extern "C" void app_main(void) {
     log.info("bringing system up");
     log.debug("creating fw context");
 	
-	// default constructor with default apConfig and rootUri
-	// can also take 
+	// Default constructor uses built-in AP config and rootUri "/framework".
+	// API endpoints are at  <rootUri>/api/*  e.g. /framework/api/wifi
+	// UI assets are at      <rootUri>/ui/*   e.g. /framework/ui/index.html
+	//
+	// To customise, pass an ApConfig and optional rootUri:
 	//
 	//	wifi_manager::ApConfig apConfig = {
 	//	    .ssid = "ESP32 FW Test", .password = "password", .channel = 1, .maxConnections = 4};
-	//	std::string rootUri = "/framework/api";
 	//
-	// framework::FrameworkContext fw{apConfig, rootUri};
+	// framework::FrameworkContext fw{apConfig, auth::AuthConfig::withPassword("mypass")};
 	//
 	framework::FrameworkContext fw{};
 

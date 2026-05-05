@@ -15,7 +15,8 @@
 
 namespace framework {
 
-static constexpr const char *DEFAULT_ROOT_URI = "/framework/api";
+// Default root URI is "/framework" — declared as an in-class default in FrameworkContext.hpp.
+// API endpoints mount at rootUri/api/*, UI assets at rootUri/ui/*.
 
 static const char *TAG = "FrameworkContext";
 

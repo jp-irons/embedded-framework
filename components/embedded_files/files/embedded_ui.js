@@ -6,9 +6,9 @@
 // status polling, and DOM wiring.
 //
 // Requires:
-//   /embedded/api.js
-//   /embedded/modal.js
-//   /embedded/common_ui.js
+//   ./api.js
+//   ./modal.js
+//   ./common_ui.js
 //
 // SPA entry points (called by app.js after each route mounts its HTML):
 //   initWifiView()         — WiFi provisioning page
@@ -35,20 +35,20 @@ import {
     changePassword as apiChangePassword,
     setPassword,
     isAuthenticated
-} from "/embedded/api.js";
+} from "./api.js";
 
 import {
     showConfirm,
     showMessage,
     hideMessageModal,
     wireConfirmButtons
-} from "/embedded/modal.js";
+} from "./modal.js";
 
 import {
     el,
     button,
     clear
-} from "/embedded/common_ui.js";
+} from "./common_ui.js";
 
 // ------------------------------------------------------------
 // Internal state

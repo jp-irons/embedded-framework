@@ -17,16 +17,26 @@ EmbeddedFileHandler::EmbeddedFileHandler(std::string basePath, std::string defau
 }
 
 common::Result EmbeddedFileHandler::handle(http::HttpRequest &request, http::HttpResponse &response) {
-	const char * path = request.path();
-    log.debug("handle '%s' base '%s'", path, base.c_str());
+    std::string path = request.path();
+    log.debug("handle '%s' base '%s'", path.c_str(), base.c_str());
+
+    // Strip the base prefix so the table can use bare filenames (e.g. "/app.js")
+    // regardless of what URL prefix the files are served from.
+    if (!base.empty() && path.rfind(base, 0) == 0) {
+        path = path.substr(base.size());
+    }
+    if (path.empty()) {
+        path = "/" + defaultFile;
+    }
+
     const EmbeddedFile *file = table.find(path);
     if (!file) {
-        log.warn("File not found: %s", path);
-        return response.sendJsonError(404, "File '" + std::string(path) + "' not found");
+        log.warn("File not found: %s", path.c_str());
+        return response.sendJsonError(404, "File '" + path + "' not found");
     }
 
     const char *type = contentTypeForPath(path);
-	return response.send(file->data, file->size, type);
+    return response.send(file->data, file->size, type);
 }
 
 const char *EmbeddedFileHandler::contentTypeForPath(const std::string &path) {
