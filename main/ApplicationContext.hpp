@@ -1,15 +1,38 @@
 #pragma once
 
+#include "AppFileTable.hpp"
+#include "embedded_files/EmbeddedFileHandler.hpp"
 #include "framework/FrameworkContext.hpp"
 
+/**
+ * ApplicationContext — the app-side counterpart to FrameworkContext.
+ *
+ * Responsibilities:
+ *  - Own the app's embedded file table and file handler.
+ *  - Register app routes and file handlers with the framework before start().
+ *  - Set the entry point so the root path redirects to the app's UI.
+ *  - Delegate start() / loop() calls.
+ *
+ * To add app-specific API handlers, declare them as members here, then
+ * register them in start() via fw_.addRoute(...).
+ */
 class ApplicationContext {
   public:
-    explicit ApplicationContext(framework::FrameworkContext& fw);
+    explicit ApplicationContext(framework::FrameworkContext &fw);
     ~ApplicationContext();
 
     void start();
-    void loop(); // optional, if your app_main uses it
+    void loop();
 
   private:
-    framework::FrameworkContext& framework;
+    framework::FrameworkContext &fw_;
+
+    // App embedded file table + handler.
+    // appFileTable_ MUST be declared before appFileHandler_ so it is
+    // initialised first (appFileHandler_ holds a reference to it).
+    AppFileTable                         appFileTable_;
+    embedded_files::EmbeddedFileHandler  appFileHandler_;
+
+    // Add app-specific API handlers here, e.g.:
+    // MyStatusHandler statusHandler_;
 };

@@ -1,6 +1,9 @@
+file(GLOB_RECURSE APP_EMBED_FILES "files/*")
+
 idf_component_register(
     SRCS
         app_main.cpp
+        AppFileTable.cpp
         ApplicationContext.cpp
     REQUIRES
         auth
@@ -13,4 +16,6 @@ idf_component_register(
         wifi_manager
     INCLUDE_DIRS
         .
+    EMBED_FILES
+        ${APP_EMBED_FILES}
 )

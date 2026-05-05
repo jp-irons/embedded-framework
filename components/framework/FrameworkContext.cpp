@@ -3,6 +3,8 @@
 #include "credential_store/CredentialApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "device/DeviceInterface.hpp"
+#include "http/HttpHandler.hpp"
+#include "http/HttpTypes.hpp"
 #include "logger/Logger.hpp"
 #include "ota/OtaApiHandler.hpp"
 #include "wifi_manager/EmbeddedServer.hpp"
@@ -129,6 +131,27 @@ FrameworkContext::~FrameworkContext() {
     delete credentialApi;
     delete otaApi;
 }
+
+// ---------------------------------------------------------------------------
+// App injection API — delegates to EmbeddedServer
+// ---------------------------------------------------------------------------
+
+void FrameworkContext::setEntryPoint(std::string path) {
+    embeddedServer->setEntryPoint(std::move(path));
+}
+
+void FrameworkContext::addFileHandler(std::string prefix, http::HttpHandler *handler) {
+    embeddedServer->addAppFileHandler(std::move(prefix), handler);
+}
+
+void FrameworkContext::addRoute(http::HttpMethod method, std::string prefix,
+                                 http::HttpHandler *handler) {
+    embeddedServer->addAppRoute(method, std::move(prefix), handler);
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle
+// ---------------------------------------------------------------------------
 
 void FrameworkContext::start() {
     log.debug("start");

@@ -7,6 +7,8 @@
 #include "credential_store/CredentialStore.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "device_cert/DeviceCert.hpp"
+#include "http/HttpHandler.hpp"
+#include "http/HttpTypes.hpp"
 #include "ota/OtaApiHandler.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 
@@ -51,6 +53,37 @@ class FrameworkContext {
     const std::string &getRootUri() const { return rootUri_; }
 
     const wifi_manager::ApConfig &getApConfig() const { return apConfig; }
+
+    // -----------------------------------------------------------------------
+    // App injection API
+    // Call these from ApplicationContext::start() BEFORE calling fw_.start().
+    // -----------------------------------------------------------------------
+
+    /**
+     * Set the URL that the root path (/) redirects to.
+     * Default: "/framework/ui/"
+     * Typical override: fw_.setEntryPoint("/app/ui/");
+     */
+    void setEntryPoint(std::string path);
+
+    /**
+     * Register an app static-file handler for the given URL prefix.
+     * The handler is tried after all framework API routes but before the
+     * framework's own file handler.
+     *
+     * Example:
+     *   fw_.addFileHandler("/app/ui/", &myAppFileHandler_);
+     */
+    void addFileHandler(std::string prefix, http::HttpHandler *handler);
+
+    /**
+     * Register an app API route for the given method + URL prefix.
+     * The handler is tried after all framework API routes.
+     *
+     * Example:
+     *   fw_.addRoute(http::HttpMethod::Get, "/app/api/status", &statusHandler_);
+     */
+    void addRoute(http::HttpMethod method, std::string prefix, http::HttpHandler *handler);
 
     void start();
     void stop();

@@ -22,15 +22,16 @@ static logger::Logger log{"EmbeddedServer"};
 EmbeddedServer::EmbeddedServer(WiFiContext &ctx,
                                WiFiApiHandler &wifiApi,
                                credential_store::CredentialApiHandler &credentialApi,
-                               device::DeviceApiHandler &deviceHandler,
+                               device::DeviceApiHandler &deviceApi,
                                ota::OtaApiHandler &otaApi)
     : ctx(ctx)
     , apiUri_(ctx.rootUri + "/api")
     , server()
-    , embeddedFileHandler(ctx.rootUri + "/ui", "index.html")
+    , frameworkFileTable_()
+    , frameworkFileHandler_(ctx.rootUri + "/ui", "index.html", frameworkFileTable_)
     , wifiHandler(wifiApi)
     , credentialHandler(credentialApi)
-    , deviceHandler(deviceHandler)
+    , deviceHandler(deviceApi)
     , otaHandler(otaApi) {
     log.debug("constructor");
 }
@@ -40,37 +41,37 @@ EmbeddedServer::~EmbeddedServer() {
     stop();
 }
 
+// ---------------------------------------------------------------------------
+// Lifecycle
+// ---------------------------------------------------------------------------
+
 bool EmbeddedServer::start() {
     log.debug("Starting EmbeddedServer");
     server.start();
 
-    if (!routesRegistered) {
-        log.debug("start() registering routes");
-        routes = {
+    if (!routesRegistered_) {
+        log.debug("start() registering framework routes");
+        frameworkRoutes_ = {
             {apiUri_ + "/credentials/", &credentialHandler},
-            {apiUri_ + "/device/",       &deviceHandler},
-            {apiUri_ + "/firmware/",     &otaHandler},
-            {apiUri_ + "/wifi/",         &wifiHandler},
-            // UI assets: prefix is stripped by EmbeddedFileHandler before table lookup
-            {ctx.rootUri + "/ui/",       &embeddedFileHandler},
-            // Catch-all for root-level files (/runtime/index.html, /favicon.ico, etc.)
-            {"/",                        &embeddedFileHandler},
+            {apiUri_ + "/device/",      &deviceHandler},
+            {apiUri_ + "/firmware/",    &otaHandler},
+            {apiUri_ + "/wifi/",        &wifiHandler},
         };
         if (authApiHandler_) {
-            routes.insert(routes.begin(),
+            frameworkRoutes_.insert(frameworkRoutes_.begin(),
                 Route{apiUri_ + "/auth/", authApiHandler_});
         }
         server.addRoutes("/*", this);
-        routesRegistered = true;
+        routesRegistered_ = true;
     }
 
-	log.debug("EmbeddedServer up");
-	IpAddress ip = ctx.wifiInterface->getStaIp();
-	if (ip.valid) {
-	    log.info("EmbeddedServer started on http://%s", ip.value.c_str());
-	} else {
-	    log.warn("EmbeddedServer started but STA IP unknown");
-	}
+    log.debug("EmbeddedServer up — entry point: %s", entryPoint_.c_str());
+    IpAddress ip = ctx.wifiInterface->getStaIp();
+    if (ip.valid) {
+        log.info("EmbeddedServer started on https://%s", ip.value.c_str());
+    } else {
+        log.warn("EmbeddedServer started but STA IP unknown");
+    }
 
     // HTTP server is listening → system is healthy enough to validate the
     // running OTA image and cancel the automatic rollback timer.
@@ -96,6 +97,39 @@ void EmbeddedServer::startProvisioningMode() {
     log.debug("startProvisioningMode (stub)");
 }
 
+// ---------------------------------------------------------------------------
+// App injection API
+// ---------------------------------------------------------------------------
+
+void EmbeddedServer::setEntryPoint(std::string path) {
+    log.info("setEntryPoint '%s'", path.c_str());
+    entryPoint_ = std::move(path);
+}
+
+void EmbeddedServer::addAppRoute(http::HttpMethod method, std::string prefix,
+                                  http::HttpHandler *handler) {
+    warnIfFrameworkNamespace(prefix);
+    log.info("addAppRoute [%s] '%s'", http::toString(method).c_str(), prefix.c_str());
+    appRoutes_.push_back({method, std::move(prefix), handler});
+}
+
+void EmbeddedServer::addAppFileHandler(std::string prefix, http::HttpHandler *handler) {
+    warnIfFrameworkNamespace(prefix);
+    log.info("addAppFileHandler '%s'", prefix.c_str());
+    appFileHandlers_.push_back({std::move(prefix), handler});
+}
+
+void EmbeddedServer::warnIfFrameworkNamespace(const std::string &prefix) const {
+    if (prefix.rfind("/framework/", 0) == 0) {
+        log.warn("App attempting to register under reserved /framework/ namespace: '%s'",
+                 prefix.c_str());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Auth middleware
+// ---------------------------------------------------------------------------
+
 void EmbeddedServer::setAuth(auth::AuthStore &store,
                               const auth::AuthConfig &config,
                               auth::AuthApiHandler &authHandler) {
@@ -105,10 +139,6 @@ void EmbeddedServer::setAuth(auth::AuthStore &store,
     log.debug("auth configured");
 }
 
-// ---------------------------------------------------------------------------
-// Auth middleware
-// ---------------------------------------------------------------------------
-
 common::Result EmbeddedServer::checkAuth(http::HttpRequest &req,
                                           http::HttpResponse &res,
                                           const std::string &path) {
@@ -117,8 +147,9 @@ common::Result EmbeddedServer::checkAuth(http::HttpRequest &req,
         return common::Result::Ok;
     }
 
-    // Only API paths require authentication — static files are served freely
-    // so the browser can load the UI and display its built-in login dialog
+    // Only framework API paths require authentication by default — static files
+    // and app routes are served freely so the browser can load the UI and the
+    // app can implement its own auth on top.
     if (path.rfind(apiUri_, 0) != 0) {
         return common::Result::Ok;
     }
@@ -140,8 +171,6 @@ common::Result EmbeddedServer::checkAuth(http::HttpRequest &req,
     }
 
     // ── requireChangeOnFirstBoot policy ──────────────────────────────────
-    // Block all API endpoints except the change-password path itself,
-    // so the operator has a route to lift the restriction.
     if (authConfig_->isRequireChangeOnFirstBoot() && !authStore_->isPasswordChanged()) {
         const std::string changePasswordPath = apiUri_ + AUTH_PASSWORD_SUFFIX;
         if (path != changePasswordPath) {
@@ -152,8 +181,6 @@ common::Result EmbeddedServer::checkAuth(http::HttpRequest &req,
     }
 
     // ── restrictIfDefault policy ──────────────────────────────────────────
-    // Allow read-only (GET) requests through; block mutating methods until
-    // the operator has changed the password from its default.
     if (authConfig_->isRestrictIfDefault() && !authStore_->isPasswordChanged()) {
         if (req.method() != http::HttpMethod::Get) {
             const std::string changePasswordPath = apiUri_ + AUTH_PASSWORD_SUFFIX;
@@ -173,24 +200,25 @@ common::Result EmbeddedServer::checkAuth(http::HttpRequest &req,
 // ---------------------------------------------------------------------------
 
 common::Result EmbeddedServer::handle(http::HttpRequest &req, http::HttpResponse &res) {
-    log.debug("handle");
     const std::string path = req.path();
-    log.debug("path '%s'", path.c_str());
+    log.debug("handle '%s'", path.c_str());
 
+    // ── 1. Root redirect ───────────────────────────────────────────────────
     if (path.empty() || path == "/" || path == "/index.html") {
-        log.debug("resolving path");
-        return res.redirect("/runtime/index.html");
+        log.debug("root redirect → %s", entryPoint_.c_str());
+        return res.redirect(entryPoint_.c_str());
     }
 
-    // Auth check — returns Forbidden (already responded) or Ok to proceed
+    // ── 2. Auth check (framework API paths only) ───────────────────────────
     common::Result authResult = checkAuth(req, res, path);
     if (authResult != common::Result::Ok) {
         return authResult;
     }
 
-    for (auto &r : routes) {
+    // ── 3. Framework API routes ────────────────────────────────────────────
+    for (auto &r : frameworkRoutes_) {
         if (path.rfind(r.prefix, 0) == 0) {
-            log.debug("matched '%s' to '%s'", r.prefix.c_str(), path.c_str());
+            log.debug("framework route matched '%s'", r.prefix.c_str());
             common::Result result = r.handler->handle(req, res);
             if (result != common::Result::NotFound) {
                 return result;
@@ -198,7 +226,33 @@ common::Result EmbeddedServer::handle(http::HttpRequest &req, http::HttpResponse
         }
     }
 
-    return common::Result::NotFound;
+    // ── 4. App routes (method + prefix) ───────────────────────────────────
+    for (auto &r : appRoutes_) {
+        if (path.rfind(r.prefix, 0) == 0 && req.method() == r.method) {
+            log.debug("app route matched [%s] '%s'",
+                      http::toString(r.method).c_str(), r.prefix.c_str());
+            common::Result result = r.handler->handle(req, res);
+            if (result != common::Result::NotFound) {
+                return result;
+            }
+        }
+    }
+
+    // ── 5. App file handlers (prefix) ─────────────────────────────────────
+    for (auto &r : appFileHandlers_) {
+        if (path.rfind(r.prefix, 0) == 0) {
+            log.debug("app file handler matched '%s'", r.prefix.c_str());
+            common::Result result = r.handler->handle(req, res);
+            if (result != common::Result::NotFound) {
+                return result;
+            }
+        }
+    }
+
+    // ── 6. Framework file handler fallback ────────────────────────────────
+    // Serves /framework/ui/* and top-level assets like /favicon.ico.
+    log.debug("falling back to framework file handler");
+    return frameworkFileHandler_.handle(req, res);
 }
 
 } // namespace wifi_manager

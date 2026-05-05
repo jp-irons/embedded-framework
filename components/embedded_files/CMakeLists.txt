@@ -1,9 +1,9 @@
 file(GLOB_RECURSE EMBED_FILES "files/*")
-#touch
+
 idf_component_register(
     SRCS
-    	EmbeddedFileHandler.cpp
-    	EmbeddedFileTable.cpp
+        EmbeddedFileHandler.cpp
+        EmbeddedFileTable.cpp
     INCLUDE_DIRS
         include
     REQUIRES
@@ -11,5 +11,5 @@ idf_component_register(
         http
         logger
     EMBED_FILES
-        ${EMBED_FILES}    
+        ${EMBED_FILES}
 )
