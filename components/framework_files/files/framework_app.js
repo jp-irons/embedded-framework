@@ -11,7 +11,7 @@ import { initRouter }         from "./router.js";
 import { wireConfirmButtons, hideMessageModal } from "./modal.js";
 import { initWifiView, teardownWifiView, initDeviceView, initFirmwareView, teardownFirmwareView,
          initHomeView, initSecurityView } from "./ui.js";
-import { setPassword, clearPassword, onAuthRequired, getAuthStatus, isAuthenticated } from "./api.js";
+import { login, clearToken, onAuthRequired, getAuthStatus, isAuthenticated } from "./api.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -92,42 +92,23 @@ document.addEventListener("DOMContentLoaded", () => {
         loginForm.onsubmit = async (e) => {
             e.preventDefault();
             const pw = loginPassword?.value ?? "";
-            setPassword(pw);
             try {
-                await getAuthStatus();
+                // POST /auth/login with Basic Auth → stores returned Bearer token
+                await login(pw);
                 if (!appStarted) {
-                    // Chrome's native password manager needs:
-                    //   form submitted  →  navigation to a DIFFERENT url  →  login form gone
-                    //
-                    // Reloading to the exact same pathname is treated as a
-                    // "same-page reload" — Chrome doesn't consider that a
-                    // post-login navigation and won't offer to save.  Adding
-                    // a harmless ?auth query string makes the destination URL
-                    // distinct.  ESP-IDF's httpd matches handlers on path
-                    // only, so the server serves the same file either way.
-                    // The auto-login path strips ?auth via history.replaceState
-                    // before the router renders, so the user never sees it.
-                    //
-                    // credentials.store() is fired fire-and-forget as a
-                    // belt-and-suspenders hint for browsers that support it;
-                    // it is NOT awaited because the user-gesture context is
-                    // consumed by the getAuthStatus() await above.
-                    if (navigator.credentials && window.PasswordCredential) {
-                        navigator.credentials
-                            .store(new PasswordCredential({ id: "admin", password: pw }))
-                            .catch(err => console.debug("[auth] credential store:", err));
-                    }
-                    console.debug("[auth] login ok — reloading for credential save");
+                    // First login after page load — reload so the router starts
+                    // cleanly with a valid token already in sessionStorage.
+                    console.debug("[auth] login ok — reloading");
                     location.replace(location.pathname);
                 } else {
-                    // Re-authentication after session expiry — no reload needed,
-                    // just dismiss the overlay and re-render the current route.
+                    // Re-authentication after session expiry — dismiss the
+                    // overlay and re-render the current route without a reload.
                     hideLoginOverlay();
                     window.dispatchEvent(new Event("hashchange"));
                 }
             } catch {
-                // 401 — wrong password; clear stored credential and show error
-                clearPassword();
+                // 401 — wrong password; clear any partial state and show error
+                clearToken();
                 if (loginError) loginError.classList.remove("hidden");
             }
         };

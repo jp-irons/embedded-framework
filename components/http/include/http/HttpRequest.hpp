@@ -53,6 +53,15 @@ class HttpRequest {
      */
     std::optional<BasicAuth> extractBasicAuth() const;
 
+    /**
+     * Extracts a Bearer token from the Authorization header.
+     *
+     * Returns the raw token string if the header is present and has the form
+     * "Bearer <token>".  Returns std::nullopt if the header is absent, uses a
+     * different scheme, or the token portion is empty.
+     */
+    std::optional<std::string> extractBearerToken() const;
+
   private:
     // Bodies larger than this threshold are NOT pre-loaded into memory.
     // The handler must read them directly via req->raw() + httpd_req_recv().

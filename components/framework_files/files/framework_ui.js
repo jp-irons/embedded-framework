@@ -33,7 +33,7 @@ import {
     rebootDevice,
     getAuthStatus,
     changePassword as apiChangePassword,
-    setPassword,
+    login,
     isAuthenticated
 } from "./api.js";
 
@@ -858,9 +858,10 @@ async function handleChangePassword() {
 
     try {
         await apiChangePassword(newPw);
-        // Update the in-memory credential immediately so subsequent API calls
-        // use the new password without triggering a re-login prompt.
-        setPassword(newPw);
+        // The server invalidated all sessions on password change.
+        // Re-authenticate immediately with the new password so the user
+        // doesn't see a login prompt on the next API call.
+        await login(newPw);
         newPwEl.value     = "";
         confirmPwEl.value = "";
         showMessage("success", "Password Changed",

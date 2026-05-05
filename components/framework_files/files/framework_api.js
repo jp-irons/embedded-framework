@@ -1,71 +1,61 @@
 //
-// embedded/api.js
+// framework/api.js
 //
 
 // ---------- Auth state ----------
 //
-// The device uses HTTP Basic Auth.  fetch() does not trigger the browser's
-// built-in credentials dialog on a 401, so we manage the password ourselves:
-//   - setPassword(pw)       — store after successful login
-//   - clearPassword()       — clear on logout or 401
-//   - onAuthRequired(fn)    — register a callback invoked on every 401
+// The device now uses session tokens for browser access.
 //
-// All helpers below include the Authorization header automatically.
-
-// --- Credential persistence ---
+// Login flow:
+//   1. POST /framework/api/auth/login  with  Authorization: Basic <base64(admin:password)>
+//   2. Server returns  {"token":"<64-hex>"}
+//   3. All subsequent requests include  Authorization: Bearer <token>
 //
-// The password is kept in sessionStorage so it survives full page loads within
-// the same browser tab (e.g. the user clicking the "Embedded" nav link or
-// pressing F5) without forcing a re-login.  sessionStorage is tab-scoped and
-// cleared automatically when the tab is closed, which is the right lifetime
-// for a device management session.
+// The token is kept in sessionStorage so it survives full page loads within
+// the same browser tab without forcing a re-login.  sessionStorage is
+// tab-scoped and cleared automatically when the tab is closed, which is the
+// appropriate lifetime for a device management session.
+//
+// On a 401 response the token is cleared and the onAuthRequired callback fires,
+// which re-shows the login overlay.  The user logs in again and receives a new
+// token; the current route re-mounts without a page reload.
+//
+// Machine-to-machine clients use a persistent API key (generated on the
+// Security page) presented identically as a Bearer token.  The server accepts
+// both session tokens and API keys on every framework API endpoint.
 //
 // WHY NOT the browser's built-in password manager?
 //
-// Chrome (and other browsers) will not offer to save credentials for origins
-// that have a certificate error — including HTTPS sites using a self-signed
-// certificate, even after the user has clicked through the "proceed anyway"
-// interstitial.  The ESP32's embedded HTTPS server uses a self-signed cert by
-// default, so the origin is permanently flagged as "Not secure" and Chrome's
-// password manager is silently suppressed for it.
-//
-// The Credential Management API (navigator.credentials.store) is also
-// unavailable for the same reason: it requires a fully trusted secure context.
-//
-// Obtaining a CA-signed certificate for a .local mDNS hostname is not
-// practical for a general-purpose framework (Let's Encrypt does not issue
-// certs for .local; mkcert requires per-machine CA installation), so
-// sessionStorage is the deliberate persistence strategy here.
-//
-// The user experience is equivalent for a single-operator device management
-// UI: one login per browser session, transparent re-auth if the device
-// reboots mid-session, credential gone when the tab is closed.
-const SESSION_KEY = "emb_auth_pw";
+// Chrome will not offer to save credentials for origins with a certificate
+// error — including self-signed HTTPS certs.  The ESP32's embedded server uses
+// a self-signed cert by default, so Chrome's password manager is silently
+// suppressed.  The Credential Management API (navigator.credentials.store) is
+// also unavailable for the same reason.  Session tokens in sessionStorage give
+// equivalent UX: one login per browser session, transparent re-auth on device
+// reboot, credential cleared on tab close.
+const SESSION_KEY = "fw_auth_token";
 
-let _password        = (() => { try { return sessionStorage.getItem(SESSION_KEY); } catch { return null; } })();
-let _authRequiredCb  = null;
+let _token          = (() => { try { return sessionStorage.getItem(SESSION_KEY); } catch { return null; } })();
+let _authRequiredCb = null;
 
-export function setPassword(pw) {
-    _password = pw;
-    try { sessionStorage.setItem(SESSION_KEY, pw); } catch {}
+export function setToken(token) {
+    _token = token;
+    try { sessionStorage.setItem(SESSION_KEY, token); } catch {}
 }
-export function clearPassword() {
-    _password = null;
+export function clearToken() {
+    _token = null;
     try { sessionStorage.removeItem(SESSION_KEY); } catch {}
 }
-export function onAuthRequired(fn)      { _authRequiredCb = fn; }
-export function isAuthenticated()       { return _password !== null; }
+export function onAuthRequired(fn) { _authRequiredCb = fn; }
+export function isAuthenticated()  { return _token !== null; }
 
 function authHeaders(extra = {}) {
-    if (!_password) return extra;
-    return {
-        ...extra,
-        "Authorization": "Basic " + btoa("admin:" + _password)
-    };
+    if (!_token) return extra;
+    return { ...extra, "Authorization": "Bearer " + _token };
 }
 
 function handle401() {
-    clearPassword();
+    clearToken();
     if (_authRequiredCb) _authRequiredCb();
 }
 
@@ -152,8 +142,8 @@ export function uploadFirmware(file, onProgress) {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", "/framework/api/firmware/upload");
         xhr.setRequestHeader("Content-Type", "application/octet-stream");
-        if (_password) {
-            xhr.setRequestHeader("Authorization", "Basic " + btoa("admin:" + _password));
+        if (_token) {
+            xhr.setRequestHeader("Authorization", "Bearer " + _token);
         }
 
         if (onProgress) {
@@ -163,6 +153,11 @@ export function uploadFirmware(file, onProgress) {
         }
 
         xhr.onload = () => {
+            if (xhr.status === 401) {
+                handle401();
+                reject(new Error("Unauthorized"));
+                return;
+            }
             if (xhr.status >= 200 && xhr.status < 300) {
                 try { resolve(JSON.parse(xhr.responseText)); }
                 catch { resolve({}); }
@@ -191,6 +186,34 @@ export function factoryResetFirmware() {
 
 // ---------- Auth ----------
 
+/**
+ * Exchange a password for a session token.
+ * Sends Basic Auth credentials to POST /auth/login and stores the returned
+ * token.  Throws on wrong password (401) or network error.
+ */
+export async function login(password) {
+    const res = await fetch("/framework/api/auth/login", {
+        method: "POST",
+        headers: { "Authorization": "Basic " + btoa("admin:" + password) }
+    });
+    if (res.status === 401) throw new Error("Unauthorized");
+    if (!res.ok) throw new Error("Login request failed");
+    const data = await res.json();
+    setToken(data.token);
+}
+
+/**
+ * Invalidate the current session token on the server and clear it locally.
+ */
+export async function logout() {
+    if (!_token) return;
+    try {
+        await post("/framework/api/auth/logout");
+    } finally {
+        clearToken();
+    }
+}
+
 export function getAuthStatus() {
     return get(`/framework/api/auth/status?ts=${Date.now()}`);
 }
@@ -200,12 +223,28 @@ export function changePassword(newPassword) {
 }
 
 
+// ---------- API key (M2M) ----------
+
+export function getApiKeyStatus() {
+    return get(`/framework/api/auth/apikey?ts=${Date.now()}`);
+}
+
+/** Generate (or rotate) the device API key.  Returns {"key": "<64-hex>"}. */
+export function generateApiKey() {
+    return post("/framework/api/auth/apikey");
+}
+
+/** Revoke the current API key. */
+export function revokeApiKey() {
+    return del("/framework/api/auth/apikey");
+}
+
+
 // ---------- Device ----------
 
 export function clearNvs() {
     return post("/framework/api/device/clearNvs");
 }
-
 
 export function rebootDevice() {
     return post("/framework/api/device/reboot");

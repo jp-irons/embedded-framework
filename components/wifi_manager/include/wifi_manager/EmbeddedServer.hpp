@@ -2,9 +2,11 @@
 
 #include "framework_files/EmbeddedFileHandler.hpp"
 #include "framework_files/EmbeddedFileTable.hpp"
+#include "auth/ApiKeyStore.hpp"
 #include "auth/AuthApiHandler.hpp"
 #include "auth/AuthConfig.hpp"
 #include "auth/AuthStore.hpp"
+#include "auth/SessionStore.hpp"
 #include "common/Result.hpp"
 #include "credential_store/CredentialApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
@@ -47,10 +49,15 @@ class EmbeddedServer : public http::HttpHandler {
     /**
      * Wire in authentication.  Call once from FrameworkContext before start().
      * Until this is called, all requests are passed through without auth checks.
+     *
+     * @param sessionStore  In-RAM session token store (browser sessions).
+     * @param apiKeyStore   NVS-backed API key store (M2M access).
      */
-    void setAuth(auth::AuthStore &store,
+    void setAuth(auth::AuthStore       &store,
                  const auth::AuthConfig &config,
-                 auth::AuthApiHandler &authHandler);
+                 auth::AuthApiHandler   &authHandler,
+                 auth::SessionStore     &sessionStore,
+                 auth::ApiKeyStore      &apiKeyStore);
 
     // -----------------------------------------------------------------------
     // App injection API — call these in ApplicationContext::start() BEFORE
@@ -89,8 +96,9 @@ class EmbeddedServer : public http::HttpHandler {
     common::Result handle(http::HttpRequest &req, http::HttpResponse &res) override;
 
   private:
-    // Path suffix for the change-password endpoint.
+    // Path suffixes for auth endpoints with special treatment.
     static constexpr const char *AUTH_PASSWORD_SUFFIX = "/auth/password";
+    static constexpr const char *AUTH_LOGIN_SUFFIX    = "/auth/login";
 
     // ── Framework-internal route table ──────────────────────────────────────
     struct Route {
@@ -138,9 +146,11 @@ class EmbeddedServer : public http::HttpHandler {
     std::vector<AppFileHandler> appFileHandlers_;
 
     // Auth — null until setAuth() is called
-    auth::AuthStore        *authStore_      = nullptr;
-    const auth::AuthConfig *authConfig_     = nullptr;
-    auth::AuthApiHandler   *authApiHandler_ = nullptr;
+    auth::AuthStore        *authStore_        = nullptr;
+    const auth::AuthConfig *authConfig_       = nullptr;
+    auth::AuthApiHandler   *authApiHandler_   = nullptr;
+    auth::SessionStore     *sessionStore_     = nullptr;
+    auth::ApiKeyStore      *apiKeyStore_      = nullptr;
 
     // Returns Forbidden if the auth policy blocks the current request,
     // or Ok to proceed.

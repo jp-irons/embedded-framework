@@ -1,7 +1,9 @@
 idf_component_register(
     SRCS
+        ApiKeyStore.cpp
         AuthApiHandler.cpp
         AuthStore.cpp
+        SessionStore.cpp
     INCLUDE_DIRS
         include
     REQUIRES

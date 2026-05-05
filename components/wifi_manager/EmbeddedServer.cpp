@@ -130,12 +130,16 @@ void EmbeddedServer::warnIfFrameworkNamespace(const std::string &prefix) const {
 // Auth middleware
 // ---------------------------------------------------------------------------
 
-void EmbeddedServer::setAuth(auth::AuthStore &store,
-                              const auth::AuthConfig &config,
-                              auth::AuthApiHandler &authHandler) {
+void EmbeddedServer::setAuth(auth::AuthStore        &store,
+                              const auth::AuthConfig  &config,
+                              auth::AuthApiHandler    &authHandler,
+                              auth::SessionStore      &sessionStore,
+                              auth::ApiKeyStore       &apiKeyStore) {
     authStore_      = &store;
     authConfig_     = &config;
     authApiHandler_ = &authHandler;
+    sessionStore_   = &sessionStore;
+    apiKeyStore_    = &apiKeyStore;
     log.debug("auth configured");
 }
 
@@ -143,7 +147,7 @@ common::Result EmbeddedServer::checkAuth(http::HttpRequest &req,
                                           http::HttpResponse &res,
                                           const std::string &path) {
     // Auth is optional until setAuth() is called — skip if not configured
-    if (!authStore_ || !authConfig_) {
+    if (!authStore_ || !authConfig_ || !sessionStore_ || !apiKeyStore_) {
         return common::Result::Ok;
     }
 
@@ -154,18 +158,26 @@ common::Result EmbeddedServer::checkAuth(http::HttpRequest &req,
         return common::Result::Ok;
     }
 
-    // ── Verify credentials ────────────────────────────────────────────────
-    auto basicAuth = req.extractBasicAuth();
-    if (!basicAuth) {
-        log.warn("Auth failed for '%s' — no Authorization header", path.c_str());
+    // ── Login is exempt — it handles its own Basic-Auth verification ──────
+    // (All other /auth/* endpoints require a valid Bearer token.)
+    const std::string loginPath = apiUri_ + AUTH_LOGIN_SUFFIX;
+    if (path == loginPath) {
+        return common::Result::Ok;
+    }
+
+    // ── Verify Bearer token ───────────────────────────────────────────────
+    auto bearerToken = req.extractBearerToken();
+    if (!bearerToken) {
+        log.warn("Auth failed for '%s' — no Bearer token", path.c_str());
         res.sendUnauthorized("ESP32");
         return common::Result::Forbidden;
     }
-    if (!authStore_->verify(basicAuth->password)) {
-        log.warn("Auth failed for '%s' — wrong password (len=%u, stored len=%u)",
-                 path.c_str(),
-                 static_cast<unsigned>(basicAuth->password.size()),
-                 static_cast<unsigned>(authStore_->getPasswordLen()));
+
+    // Accept a valid session token (browser) or a valid API key (M2M)
+    const bool tokenOk = sessionStore_->validate(*bearerToken) ||
+                         apiKeyStore_->validate(*bearerToken);
+    if (!tokenOk) {
+        log.warn("Auth failed for '%s' — invalid or expired token", path.c_str());
         res.sendUnauthorized("ESP32");
         return common::Result::Forbidden;
     }

@@ -1,8 +1,10 @@
 #pragma once
 
+#include "auth/ApiKeyStore.hpp"
 #include "auth/AuthApiHandler.hpp"
 #include "auth/AuthConfig.hpp"
 #include "auth/AuthStore.hpp"
+#include "auth/SessionStore.hpp"
 #include "credential_store/CredentialApiHandler.hpp"
 #include "credential_store/CredentialStore.hpp"
 #include "device/DeviceApiHandler.hpp"
@@ -100,10 +102,14 @@ class FrameworkContext {
     device_cert::DeviceCert deviceCert_;
 
     // Always-present value types
+    // NOTE: SessionStore and ApiKeyStore must be declared before authApi so
+    // they are initialised first (authApi constructor takes references to them).
     wifi_manager::WiFiContext         wifiCtx;
     credential_store::CredentialStore credentialStore;
     auth::AuthStore                   authStore;
-    auth::AuthApiHandler              authApi{authStore};
+    auth::SessionStore                sessionStore;
+    auth::ApiKeyStore                 apiKeyStore;
+    auth::AuthApiHandler              authApi{authStore, sessionStore, apiKeyStore};
 
     // Owned heap objects
     wifi_manager::EmbeddedServer             *embeddedServer = nullptr;

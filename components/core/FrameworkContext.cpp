@@ -86,6 +86,13 @@ void FrameworkContext::initialize() {
                  common::toString(authResult));
     }
 
+    // Load any persisted API key from NVS (NotFound is normal on first boot)
+    common::Result apiKeyResult = apiKeyStore.init();
+    if (apiKeyResult != common::Result::Ok && apiKeyResult != common::Result::NotFound) {
+        log.warn("ApiKeyStore::init failed (%s) — API key unavailable",
+                 common::toString(apiKeyResult));
+    }
+
     // Populate WiFi context
     log.debug("AP SSID %s", apConfig.ssid.c_str());
     wifiCtx.apConfig        = apConfig;
@@ -109,7 +116,7 @@ void FrameworkContext::initialize() {
     if (deviceCert_.isLoaded()) {
         embeddedServer->setCert(deviceCert_.certPem(), deviceCert_.keyPem());
     }
-    embeddedServer->setAuth(authStore, authConfig_, authApi);
+    embeddedServer->setAuth(authStore, authConfig_, authApi, sessionStore, apiKeyStore);
     wifiCtx.embeddedServer = embeddedServer;
 
     // Create WiFiInterface LAST — registers event handlers, may trigger events

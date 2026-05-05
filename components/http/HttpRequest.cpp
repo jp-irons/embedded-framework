@@ -68,4 +68,34 @@ std::optional<BasicAuth> HttpRequest::extractBasicAuth() const {
     return auth;
 }
 
+std::optional<std::string> HttpRequest::extractBearerToken() const {
+    static constexpr const char *HEADER_NAME    = "Authorization";
+    static constexpr const char *BEARER_PREFIX  = "Bearer ";
+    static constexpr size_t      BEARER_PREFIX_LEN = 7; // strlen("Bearer ")
+
+    size_t hdrLen = httpd_req_get_hdr_value_len(req, HEADER_NAME);
+    if (hdrLen == 0) {
+        return std::nullopt;
+    }
+
+    std::vector<char> hdrBuf(hdrLen + 1);
+    if (httpd_req_get_hdr_value_str(req, HEADER_NAME,
+                                    hdrBuf.data(), hdrBuf.size()) != ESP_OK) {
+        return std::nullopt;
+    }
+
+    if (hdrLen <= BEARER_PREFIX_LEN ||
+        strncmp(hdrBuf.data(), BEARER_PREFIX, BEARER_PREFIX_LEN) != 0) {
+        return std::nullopt;
+    }
+
+    // Token is everything after "Bearer "
+    std::string token(hdrBuf.data() + BEARER_PREFIX_LEN,
+                      hdrLen - BEARER_PREFIX_LEN);
+    if (token.empty()) {
+        return std::nullopt;
+    }
+    return token;
+}
+
 } // namespace http
