@@ -34,7 +34,9 @@ import {
     getAuthStatus,
     changePassword as apiChangePassword,
     login,
-    isAuthenticated
+    isAuthenticated,
+    startReconnectPolling,
+    forceReauth
 } from "./api.js";
 
 import {
@@ -145,11 +147,9 @@ async function loadFirmwareStatus() {
         renderPartitionCards(_lastPartitions);
         updateRollbackButton(_lastPartitions);
     } catch (err) {
-        console.error("Failed to load firmware status:", err);
-        if (container) {
-            container.innerHTML =
-                `<div class="text-red-600 text-sm">Failed to load firmware status.</div>`;
-        }
+        if (err.message === "network") return;
+        console.warn("Firmware status load failed — triggering re-auth:", err);
+        forceReauth();
     }
 }
 
@@ -325,11 +325,16 @@ async function handleFirmwareUpload(file) {
             if (progressBar) progressBar.style.width = pct + "%";
             if (progressPct) progressPct.textContent = pct + "%";
         });
-        // Device reboots — show a message and stop trying to contact it
+        // Device reboots after a successful upload — use reconnect polling so
+        // the login overlay appears automatically when it comes back up.
+        // Do NOT call location.reload() here; TLS session tickets are invalidated
+        // on reboot and a page reload in that window fails silently.
         showMessage("success", "Upload Complete",
-                    "Firmware uploaded successfully. The device is rebooting…");
-        setTimeout(() => location.reload(), 8000);
+                    "Firmware uploaded successfully. Reconnecting automatically — " +
+                    "you will be prompted to log in again shortly.");
+        startReconnectPolling();
     } catch (err) {
+        if (!isAuthenticated() || err.message === "network") return;
         console.error("Firmware upload failed:", err);
         showMessage("error", "Upload Failed", err.message || "Could not upload firmware.");
         // Re-enable buttons and hide progress on failure
@@ -359,9 +364,11 @@ async function handleRollback() {
     try {
         await apiRollbackFirmware();
         showMessage("success", "Rolling Back",
-                    "Rolling back to previous firmware. Device is rebooting…");
-        setTimeout(() => location.reload(), 8000);
+                    "Rolling back to previous firmware. Reconnecting automatically — " +
+                    "you will be prompted to log in again shortly.");
+        startReconnectPolling();
     } catch (err) {
+        if (!isAuthenticated() || err.message === "network") return;
         console.error("Rollback failed:", err);
         showMessage("error", "Rollback Failed",
                     err.message || "No valid firmware to roll back to.");
@@ -383,9 +390,11 @@ async function handleFactoryReset() {
     try {
         await apiFactoryResetFirmware();
         showMessage("success", "Factory Reset",
-                    "Factory reset complete. Device is rebooting to factory firmware…");
-        setTimeout(() => location.reload(), 10000);
+                    "Factory reset complete. Reconnecting automatically — " +
+                    "you will be prompted to log in again shortly.");
+        startReconnectPolling();
     } catch (err) {
+        if (!isAuthenticated() || err.message === "network") return;
         console.error("Factory reset failed:", err);
         showMessage("error", "Factory Reset Failed",
                     err.message || "Could not perform factory reset.");
@@ -419,7 +428,15 @@ async function refreshDeviceInfo() {
 
     container.innerHTML = `<div class="text-gray-500">Loading…</div>`;
 
-    const info = await apiLoadDeviceInfo();
+    let info;
+    try {
+        info = await apiLoadDeviceInfo();
+    } catch (err) {
+        if (err.message === "network") return;
+        console.warn("Device info load failed — triggering re-auth:", err);
+        forceReauth();
+        return;
+    }
 
     const flashMB = (info.flashSize / (1024 * 1024)).toFixed(0);
     const psramRow = info.psramSize
@@ -489,8 +506,9 @@ async function loadScanResults() {
         scanResults = await scanWifi();
         renderScanList(scanResults);
     } catch (err) {
-        console.error("Scan failed:", err);
-        showMessage("error", "Scan Failed", "Unable to scan for networks.");
+        if (err.message === "network") return;
+        console.warn("Scan failed — triggering re-auth:", err);
+        forceReauth();
     }
 }
 
@@ -566,6 +584,7 @@ async function submitProvisioning() {
         showMessage("success", "Credential Saved", `${payload.ssid} added.`);
         await refreshCredentials();
     } catch (err) {
+        if (!isAuthenticated() || err.message === "network") return;
         console.error("Submit failed:", err);
         showMessage("error", "Save Failed", "Unable to save credential.");
     }
@@ -581,8 +600,14 @@ async function refreshCredentials() {
         const creds = await listCredentials();
         renderCredList(creds);
     } catch (err) {
-        console.error("Failed to load credentials:", err);
-        showMessage("error", "Load Failed", "Unable to load saved credentials.");
+        // Network error → device is rebooting; keep quiet and let the polling
+        // or reconnect mechanism handle recovery.
+        if (err.message === "network") return;
+        // Any other failure (401, truncated response, unexpected status) means
+        // the session is likely dead.  Trigger re-login immediately rather than
+        // showing a confusing "Load Failed" popup that the user has to dismiss.
+        console.warn("Credentials load failed — triggering re-auth:", err);
+        forceReauth();
     }
 }
 
@@ -637,6 +662,7 @@ async function handleDeleteCredential(ssid) {
         await refreshCredentials();
         showMessage("success", "Deleted", `Credential "${ssid}" has been removed.`);
     } catch (err) {
+        if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
         showMessage("error", "Delete Failed", `Unable to delete "${ssid}".`);
     }
@@ -647,6 +673,7 @@ async function handleMakeFirst(ssid) {
         await makeFirst(ssid);
         await refreshCredentials();
     } catch (err) {
+        if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
         showMessage("error", "Reorder Failed", "Unable to reorder credentials.");
     }
@@ -672,6 +699,7 @@ async function handleClearCredentials() {
         await refreshCredentials();
         showMessage("success", "Cleared", "All credentials have been removed.");
     } catch (err) {
+        if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
         showMessage("error", "Clear Failed", "Unable to clear credentials.");
     }
@@ -681,7 +709,10 @@ function requestClearNvs() {
     showConfirm(
         "danger",
         "Clear NVS",
-        "This will erase all stored WiFi data. Continue?",
+        "This will erase ALL stored data: WiFi credentials, the API password, " +
+        "API keys, and the device TLS certificate. A new certificate will be " +
+        "generated on the next reboot — your browser will show a new security " +
+        "warning and you will need to accept it before reconnecting. Continue?",
         handleClearNvs
     );
 }
@@ -691,6 +722,7 @@ async function handleClearNvs() {
         await apiClearNvs();
         showMessage("success", "NVS Cleared", "Non-volatile storage has been erased.");
     } catch (err) {
+        if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
         showMessage("error", "Clear Failed", "Unable to clear NVS.");
     }
@@ -708,9 +740,17 @@ function requestReboot() {
 async function handleReboot() {
     try {
         await rebootDevice();
-        showMessage("success", "Rebooting", "Device is rebooting…");
-        setTimeout(() => location.reload(), 3000);
+        showMessage("success", "Rebooting",
+                    "Device is rebooting. Reconnecting automatically — " +
+                    "you will be prompted to log in again shortly.");
+        // Do NOT call location.reload() here.  The device's TLS session cache
+        // is cleared on reboot; the browser tries to resume the old TLS session
+        // and gets a fatal alert for ~60 s, which silently kills a page reload.
+        // Instead, poll getAuthStatus() every 3 s.  When the device comes back
+        // up it returns 401 → handle401() fires the login overlay automatically.
+        startReconnectPolling();
     } catch (err) {
+        if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
         showMessage("error", "Reboot Failed", "Unable to reboot device.");
     }
@@ -739,6 +779,13 @@ async function pollStatus() {
             if (statusEl) statusEl.textContent = "AP Mode";
         }
     } catch (err) {
+        if (!isAuthenticated()) {
+            // 401 — session expired.  Stop polling so we don't hammer the device
+            // with repeated unauthorised requests (each one would call
+            // showLoginOverlay() and clear any password the user is typing).
+            stopStatusPolling();
+            return;
+        }
         console.error("Status poll failed:", err);
     }
 }

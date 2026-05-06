@@ -11,7 +11,8 @@ import { initRouter }         from "./router.js";
 import { wireConfirmButtons, hideMessageModal } from "./modal.js";
 import { initWifiView, teardownWifiView, initDeviceView, initFirmwareView, teardownFirmwareView,
          initHomeView, initSecurityView } from "./ui.js";
-import { login, clearToken, onAuthRequired, getAuthStatus, isAuthenticated } from "./api.js";
+import { login, clearToken, onAuthRequired, getAuthStatus, isAuthenticated,
+         stopReconnectPolling } from "./api.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -60,12 +61,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const pageShell     = document.querySelector(".max-w-xl");
 
     function showLoginOverlay() {
-        if (pageShell)     pageShell.inert = true;
-        if (loginPassword) loginPassword.value = "";
-        if (loginError)    loginError.classList.add("hidden");
-        if (loginOverlay)  loginOverlay.classList.remove("hidden");
-        // Delay focus so the element is visible before the browser scrolls to it
-        setTimeout(() => loginPassword?.focus(), 50);
+        // Guard: if already visible, don't reset the password field or steal focus.
+        // Without this, repeated 401s from polling (e.g. WiFi status every second)
+        // would call this function once per second, wiping whatever the user has
+        // typed in the password field.
+        const alreadyVisible = loginOverlay && !loginOverlay.classList.contains("hidden");
+
+        if (pageShell)    pageShell.inert = true;
+        if (loginOverlay) loginOverlay.classList.remove("hidden");
+
+        if (!alreadyVisible) {
+            if (loginPassword) loginPassword.value = "";
+            if (loginError)    loginError.classList.add("hidden");
+            // Delay focus so the element is visible before the browser scrolls to it
+            setTimeout(() => loginPassword?.focus(), 50);
+        }
     }
 
     function hideLoginOverlay() {
@@ -84,6 +94,19 @@ document.addEventListener("DOMContentLoaded", () => {
     // re-mounts via hashchange.
     onAuthRequired(showLoginOverlay);
 
+    // Proactive token check when the user returns to this tab.
+    // Without this, pages that have no background polling (Home, Device,
+    // Firmware, Security) would never detect a stale token unless the user
+    // clicked something.  A device reboot while the tab is open would leave
+    // the UI silent and stuck.  This fires as soon as the tab is visible
+    // again; a stale token gets a 401 which flows through handle401() →
+    // onAuthRequired() → showLoginOverlay() as normal.
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && appStarted && isAuthenticated()) {
+            getAuthStatus().catch(() => {}); // 401 handled inside api.js handle401()
+        }
+    });
+
     // Track whether the router has been started so the login handler knows
     // whether to launch the app or just re-render the current route.
     let appStarted = false;
@@ -95,21 +118,43 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 // POST /auth/login with Basic Auth → stores returned Bearer token
                 await login(pw);
+                // Re-render in-place rather than doing a full page reload.
+                // location.replace() is unsafe in the ~60 seconds after a device
+                // reboot because TLS session-resumption tickets are invalidated;
+                // the browser tries to resume the old session, the ESP32 rejects
+                // it with a fatal alert (-0x7780), and the reload silently fails —
+                // leaving the user staring at a blank page with no feedback.
+                // In-place re-render avoids the HTTPS round-trip entirely.
+                //
+                // Two cases:
+                //  • appStarted=false  — first login ever in this tab; the router
+                //    has not been initialised yet, so call initRouter() directly.
+                //  • appStarted=true   — re-authentication after a 401 (e.g. device
+                //    rebooted while tab was open); dispatch hashchange to re-mount
+                //    the current route and reload its API data.
+                console.debug("[auth] login ok — re-rendering in place");
+                // Cancel any reconnect poller that fired the overlay
+                // (it stops itself on 401, but cancel explicitly to be safe)
+                stopReconnectPolling();
                 if (!appStarted) {
-                    // First login after page load — reload so the router starts
-                    // cleanly with a valid token already in sessionStorage.
-                    console.debug("[auth] login ok — reloading");
-                    location.replace(location.pathname);
+                    appStarted = true;
+                    hideLoginOverlay();
+                    initRouter({ routes, fallback: "#home" });
                 } else {
-                    // Re-authentication after session expiry — dismiss the
-                    // overlay and re-render the current route without a reload.
                     hideLoginOverlay();
                     window.dispatchEvent(new Event("hashchange"));
                 }
-            } catch {
-                // 401 — wrong password; clear any partial state and show error
+            } catch (err) {
                 clearToken();
-                if (loginError) loginError.classList.remove("hidden");
+                if (loginError) {
+                    // Distinguish network errors (device unreachable / TLS cert
+                    // changed) from auth errors (wrong password) so the user
+                    // knows whether to retry their password or check the device.
+                    loginError.textContent = (err.message === "network")
+                        ? "Cannot reach device — check connection or try again."
+                        : "Incorrect password — please try again.";
+                    loginError.classList.remove("hidden");
+                }
             }
         };
     }

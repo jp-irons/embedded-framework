@@ -59,30 +59,51 @@ function handle401() {
     if (_authRequiredCb) _authRequiredCb();
 }
 
+/**
+ * Force re-authentication from anywhere in the app.
+ * Clears the current token and fires the login overlay, exactly as a 401 does.
+ * Safe to call when already unauthenticated — clearToken() and
+ * showLoginOverlay() are both idempotent.
+ *
+ * Use this instead of showing an error popup when an API call fails during
+ * an automatic data load (e.g. credentials list on mount).  The root cause
+ * is almost always a stale session, not a genuine server error.
+ */
+export function forceReauth() {
+    handle401();
+}
+
 // ---------- Generic helpers ----------
 
 async function get(url) {
-    const res = await fetch(url, { headers: authHeaders() });
-    if (res.status === 401) { handle401(); throw new Error("Unauthorized"); }
-    if (!res.ok) throw new Error(`GET ${url} failed`);
+    let res;
+    try { res = await fetch(url, { headers: authHeaders() }); }
+    catch { throw new Error("network"); }
+    if (res.status === 401) { handle401(); throw new Error("unauthorized"); }
+    if (!res.ok) throw new Error(`GET ${url} failed: ${res.status}`);
     return res.json();
 }
 
 async function post(url, body = null) {
-    const res = await fetch(url, {
-        method: "POST",
-        headers: authHeaders(body ? { "Content-Type": "application/json" } : {}),
-        body: body ? JSON.stringify(body) : null
-    });
-    if (res.status === 401) { handle401(); throw new Error("Unauthorized"); }
-    if (!res.ok) throw new Error(`POST ${url} failed`);
+    let res;
+    try {
+        res = await fetch(url, {
+            method: "POST",
+            headers: authHeaders(body ? { "Content-Type": "application/json" } : {}),
+            body: body ? JSON.stringify(body) : null
+        });
+    } catch { throw new Error("network"); }
+    if (res.status === 401) { handle401(); throw new Error("unauthorized"); }
+    if (!res.ok) throw new Error(`POST ${url} failed: ${res.status}`);
     return res.json().catch(() => ({}));
 }
 
 async function del(url) {
-    const res = await fetch(url, { method: "DELETE", headers: authHeaders() });
-    if (res.status === 401) { handle401(); throw new Error("Unauthorized"); }
-    if (!res.ok) throw new Error(`DELETE ${url} failed`);
+    let res;
+    try { res = await fetch(url, { method: "DELETE", headers: authHeaders() }); }
+    catch { throw new Error("network"); }
+    if (res.status === 401) { handle401(); throw new Error("unauthorized"); }
+    if (!res.ok) throw new Error(`DELETE ${url} failed: ${res.status}`);
     return res.json().catch(() => ({}));
 }
 
@@ -192,12 +213,18 @@ export function factoryResetFirmware() {
  * token.  Throws on wrong password (401) or network error.
  */
 export async function login(password) {
-    const res = await fetch("/framework/api/auth/login", {
-        method: "POST",
-        headers: { "Authorization": "Basic " + btoa("admin:" + password) }
-    });
-    if (res.status === 401) throw new Error("Unauthorized");
-    if (!res.ok) throw new Error("Login request failed");
+    let res;
+    try {
+        res = await fetch("/framework/api/auth/login", {
+            method: "POST",
+            headers: { "Authorization": "Basic " + btoa("admin:" + password) }
+        });
+    } catch {
+        // Network error — device unreachable (rebooting, TLS cert changed, etc.)
+        throw new Error("network");
+    }
+    if (res.status === 401) throw new Error("unauthorized");
+    if (!res.ok) throw new Error("server");
     const data = await res.json();
     setToken(data.token);
 }
@@ -252,4 +279,54 @@ export function rebootDevice() {
 
 export function loadDeviceInfo() {
     return get(`/framework/api/device/info?ts=${Date.now()}`);
+}
+
+
+// ---------- Reconnect polling ----------
+//
+// After an intentional reboot (user clicked Reboot / Rollback / Factory Reset)
+// we need the UI to recover automatically without a full page reload.
+// location.reload() is unreliable in the ~60 s after a device reboot because
+// the ESP32's TLS session cache is cleared on reboot; the browser tries to
+// resume the old session, gets a fatal alert (-0x7780), and the reload fails
+// silently.
+//
+// Instead, we poll getAuthStatus() every few seconds.  Three outcomes:
+//   • Network error  → device still rebooting; keep polling.
+//   • 401            → device up, new session required; handle401() fires the
+//                      login overlay automatically; we stop polling.
+//   • 200            → device up, session unexpectedly still valid; stop polling.
+
+let _reconnectTimer = null;
+
+/**
+ * Start polling for device availability after an intentional reboot.
+ * Safe to call multiple times — cancels any existing poll before starting.
+ */
+export function startReconnectPolling(intervalMs = 3000) {
+    stopReconnectPolling();
+    console.debug("[reconnect] polling started");
+    _reconnectTimer = setInterval(async () => {
+        try {
+            await getAuthStatus();
+            // Device back up and old session still valid (rare after reboot)
+            console.debug("[reconnect] device back — session valid, stopping poll");
+            stopReconnectPolling();
+        } catch (err) {
+            if (err.message !== "network") {
+                // 401 received — handle401() already fired the login overlay
+                console.debug("[reconnect] device back — 401 received, stopping poll");
+                stopReconnectPolling();
+            }
+            // "network" → device still rebooting, keep polling
+        }
+    }, intervalMs);
+}
+
+/** Cancel any in-progress reconnect polling. */
+export function stopReconnectPolling() {
+    if (_reconnectTimer) {
+        clearInterval(_reconnectTimer);
+        _reconnectTimer = null;
+    }
 }
