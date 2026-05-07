@@ -356,19 +356,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div id="firmware-partitions" class="space-y-3">
                         <div class="text-gray-500 text-sm">Loading partition info…</div>
                     </div>
-
+					
                     <!-- Upload progress (hidden until an upload is in progress) -->
-                    <div id="fw-upload-progress" class="hidden mt-4">
-                        <div class="flex items-center gap-3 text-sm text-gray-700">
+                    <div id="fw-upload-progress" 
+							class="hidden mt-4 border rounded p-4 bg-gray-300 shadow-sm text-sm">
+                        <div class="flex items-center gap-3 ">
                             <span>Uploading…</span>
                             <div class="flex-grow bg-gray-200 rounded-full h-3">
-                                <div id="fw-progress-bar"
-                                     class="bg-blue-500 h-3 rounded-full transition-all"
-                                     style="width:0%"></div>
                             </div>
                             <span id="fw-progress-pct" class="w-10 text-right">0%</span>
                         </div>
-                    </div>
+					</div>
+
 
                     <!-- Hidden file input — triggered by the Upload button -->
                     <input id="fw-file-input" type="file" accept=".bin" class="hidden" />
