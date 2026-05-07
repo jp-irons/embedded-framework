@@ -12,7 +12,7 @@ import { wireConfirmButtons, hideMessageModal } from "./modal.js";
 import { initWifiView, teardownWifiView, initDeviceView, initFirmwareView, teardownFirmwareView,
          initHomeView, initSecurityView } from "./ui.js";
 import { login, clearToken, onAuthRequired, getAuthStatus, isAuthenticated,
-         stopReconnectPolling } from "./api.js";
+         startReconnectPolling, stopReconnectPolling } from "./api.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -111,50 +111,127 @@ document.addEventListener("DOMContentLoaded", () => {
     // whether to launch the app or just re-render the current route.
     let appStarted = false;
 
+    // ---------- Background auth heartbeat ----------
+    //
+    // Sessions are RAM-only on the device — every reboot (planned or not)
+    // invalidates all tokens.  Pages that have no route-specific polling
+    // (Home, Device, Firmware, Security) never make another API call after
+    // their initial mount, so a stale token from an unexpected reboot would
+    // leave the UI frozen with pre-reboot content indefinitely.
+    //
+    // This 30-second heartbeat ensures a 401 is detected even when the user
+    // is idle.  The response flows through the same handle401() →
+    // onAuthRequired() → showLoginOverlay() path as any other auth failure.
+    // Network errors (device still rebooting / TLS not yet stable) are
+    // silently ignored — the next tick retries.  The heartbeat becomes a
+    // no-op automatically while unauthenticated (isAuthenticated() is false
+    // after clearToken() runs), so it does not hammer the device with
+    // unauthenticated requests while the login overlay is open.
+    let _heartbeatTimer = null;
+
+    function startAuthHeartbeat() {
+        if (_heartbeatTimer) return; // already running
+        _heartbeatTimer = setInterval(() => {
+            if (appStarted && isAuthenticated()) {
+                getAuthStatus().catch(() => {});
+            }
+        }, 30_000);
+    }
+
     if (loginForm) {
         loginForm.onsubmit = async (e) => {
             e.preventDefault();
             const pw = loginPassword?.value ?? "";
-            try {
-                // POST /auth/login with Basic Auth → stores returned Bearer token
-                await login(pw);
-                // Re-render in-place rather than doing a full page reload.
-                // location.replace() is unsafe in the ~60 seconds after a device
-                // reboot because TLS session-resumption tickets are invalidated;
-                // the browser tries to resume the old session, the ESP32 rejects
-                // it with a fatal alert (-0x7780), and the reload silently fails —
-                // leaving the user staring at a blank page with no feedback.
-                // In-place re-render avoids the HTTPS round-trip entirely.
-                //
-                // Two cases:
-                //  • appStarted=false  — first login ever in this tab; the router
-                //    has not been initialised yet, so call initRouter() directly.
-                //  • appStarted=true   — re-authentication after a 401 (e.g. device
-                //    rebooted while tab was open); dispatch hashchange to re-mount
-                //    the current route and reload its API data.
-                console.debug("[auth] login ok — re-rendering in place");
-                // Cancel any reconnect poller that fired the overlay
-                // (it stops itself on 401, but cancel explicitly to be safe)
-                stopReconnectPolling();
-                if (!appStarted) {
-                    appStarted = true;
-                    hideLoginOverlay();
-                    initRouter({ routes, fallback: "#home" });
-                } else {
-                    hideLoginOverlay();
-                    window.dispatchEvent(new Event("hashchange"));
+
+            // Disable submit while in-flight so the user can't double-submit.
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+            if (loginError) loginError.classList.add("hidden");
+
+            // After a device reboot the browser may still have stale TLS
+            // session-resumption tickets.  The reconnect poller confirms the
+            // device is up (it received a 401), but the *login* POST may land
+            // on a different TCP connection that is still failing the TLS
+            // handshake (-0x7780).  Rather than surfacing "Cannot reach device"
+            // immediately and forcing the user to navigate away (which causes a
+            // full page reload that is itself unreliable in this window), we
+            // retry transparently up to MAX_RETRIES times with a short delay.
+            // Wrong-password errors (401) are never retried.
+            const MAX_RETRIES   = 5;
+            const RETRY_DELAY   = 2000; // ms between attempts
+            let lastErr = null;
+
+            for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+                try {
+                    // POST /auth/login with Basic Auth → stores returned Bearer token
+                    await login(pw);
+
+                    // ── Success ──────────────────────────────────────────────
+                    // Re-render in-place rather than doing a full page reload.
+                    // location.replace() is unsafe in the ~60 s after a device
+                    // reboot because TLS session-resumption tickets are
+                    // invalidated; the browser tries to resume the old session,
+                    // the ESP32 rejects it with a fatal alert (-0x7780), and
+                    // the reload silently fails — leaving the user staring at a
+                    // blank page with no feedback.  In-place re-render avoids
+                    // the HTTPS round-trip entirely.
+                    //
+                    // Two cases:
+                    //  • appStarted=false  — first login ever in this tab; the
+                    //    router has not been initialised yet.
+                    //  • appStarted=true   — re-authentication after a 401
+                    //    (device rebooted while tab was open); dispatch
+                    //    hashchange to re-mount the current route.
+                    console.debug("[auth] login ok — re-rendering in place");
+                    stopReconnectPolling();
+                    if (submitBtn) submitBtn.disabled = false;
+                    if (!appStarted) {
+                        appStarted = true;
+                        startAuthHeartbeat();
+                        hideLoginOverlay();
+                        initRouter({ routes, fallback: "#home" });
+                    } else {
+                        hideLoginOverlay();
+                        window.dispatchEvent(new Event("hashchange"));
+                    }
+                    return; // done — exit the submit handler
+
+                } catch (err) {
+                    lastErr = err;
+
+                    if (err.message === "network" && attempt < MAX_RETRIES) {
+                        // TLS still stabilising — pause and try again
+                        if (loginError) {
+                            loginError.textContent = "Reconnecting…";
+                            loginError.classList.remove("hidden");
+                        }
+                        await new Promise(r => setTimeout(r, RETRY_DELAY));
+                        continue;
+                    }
+
+                    // Wrong password or retries exhausted — stop looping
+                    break;
                 }
-            } catch (err) {
-                clearToken();
-                if (loginError) {
-                    // Distinguish network errors (device unreachable / TLS cert
-                    // changed) from auth errors (wrong password) so the user
-                    // knows whether to retry their password or check the device.
-                    loginError.textContent = (err.message === "network")
-                        ? "Cannot reach device — check connection or try again."
-                        : "Incorrect password — please try again.";
-                    loginError.classList.remove("hidden");
-                }
+            }
+
+            // ── All attempts failed ───────────────────────────────────────
+            if (submitBtn) submitBtn.disabled = false;
+            clearToken();
+            if (loginError) {
+                // Distinguish network errors (device unreachable / TLS cert
+                // changed) from auth errors (wrong password) so the user
+                // knows whether to check the connection or their password.
+                loginError.textContent = (lastErr?.message === "network")
+                    ? "Cannot reach device — check connection or try again."
+                    : "Incorrect password — please try again.";
+                loginError.classList.remove("hidden");
+            }
+            // If we exhausted network-error retries, restart reconnect
+            // polling so the overlay remains responsive: the next 401 from
+            // the poller will re-arm the form and the user can try again
+            // once the connection has fully stabilised.
+            if (lastErr?.message === "network") {
+                startReconnectPolling();
             }
         };
     }
@@ -173,6 +250,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Credential is still valid — start the app without ever
                 // showing the overlay.
                 appStarted = true;
+                startAuthHeartbeat();
                 initRouter({ routes, fallback: "#home" });
             })
             .catch(() => {

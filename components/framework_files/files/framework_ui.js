@@ -260,7 +260,7 @@ function renderPartitionCards(partitions) {
         const slotLabel  = p.partitionSize ? formatMB(p.partitionSize) : "—";
         const imageCell  = p.firmwareSize
             ? `<span>${formatMB(p.firmwareSize)} / ${slotLabel}</span>`
-            : `<span class="text-gray-400">— / ${slotLabel}</span>`;
+            : `<span class="text-gray-400">- / ${slotLabel}</span>`;
 
         const imageRow = `
             <tr>
