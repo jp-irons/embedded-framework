@@ -1,5 +1,5 @@
 //
-// embedded/ui.js
+// framework_ui.js
 //
 // Shared UI logic for both Provisioning Mode and Runtime Mode.
 // Handles: scan UI, credential list UI, provisioning form, system actions,
@@ -325,16 +325,25 @@ async function handleFirmwareUpload(file) {
             if (progressBar) progressBar.style.width = pct + "%";
             if (progressPct) progressPct.textContent = pct + "%";
         });
-        // Device reboots after a successful upload — use reconnect polling so
-        // the login overlay appears automatically when it comes back up.
-        // Do NOT call location.reload() here; TLS session tickets are invalidated
-        // on reboot and a page reload in that window fails silently.
+        // Device reboots after a successful upload.  Show the success message
+        // and trigger the login overlay only once the user clicks OK —
+        // forceReauth() in the callback handles that.  We do NOT call
+        // startReconnectPolling() here: it would race with the onOk callback
+        // and show the overlay a second time if the device comes back and
+        // delivers a 401 before OK is clicked.  The login form's own retry
+        // logic (5 attempts × 2 s) handles reconnecting, and its failure
+        // path calls startReconnectPolling() if all retries are exhausted.
         showMessage("success", "Upload Complete",
-                    "Firmware uploaded successfully. Reconnecting automatically — " +
-                    "you will be prompted to log in again shortly.");
-        startReconnectPolling();
+                    "Firmware uploaded successfully. The device is rebooting — " +
+                    "click OK, then log in again to continue.",
+                    () => forceReauth());
     } catch (err) {
-        if (!isAuthenticated() || err.message === "network") return;
+        // Discard stale callbacks that arrive after a device reboot + re-auth:
+        // • "network"       — api.js detected the token changed (onerror/ontimeout)
+        // • "unauthorized"  — stale XHR got a 401 but we correctly skipped handle401()
+        //                     because the token had already been replaced
+        // • !isAuthenticated() — any other path that cleared the token first
+        if (!isAuthenticated() || err.message === "network" || err.message === "unauthorized") return;
         console.error("Firmware upload failed:", err);
         showMessage("error", "Upload Failed", err.message || "Could not upload firmware.");
         // Re-enable buttons and hide progress on failure
@@ -364,9 +373,9 @@ async function handleRollback() {
     try {
         await apiRollbackFirmware();
         showMessage("success", "Rolling Back",
-                    "Rolling back to previous firmware. Reconnecting automatically — " +
-                    "you will be prompted to log in again shortly.");
-        startReconnectPolling();
+                    "Rolling back to previous firmware. The device is rebooting — " +
+                    "click OK, then log in again to continue.",
+                    () => forceReauth());
     } catch (err) {
         if (!isAuthenticated() || err.message === "network") return;
         console.error("Rollback failed:", err);
@@ -390,9 +399,9 @@ async function handleFactoryReset() {
     try {
         await apiFactoryResetFirmware();
         showMessage("success", "Factory Reset",
-                    "Factory reset complete. Reconnecting automatically — " +
-                    "you will be prompted to log in again shortly.");
-        startReconnectPolling();
+                    "Factory reset complete. The device is rebooting — " +
+                    "click OK, then log in again to continue.",
+                    () => forceReauth());
     } catch (err) {
         if (!isAuthenticated() || err.message === "network") return;
         console.error("Factory reset failed:", err);
@@ -438,12 +447,17 @@ async function refreshDeviceInfo() {
         return;
     }
 
-    const flashMB = (info.flashSize / (1024 * 1024)).toFixed(0);
+    const fmt  = (v, divisor, dp) =>
+        (v != null && isFinite(v)) ? (v / divisor).toFixed(dp) : "—";
+    const flashMB       = fmt(info.flashSize,    1024 * 1024, 0);
+    const freeHeapKB    = fmt(info.freeHeap,     1024,        0);
+    const minFreeHeapKB = fmt(info.minFreeHeap,  1024,        0);
+    const tempStr       = (info.temperature != null && isFinite(info.temperature))
+        ? info.temperature.toFixed(1) + "°C"
+        : "—";
     const psramRow = info.psramSize
-        ? `<tr><td class="pr-4 font-semibold text-right">PSRAM Size:</td><td>${(info.psramSize / (1024 * 1024)).toFixed(0)} MB</td></tr>`
+        ? `<tr><td class="pr-4 font-semibold text-right">PSRAM Size:</td><td>${fmt(info.psramSize, 1024 * 1024, 0)} MB</td></tr>`
         : "";
-    const freeHeapKB = (info.freeHeap / 1024).toFixed(0);
-    const minFreeHeapKB = (info.minFreeHeap / 1024).toFixed(0);
 
     container.innerHTML = `
         <table class="text-sm">
@@ -482,7 +496,7 @@ async function refreshDeviceInfo() {
             </tr>
             <tr>
                 <td class="pr-4 font-semibold text-right">Temperature:</td>
-                <td>${info.temperature.toFixed(1)}°C</td>
+                <td>${tempStr}</td>
             </tr>
             <tr>
                 <td class="pr-4 font-semibold text-right">Uptime:</td>

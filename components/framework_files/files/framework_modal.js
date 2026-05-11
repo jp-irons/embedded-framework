@@ -1,4 +1,4 @@
-// _framework_modal.js
+// framework_modal.js
 
 let confirmCallback = null;
 
@@ -43,7 +43,20 @@ export function wireConfirmButtons() {
 
 // ----- Message Modal -----
 
-export function showMessage(type, title, message) {
+let messageOkCallback = null;
+
+/**
+ * Show the message modal.
+ * @param {string}        type    - 'success' | 'error' | 'warning' | 'info'
+ * @param {string}        title
+ * @param {string}        message
+ * @param {Function|null} onOk    - Optional callback fired when OK is clicked.
+ *                                  Use this to sequence actions that should only
+ *                                  happen after the user has acknowledged the
+ *                                  message (e.g. showing the login overlay after
+ *                                  a firmware upload confirmation).
+ */
+export function showMessage(type, title, message, onOk = null) {
     const modal = document.getElementById('message-modal');
     const titleEl = document.getElementById('message-modal-title');
     const msgEl = document.getElementById('message-modal-message');
@@ -61,9 +74,24 @@ export function showMessage(type, title, message) {
         titleEl.style.color = '#111827';
     }
 
+    messageOkCallback = onOk;
     modal.classList.remove('hidden');
 }
 
 export function hideMessageModal() {
     document.getElementById('message-modal').classList.add('hidden');
+    const cb = messageOkCallback;
+    messageOkCallback = null;
+    if (cb) cb();
+}
+
+/**
+ * Discard any pending onOk callback without calling it or hiding the modal.
+ * Call this before showing the login overlay so that if the heartbeat or
+ * reconnect poll triggers re-auth while a reboot message is displayed, the
+ * message's OK button becomes a plain dismiss rather than re-triggering
+ * forceReauth() after the user has already logged back in.
+ */
+export function clearMessageCallback() {
+    messageOkCallback = null;
 }

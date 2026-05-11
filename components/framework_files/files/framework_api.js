@@ -76,15 +76,25 @@ export function forceReauth() {
 // ---------- Generic helpers ----------
 
 async function get(url) {
+    // Snapshot the token before the request so we can detect stale responses.
+    // After a reboot, timed-out in-flight requests (ERR_TIMED_OUT, ~30 s) can
+    // resolve with a 401 long after a fresh login has stored a new token.
+    // Without this guard each such stale 401 would wipe the new token and
+    // re-show the login overlay.
+    const tokenSnapshot = _token;
     let res;
     try { res = await fetch(url, { headers: authHeaders() }); }
     catch { throw new Error("network"); }
-    if (res.status === 401) { handle401(); throw new Error("unauthorized"); }
+    if (res.status === 401) {
+        if (_token === tokenSnapshot) handle401(); // only act if token is unchanged
+        throw new Error("unauthorized");
+    }
     if (!res.ok) throw new Error(`GET ${url} failed: ${res.status}`);
     return res.json();
 }
 
 async function post(url, body = null) {
+    const tokenSnapshot = _token;
     let res;
     try {
         res = await fetch(url, {
@@ -93,16 +103,23 @@ async function post(url, body = null) {
             body: body ? JSON.stringify(body) : null
         });
     } catch { throw new Error("network"); }
-    if (res.status === 401) { handle401(); throw new Error("unauthorized"); }
+    if (res.status === 401) {
+        if (_token === tokenSnapshot) handle401();
+        throw new Error("unauthorized");
+    }
     if (!res.ok) throw new Error(`POST ${url} failed: ${res.status}`);
     return res.json().catch(() => ({}));
 }
 
 async function del(url) {
+    const tokenSnapshot = _token;
     let res;
     try { res = await fetch(url, { method: "DELETE", headers: authHeaders() }); }
     catch { throw new Error("network"); }
-    if (res.status === 401) { handle401(); throw new Error("unauthorized"); }
+    if (res.status === 401) {
+        if (_token === tokenSnapshot) handle401();
+        throw new Error("unauthorized");
+    }
     if (!res.ok) throw new Error(`DELETE ${url} failed: ${res.status}`);
     return res.json().catch(() => ({}));
 }
@@ -160,6 +177,12 @@ export function loadFirmwareStatus() {
  */
 export function uploadFirmware(file, onProgress) {
     return new Promise((resolve, reject) => {
+        // Snapshot the token before the request — same stale-401 guard as
+        // get/post/del.  An upload can take many seconds; if the device reboots
+        // during that window the XHR will eventually resolve with a 401.  Without
+        // the snapshot, handle401() would wipe the new token and re-show the
+        // login overlay even if the user has already logged back in.
+        const tokenSnapshot = _token;
         const xhr = new XMLHttpRequest();
         xhr.open("POST", "/framework/api/firmware/upload");
         xhr.setRequestHeader("Content-Type", "application/octet-stream");
@@ -175,7 +198,7 @@ export function uploadFirmware(file, onProgress) {
 
         xhr.onload = () => {
             if (xhr.status === 401) {
-                handle401();
+                if (_token === tokenSnapshot) handle401();
                 reject(new Error("Unauthorized"));
                 return;
             }
@@ -188,8 +211,15 @@ export function uploadFirmware(file, onProgress) {
                 reject(new Error(msg));
             }
         };
-        xhr.onerror   = () => reject(new Error("Network error during upload"));
-        xhr.ontimeout = () => reject(new Error("Upload timed out"));
+        // If the token has changed since the upload started, the device rebooted
+        // and the user has already re-authenticated — use "network" so the
+        // catch block in handleFirmwareUpload treats this as a stale callback
+        // and discards it silently.  If the token is unchanged, surface the
+        // real message so a genuine connectivity failure is shown to the user.
+        xhr.onerror   = () => reject(new Error(
+            _token !== tokenSnapshot ? "network" : "Network error during upload"));
+        xhr.ontimeout = () => reject(new Error(
+            _token !== tokenSnapshot ? "network" : "Upload timed out"));
 
         // Send the raw binary — no multipart wrapper needed
         xhr.send(file);

@@ -1,5 +1,5 @@
 //
-// embedded/app.js
+// framework_app.js
 //
 // SPA entry point.
 // - Wires modals (once, they live in the shell)
@@ -8,7 +8,7 @@
 //
 
 import { initRouter }         from "./router.js";
-import { wireConfirmButtons, hideMessageModal } from "./modal.js";
+import { wireConfirmButtons, hideMessageModal, clearMessageCallback } from "./modal.js";
 import { initWifiView, teardownWifiView, initDeviceView, initFirmwareView, teardownFirmwareView,
          initHomeView, initSecurityView } from "./ui.js";
 import { login, clearToken, onAuthRequired, getAuthStatus, isAuthenticated,
@@ -67,6 +67,13 @@ document.addEventListener("DOMContentLoaded", () => {
         // typed in the password field.
         const alreadyVisible = loginOverlay && !loginOverlay.classList.contains("hidden");
 
+        // Discard any pending message-modal onOk callback (e.g. the forceReauth()
+        // queued by a firmware-upload success message).  If the heartbeat or any
+        // other mechanism triggered re-auth first, the OK button must become a
+        // plain dismiss rather than firing forceReauth() a second time after the
+        // user has already logged back in.
+        clearMessageCallback();
+
         if (pageShell)    pageShell.inert = true;
         if (loginOverlay) loginOverlay.classList.remove("hidden");
 
@@ -94,6 +101,21 @@ document.addEventListener("DOMContentLoaded", () => {
     // re-mounts via hashchange.
     onAuthRequired(showLoginOverlay);
 
+    // ── Route-navigation auth check ───────────────────────────────────────
+    // Belt-and-suspenders: whenever the user navigates to a new hash route,
+    // explicitly verify the session token *before* the router mounts the
+    // new view.  This fires independently of the background heartbeat and
+    // provides an immediate auth check on any navigation that happens after
+    // a device reboot.
+    // Registered here (before initRouter is called) so this listener fires
+    // first in the event queue.
+    window.addEventListener("hashchange", () => {
+        if (appStarted && isAuthenticated()) {
+            console.debug("[nav] hashchange → auth check");
+            getAuthStatus().catch(() => {});
+        }
+    });
+
     // Proactive token check when the user returns to this tab.
     // Without this, pages that have no background polling (Home, Device,
     // Firmware, Security) would never detect a stale token unless the user
@@ -103,6 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // onAuthRequired() → showLoginOverlay() as normal.
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible" && appStarted && isAuthenticated()) {
+            console.debug("[visibility] tab visible → auth check");
             getAuthStatus().catch(() => {}); // 401 handled inside api.js handle401()
         }
     });
@@ -114,28 +137,72 @@ document.addEventListener("DOMContentLoaded", () => {
     // ---------- Background auth heartbeat ----------
     //
     // Sessions are RAM-only on the device — every reboot (planned or not)
-    // invalidates all tokens.  Pages that have no route-specific polling
-    // (Home, Device, Firmware, Security) never make another API call after
-    // their initial mount, so a stale token from an unexpected reboot would
-    // leave the UI frozen with pre-reboot content indefinitely.
+    // invalidates all tokens.  The #wifi route has a 1-second wifiStatus()
+    // poll that catches a 401 the moment the device comes back up.  Every
+    // other route (#home, #device, #firmware, #security) makes exactly one
+    // API call on mount; if that call lands during the reboot window it gets
+    // a network error that is silently ignored, the device comes back, and
+    // nothing triggers again — leaving the user on a stale page indefinitely.
     //
-    // This 30-second heartbeat ensures a 401 is detected even when the user
-    // is idle.  The response flows through the same handle401() →
-    // onAuthRequired() → showLoginOverlay() path as any other auth failure.
-    // Network errors (device still rebooting / TLS not yet stable) are
-    // silently ignored — the next tick retries.  The heartbeat becomes a
-    // no-op automatically while unauthenticated (isAuthenticated() is false
-    // after clearToken() runs), so it does not hammer the device with
-    // unauthenticated requests while the login overlay is open.
+    // The heartbeat fills that gap.  It fires getAuthStatus() every 3 seconds
+    // (matching the reconnect-poll cadence) while the session token is held.
+    // A 401 flows through handle401() → onAuthRequired() → showLoginOverlay()
+    // exactly as any other auth failure would.  Network errors (device still
+    // booting / TLS not yet stable) are silently ignored — the next tick
+    // retries.  Once a 401 is received the heartbeat stops itself — the
+    // reconnect poll or a successful re-login will restart it.
     let _heartbeatTimer = null;
 
     function startAuthHeartbeat() {
         if (_heartbeatTimer) return; // already running
-        _heartbeatTimer = setInterval(() => {
-            if (appStarted && isAuthenticated()) {
-                getAuthStatus().catch(() => {});
+        console.debug("[heartbeat] starting (3 s interval)");
+        _heartbeatTimer = setInterval(async () => {
+            if (!appStarted) return;
+            if (!isAuthenticated()) {
+                // Token was already cleared (e.g. a prior 401 from another
+                // code path showed the overlay).  Stop the heartbeat so we
+                // don't fire unnecessary unauthenticated requests.
+                console.debug("[heartbeat] token gone — stopping heartbeat");
+                stopAuthHeartbeat();
+                return;
             }
-        }, 30_000);
+            // Yield if the user is being asked to acknowledge a message (e.g. "device
+            // is rebooting — click OK to log in again").  The message's onOk callback
+            // will call forceReauth() which shows the login overlay at the right moment.
+            // Racing with it here causes double-overlay.
+            const msgModal = document.getElementById("message-modal");
+            if (msgModal && !msgModal.classList.contains("hidden")) {
+                console.debug("[heartbeat] message modal open — skipping tick");
+                return;
+            }
+
+            console.debug("[heartbeat] tick — calling getAuthStatus");
+            try {
+                await getAuthStatus();
+                console.debug("[heartbeat] auth ok");
+            } catch (err) {
+                console.debug("[heartbeat] error:", err.message);
+                if (err.message !== "network") {
+                    // 401 (or other non-network failure) — handle401() inside
+                    // api.js has already cleared the token and called
+                    // showLoginOverlay().  Stop the heartbeat; it will be
+                    // restarted by startAuthHeartbeat() on the next successful
+                    // login.
+                    console.debug("[heartbeat] non-network error — stopping heartbeat");
+                    stopAuthHeartbeat();
+                }
+                // "network" → device still rebooting / TLS not yet stable;
+                // keep the heartbeat running so we retry on the next tick.
+            }
+        }, 3_000);
+    }
+
+    function stopAuthHeartbeat() {
+        if (_heartbeatTimer) {
+            clearInterval(_heartbeatTimer);
+            _heartbeatTimer = null;
+            console.debug("[heartbeat] stopped");
+        }
     }
 
     if (loginForm) {
@@ -191,6 +258,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         hideLoginOverlay();
                         initRouter({ routes, fallback: "#home" });
                     } else {
+                        // Re-authentication after a 401 — the heartbeat was
+                        // stopped when the 401 fired; restart it now that we
+                        // have a fresh session token.
+                        startAuthHeartbeat();
                         hideLoginOverlay();
                         window.dispatchEvent(new Event("hashchange"));
                     }
@@ -253,10 +324,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 startAuthHeartbeat();
                 initRouter({ routes, fallback: "#home" });
             })
-            .catch(() => {
-                // Credential is stale (password changed, device rebooted, etc.)
-                // — show the overlay now so the user can re-authenticate.
+            .catch((err) => {
+                // Credential is stale or device unreachable — show the overlay.
                 showLoginOverlay();
+                // If the failure was a network error (device mid-reboot at
+                // page-load time), start reconnect polling immediately so the
+                // overlay auto-recovers when the device comes back.  A 401
+                // ("unauthorized") means the token is simply expired — the
+                // user just needs to type the password; no polling required.
+                if (err?.message === "network") {
+                    startReconnectPolling();
+                }
             });
     } else {
         showLoginOverlay();
@@ -363,6 +441,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div class="flex items-center gap-3 ">
                             <span>Uploading…</span>
                             <div class="flex-grow bg-gray-200 rounded-full h-3">
+                                <div id="fw-progress-bar" class="bg-blue-600 rounded-full h-3" style="width:0%"></div>
                             </div>
                             <span id="fw-progress-pct" class="w-10 text-right">0%</span>
                         </div>
