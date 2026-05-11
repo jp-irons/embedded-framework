@@ -4,13 +4,15 @@
 // SPA entry point.
 // - Wires modals (once, they live in the shell)
 // - Defines routes
-// - Each route renders its view HTML then calls the appropriate initXxx() from ui.js
+// - Each route renders its view HTML then calls the appropriate initXxx() from its view module
 //
 
 import { initRouter }         from "./router.js";
 import { wireConfirmButtons, hideMessageModal, clearMessageCallback } from "./modal.js";
-import { initWifiView, teardownWifiView, initDeviceView, initFirmwareView, teardownFirmwareView,
-         initHomeView, initSecurityView } from "./ui.js";
+import { initWifiView, teardownWifiView }          from "./ui_wifi.js";
+import { initDeviceView }                          from "./ui_device.js";
+import { initFirmwareView, teardownFirmwareView }  from "./ui_firmware.js";
+import { initHomeView, initSecurityView }          from "./ui_security.js";
 import { login, clearToken, onAuthRequired, getAuthStatus, isAuthenticated,
          startReconnectPolling, stopReconnectPolling } from "./api.js";
 

@@ -30,7 +30,7 @@ extern "C" void app_main(void) {
 	
 	// Default constructor uses built-in AP config and rootUri "/framework".
 	// API endpoints are at  <rootUri>/api/*  e.g. /framework/api/wifi
-	// UI assets are at      <rootUri>/ui/*   e.g. /framework/ui/index.html
+	// UI assets are at      <rootUri>/ui/*     e.g. /framework/ui/index.html
 	//
 	// To customise, pass an ApConfig and optional rootUri:
 	//
