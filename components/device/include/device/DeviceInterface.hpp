@@ -24,6 +24,7 @@ struct DeviceInfo {
 common::Result init();
 common::Result clearNvs();
 common::Result reboot(); // optional
-DeviceInfo info(); // struct you define
+DeviceInfo info();
+float readTemperature(); // single owner of the sensor; safe to call from anywhere
 
 } // namespace device

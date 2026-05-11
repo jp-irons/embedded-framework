@@ -66,13 +66,13 @@ Result clearNvs() {
         return r;
     }
 
-    // Re‑initialise NVS so the system is in a clean state
+    // Re-initialise NVS so the system is in a clean state
     r = toResult(nvs_flash_init());
     if (r != Result::Ok) {
         log.error("Failed to re-init NVS: %s", toString(r));
         return r;
     }
-    log.info("NVS successfully erased and re‑initialised");
+    log.info("NVS successfully erased and re-initialised");
     return Result::Ok;
 }
 
@@ -130,16 +130,44 @@ size_t detectFlashSize() {
     return maxEnd;  // total flash size in bytes
 }
 
-static float readTemperature() {
+// Single owner of the internal temperature sensor.  Both info() and the
+// public readTemperature() call this; the driver only allows one install.
+static float readTemperatureInternal() {
     static temperature_sensor_handle_t handle = nullptr;
+    static bool initFailed = false;
+
+    if (initFailed) return 0.0f;
+
     if (handle == nullptr) {
-        temperature_sensor_config_t cfg = TEMPERATURE_SENSOR_CONFIG_DEFAULT(20, 100);
-        temperature_sensor_install(&cfg, &handle);
-        temperature_sensor_enable(handle);
+        // Range covers typical ambient + self-heating for a running ESP32-S3.
+        temperature_sensor_config_t cfg = TEMPERATURE_SENSOR_CONFIG_DEFAULT(10, 80);
+        esp_err_t err = temperature_sensor_install(&cfg, &handle);
+        if (err != ESP_OK) {
+            log.warn("temperature_sensor_install failed: %s", esp_err_to_name(err));
+            handle = nullptr;
+            initFailed = true;
+            return 0.0f;
+        }
+        err = temperature_sensor_enable(handle);
+        if (err != ESP_OK) {
+            log.warn("temperature_sensor_enable failed: %s", esp_err_to_name(err));
+            temperature_sensor_uninstall(handle);
+            handle = nullptr;
+            initFailed = true;
+            return 0.0f;
+        }
     }
+
     float celsius = 0.0f;
-    temperature_sensor_get_celsius(handle, &celsius);
+    esp_err_t err = temperature_sensor_get_celsius(handle, &celsius);
+    if (err != ESP_OK) {
+        log.warn("temperature_sensor_get_celsius failed: %s", esp_err_to_name(err));
+    }
     return celsius;
+}
+
+float readTemperature() {
+    return readTemperatureInternal();
 }
 
 DeviceInfo info() {
@@ -182,7 +210,7 @@ DeviceInfo info() {
     i.lastReset = resetReasonStr(esp_reset_reason());
 
     // Internal temperature sensor
-    i.temperature = readTemperature();
+    i.temperature = readTemperatureInternal();
 
     // Uptime
     i.uptime = formatUptime(esp_timer_get_time());
