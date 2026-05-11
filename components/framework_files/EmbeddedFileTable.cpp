@@ -30,9 +30,6 @@ extern const uint8_t _binary_framework_modal_js_end[]       asm("_binary_framewo
 extern const uint8_t _binary_framework_router_js_start[]    asm("_binary_framework_router_js_start");
 extern const uint8_t _binary_framework_router_js_end[]      asm("_binary_framework_router_js_end");
 
-extern const uint8_t _binary_framework_styles_css_start[]   asm("_binary_framework_styles_css_start");
-extern const uint8_t _binary_framework_styles_css_end[]     asm("_binary_framework_styles_css_end");
-
 extern const uint8_t _binary_framework_ui_device_js_start[]   asm("_binary_framework_ui_device_js_start");
 extern const uint8_t _binary_framework_ui_device_js_end[]     asm("_binary_framework_ui_device_js_end");
 
@@ -66,7 +63,6 @@ static const FileEntry files[] = {
     {"/index.html",   _binary_framework_index_html_start,   _binary_framework_index_html_end},
     {"/modal.js",     _binary_framework_modal_js_start,     _binary_framework_modal_js_end},
     {"/router.js",    _binary_framework_router_js_start,    _binary_framework_router_js_end},
-    {"/styles.css",      _binary_framework_styles_css_start,        _binary_framework_styles_css_end},
     {"/ui_device.js",   _binary_framework_ui_device_js_start,   _binary_framework_ui_device_js_end},
     {"/ui_firmware.js", _binary_framework_ui_firmware_js_start, _binary_framework_ui_firmware_js_end},
     {"/ui_security.js", _binary_framework_ui_security_js_start, _binary_framework_ui_security_js_end},

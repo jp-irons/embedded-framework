@@ -21,11 +21,14 @@ static logger::Logger log{"AppFileTable"};
 extern const uint8_t _binary_app_index_html_start[] asm("_binary_app_index_html_start");
 extern const uint8_t _binary_app_index_html_end[]   asm("_binary_app_index_html_end");
 
-extern const uint8_t _binary_app_css_start[]        asm("_binary_app_css_start");
-extern const uint8_t _binary_app_css_end[]          asm("_binary_app_css_end");
+extern const uint8_t _binary_styles_css_start[]     asm("_binary_styles_css_start");
+extern const uint8_t _binary_styles_css_end[]       asm("_binary_styles_css_end");
 
 extern const uint8_t _binary_app_js_start[]         asm("_binary_app_js_start");
 extern const uint8_t _binary_app_js_end[]           asm("_binary_app_js_end");
+
+extern const uint8_t _binary_favicon_ico_start[]    asm("_binary_favicon_ico_start");
+extern const uint8_t _binary_favicon_ico_end[]      asm("_binary_favicon_ico_end");
 
 // ------------------------------------------------------------
 // File table — paths are looked up after EmbeddedFileHandler
@@ -41,9 +44,10 @@ struct FileEntry {
 };
 
 static const FileEntry files[] = {
-    {"/index.html", _binary_app_index_html_start, _binary_app_index_html_end},
-    {"/app.css",    _binary_app_css_start,        _binary_app_css_end},
-    {"/app.js",     _binary_app_js_start,         _binary_app_js_end},
+    {"/index.html",   _binary_app_index_html_start, _binary_app_index_html_end},
+    {"/styles.css",   _binary_styles_css_start,     _binary_styles_css_end},
+    {"/app.js",       _binary_app_js_start,         _binary_app_js_end},
+    {"/favicon.ico",  _binary_favicon_ico_start,    _binary_favicon_ico_end},
 };
 } // anonymous namespace
 

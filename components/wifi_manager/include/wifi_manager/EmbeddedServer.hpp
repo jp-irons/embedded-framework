@@ -29,7 +29,8 @@ struct WiFiContext;
  *   3. Framework API  — /framework/api/...
  *   4. App routes     — registered via addAppRoute()     (method + prefix match)
  *   5. App files      — registered via addAppFileHandler() (prefix match)
- *   6. Framework files — /framework/ui/... + /favicon.ico (fallback)
+ *   6. Favicon        — app table first (if set via setFaviconTable), then framework fallback
+ *   7. Framework files — /framework/ui/... (fallback)
  */
 class EmbeddedServer : public http::HttpHandler {
   public:
@@ -90,6 +91,16 @@ class EmbeddedServer : public http::HttpHandler {
      */
     void addAppFileHandler(std::string prefix, http::HttpHandler *handler);
 
+    /**
+     * Register the app's file table as the primary source for /favicon.ico.
+     * When set, the server checks this table before falling back to the
+     * framework's built-in generic icon.  If the app's table has no
+     * "/favicon.ico" entry the framework default is served instead.
+     *
+     * Must be called before start().
+     */
+    void setFaviconTable(framework_files::EmbeddedFileTable *table);
+
     void startProvisioningMode();
     void startRuntimeMode();
 
@@ -125,11 +136,15 @@ class EmbeddedServer : public http::HttpHandler {
 
     http::HttpServer server;
 
-    // Framework file table + handler (fallback for /framework/ui/* and /favicon.ico)
+    // Framework file table + handler (fallback for /framework/ui/*).
     // frameworkFileTable_ MUST be declared before frameworkFileHandler_ so it is
     // initialised first.
     framework_files::FrameworkFileTable  frameworkFileTable_;
     framework_files::EmbeddedFileHandler frameworkFileHandler_;
+
+    // App-supplied favicon table — checked before the framework's built-in icon.
+    // Null until setFaviconTable() is called.
+    framework_files::EmbeddedFileTable  *appFaviconTable_ = nullptr;
 
     // Framework API handlers (value members — constructed from ctor args)
     wifi_manager::WiFiApiHandler                  wifiHandler;

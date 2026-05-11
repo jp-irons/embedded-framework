@@ -23,6 +23,11 @@ void ApplicationContext::start() {
     // Requests to /app/ui/* are served from main/files/ embedded at build time.
     fw_.addFileHandler("/app/ui/", &appFileHandler_);
 
+    // ── Register app favicon ───────────────────────────────────────────────
+    // The app's file table is checked first for /favicon.ico; the framework's
+    // built-in generic icon is served as a fallback if no entry is found.
+    fw_.setFaviconTable(&appFileTable_);
+
     // ── Set the entry point ────────────────────────────────────────────────
     // Visiting the root URL (/) will redirect here.  Remove or change this
     // line to fall back to the framework's own management UI (/framework/ui/).
