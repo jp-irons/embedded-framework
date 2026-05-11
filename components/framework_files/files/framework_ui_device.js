@@ -152,7 +152,7 @@ async function handleClearNvs() {
     } catch (err) {
         if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
-        showMessage("error", "Clear Failed", "Unable to clear NVS.");
+        showMessage("error", "Clear Failed", err.message || "Unable to clear NVS.");
     }
 }
 
@@ -185,6 +185,6 @@ async function handleReboot() {
     } catch (err) {
         if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
-        showMessage("error", "Reboot Failed", "Unable to reboot device.");
+        showMessage("error", "Reboot Failed", err.message || "Unable to reboot device.");
     }
 }

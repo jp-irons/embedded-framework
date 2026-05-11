@@ -77,6 +77,7 @@ async function loadFirmwareStatus() {
     try {
         const data = await apiLoadFirmwareStatus();
         _lastPartitions = data.partitions || [];
+        renderSummary(_lastPartitions);
         renderPartitionCards(_lastPartitions);
         updateRollbackButton(_lastPartitions);
     } catch (err) {
@@ -110,41 +111,6 @@ function updateRollbackButton(partitions) {
     }
 }
 
-function partitionBadges(p) {
-    const badges = [];
-    const stateMap = {
-        valid:   "fw-badge-valid",
-        pending: "fw-badge-pending",
-        invalid: "fw-badge-invalid",
-        aborted: "fw-badge-aborted",
-        new:     "fw-badge-new",
-        empty:   "fw-badge-empty",
-        factory: "fw-badge-empty",
-    };
-
-    if (p.isRunning) {
-        badges.push(`<span class="fw-badge fw-badge-running">Running</span>`);
-        // Also show the actual OTA state for the running partition so the user
-        // can confirm it has been validated (valid) vs. still pending.
-        const otaCls   = stateMap[p.otaState] || "";
-        const otaLabel = p.otaState ? p.otaState.charAt(0).toUpperCase() + p.otaState.slice(1) : "";
-        if (otaLabel && p.otaState !== "empty") {
-            badges.push(`<span class="fw-badge ${otaCls}">${otaLabel}</span>`);
-        }
-    }
-
-    if (p.isNextBoot && !p.isRunning) {
-        badges.push(`<span class="fw-badge fw-badge-next">Next Boot</span>`);
-    }
-
-    if (!p.isRunning) {
-        const cls   = stateMap[p.state] || "fw-badge-empty";
-        const label = p.state.charAt(0).toUpperCase() + p.state.slice(1);
-        badges.push(`<span class="fw-badge ${cls}">${label}</span>`);
-    }
-
-    return badges.join(" ");
-}
 
 /** Always render as MB with 2 decimal places for consistent image-size display. */
 function formatMB(n) {
@@ -162,12 +128,83 @@ function formatBuildDate(dateStr) {
         .replace(/(\d{2}:\d{2}):\d{2}$/, "$1");     // "14:48:23" → "14:48"
 }
 
-/** Truncate "v6.0-dev-3948-gabcdef" → "v6.0". */
+/** Truncate "v6.0-dev-3948-gabcdef" → "IDF v6.0". */
 function truncateIdfVer(ver) {
     const m = (ver || "").match(/^(v[\d.]+)/);
-    return m ? m[1] : (ver || "");
+    return "IDF " + (m ? m[1] : (ver || ""));
 }
 
+// ── Accent color for the card's top border, keyed on partition state ────────
+function accentColor(p) {
+    if (p.isRunning)                                    return "#16a34a"; // green
+    if (p.state === "valid")                            return "#16a34a"; // green
+    if (p.state === "pending")                          return "#d97706"; // amber
+    if (p.state === "invalid" || p.state === "aborted") return "#dc2626"; // red
+    if (p.state === "new")                              return "#7c3aed"; // purple
+    return "#d1d5db"; // gray — empty / factory
+}
+
+/**
+ * Render the summary pane at the top of the Firmware page.
+ * Shows the currently-running partition's label, version, build date,
+ * and a "next boot" notice if a different partition is queued.
+ */
+function renderSummary(partitions) {
+    const el = document.getElementById("fw-summary");
+    if (!el) return;
+
+    const running = partitions.find(p => p.isRunning);
+    if (!running) {
+        el.innerHTML = `<span class="text-gray-500">No running partition found.</span>`;
+        return;
+    }
+
+    // Badges for the running partition
+    const badges = [`<span class="fw-badge fw-badge-running">Running</span>`];
+    const stateMap = {
+        valid:   "fw-badge-valid",
+        pending: "fw-badge-pending",
+        invalid: "fw-badge-invalid",
+        aborted: "fw-badge-aborted",
+    };
+    if (running.otaState && running.otaState !== "empty" && stateMap[running.otaState]) {
+        const lbl = running.otaState.charAt(0).toUpperCase() + running.otaState.slice(1);
+        badges.push(`<span class="fw-badge ${stateMap[running.otaState]}">${lbl}</span>`);
+    }
+
+    // Optional "next boot" notice when a different partition is queued
+    const nextBoot = partitions.find(p => p.isNextBoot && !p.isRunning);
+    const nextBootHtml = nextBoot ? `
+        <div style="margin-top:0.5rem; font-size:0.75rem; color:#92400e;
+                    background:#fffbeb; border:1px solid #fcd34d;
+                    border-radius:0.25rem; padding:0.375rem 0.625rem;">
+            Next boot: <strong>${nextBoot.label}</strong>${nextBoot.version ? ` · ${nextBoot.version}` : ""} — reboot to apply
+        </div>` : "";
+
+    el.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+                <span style="font-weight:600; font-size:1rem;">${running.label}</span>
+                ${running.version
+                    ? `<span style="margin-left:0.5rem; color:#6b7280;">${running.version}</span>`
+                    : ""}
+            </div>
+            <div style="display:flex; gap:0.375rem;">${badges.join("")}</div>
+        </div>
+        ${running.buildDate
+            ? `<div style="margin-top:0.25rem; font-size:0.75rem; color:#6b7280;">
+                   Built ${formatBuildDate(running.buildDate)}
+               </div>`
+            : ""}
+        ${nextBootHtml}
+    `;
+}
+
+/**
+ * Render the 3-column partition grid.
+ * Each card has a colored top border indicating its state, with version,
+ * build date (on its own row), image size, project, and IDF version.
+ */
 function renderPartitionCards(partitions) {
     const container = document.getElementById("firmware-partitions");
     if (!container) return;
@@ -180,45 +217,67 @@ function renderPartitionCards(partitions) {
 
     container.innerHTML = partitions.map(p => {
         const hasFirmware = !!p.version;
-        const cardBg      = hasFirmware ? "bg-white" : "bg-gray-50";
+        const accent      = accentColor(p);
 
-        // ── Version row (firmware only) ──────────────────────────────────
-        const versionRow = hasFirmware ? `
-            <tr>
-                <td class="pr-6 text-gray-500 align-top">Version</td>
-                <td>${p.version}<span class="text-gray-400 ml-2">· ${formatBuildDate(p.buildDate)}</span></td>
-            </tr>` : "";
+        // Badges — Running and/or Next Boot first, then OTA/partition state
+        const badges = [];
+        if (p.isRunning) {
+            badges.push(`<span class="fw-badge fw-badge-running">Running</span>`);
+        }
+        if (p.isNextBoot && !p.isRunning) {
+            badges.push(`<span class="fw-badge fw-badge-next">Next Boot</span>`);
+        }
+        const stateMap = {
+            valid:   "fw-badge-valid",
+            pending: "fw-badge-pending",
+            invalid: "fw-badge-invalid",
+            aborted: "fw-badge-aborted",
+            new:     "fw-badge-new",
+            empty:   "fw-badge-empty",
+            factory: "fw-badge-empty",
+        };
+        // For running partitions show the OTA state; for others show partition state
+        const displayState = p.isRunning ? (p.otaState || p.state) : p.state;
+        if (displayState && displayState !== "empty") {
+            const cls = stateMap[displayState] || "";
+            const lbl = displayState.charAt(0).toUpperCase() + displayState.slice(1);
+            badges.push(`<span class="fw-badge ${cls}">${lbl}</span>`);
+        }
 
-        // ── Image row (always shown) ──────────────────────────────────────
-        const slotLabel  = p.partitionSize ? formatMB(p.partitionSize) : "—";
-        const imageCell  = p.firmwareSize
-            ? `<span>${formatMB(p.firmwareSize)} / ${slotLabel}</span>`
-            : `<span class="text-gray-400">- / ${slotLabel}</span>`;
+        // Image size cell
+        const slotLabel = p.partitionSize ? formatMB(p.partitionSize) : "—";
+        const imageLabel = p.firmwareSize
+            ? `${formatMB(p.firmwareSize)} / ${slotLabel}`
+            : `— / ${slotLabel}`;
 
-        const imageRow = `
-            <tr>
-                <td class="pr-6 text-gray-500 align-middle">Image</td>
-                <td>${imageCell}</td>
-            </tr>`;
+        // Value-only rows — no label column, context makes each value self-evident
+        const tdVal = `style="padding-bottom:0.2rem; color:#374151;"`;
+        const rows = hasFirmware ? `
+            <tr><td ${tdVal}>${p.version}</td></tr>
+            <tr><td ${tdVal}>${formatBuildDate(p.buildDate)}</td></tr>
+            <tr><td ${tdVal}>${imageLabel}</td></tr>
+            <tr><td ${tdVal}>${truncateIdfVer(p.idfVersion)}</td></tr>
+        ` : `
+            <tr><td ${tdVal}>${imageLabel}</td></tr>
+        `;
 
-        // ── Project + IDF rows (firmware only) ───────────────────────────
-        const projectRow = hasFirmware
-            ? `<tr><td class="pr-6 text-gray-500">Project</td><td>${p.project}</td></tr>` : "";
-        const idfRow = hasFirmware
-            ? `<tr><td class="pr-6 text-gray-500">IDF</td><td>${truncateIdfVer(p.idfVersion)}</td></tr>` : "";
+        // Project name as a muted subtitle — part of the card identity, not a data row
+        const projectSubtitle = hasFirmware && p.project
+            ? `<div style="font-size:0.7rem; color:#9ca3af; margin-bottom:0.375rem;
+                           white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+                    title="${p.project}">${p.project}</div>`
+            : "";
 
         return `
-            <div class="border rounded p-4 ${cardBg} shadow-sm">
-                <div class="flex justify-between items-center">
-                    <span class="font-semibold">${p.label}</span>
-                    <div class="flex gap-2">${partitionBadges(p)}</div>
+            <div class="fw-partition-card" style="border-top:4px solid ${accent};">
+                <div class="fw-partition-card-body">
+                    <div style="font-weight:600; margin-bottom:0.1rem;">${p.label}</div>
+                    ${projectSubtitle}
+                    <div style="display:flex; flex-wrap:wrap; gap:0.25rem; margin-bottom:0.5rem;">
+                        ${badges.join("")}
+                    </div>
+                    <table style="width:100%;">${rows}</table>
                 </div>
-                <table class="text-sm mt-3">
-                    ${versionRow}
-                    ${imageRow}
-                    ${projectRow}
-                    ${idfRow}
-                </table>
             </div>`;
     }).join("");
 }

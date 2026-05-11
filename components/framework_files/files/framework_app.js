@@ -69,13 +69,6 @@ document.addEventListener("DOMContentLoaded", () => {
         // typed in the password field.
         const alreadyVisible = loginOverlay && !loginOverlay.classList.contains("hidden");
 
-        // Discard any pending message-modal onOk callback (e.g. the forceReauth()
-        // queued by a firmware-upload success message).  If the heartbeat or any
-        // other mechanism triggered re-auth first, the OK button must become a
-        // plain dismiss rather than firing forceReauth() a second time after the
-        // user has already logged back in.
-        clearMessageCallback();
-
         if (pageShell)    pageShell.inert = true;
         if (loginOverlay) loginOverlay.classList.remove("hidden");
 
@@ -254,6 +247,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     console.debug("[auth] login ok — re-rendering in place");
                     stopReconnectPolling();
                     if (submitBtn) submitBtn.disabled = false;
+                    // Clear any pending message-modal callback (e.g. the forceReauth()
+                    // queued by a firmware-upload success message) now that the user
+                    // has actually authenticated.  Doing this here — rather than in
+                    // showLoginOverlay — prevents a race where the heartbeat clears
+                    // the callback before the user has had a chance to see the message.
+                    clearMessageCallback();
                     if (!appStarted) {
                         appStarted = true;
                         startAuthHeartbeat();
@@ -433,27 +432,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 app.innerHTML = `
                     <h1 class="text-2xl font-semibold mb-4">Firmware</h1>
 
-                    <div id="firmware-partitions" class="space-y-3">
-                        <div class="text-gray-500 text-sm">Loading partition info…</div>
+                    <!-- Summary: running partition + version, always visible -->
+                    <div id="fw-summary" class="fw-summary">
+                        <div class="text-gray-500">Loading…</div>
                     </div>
-					
-                    <!-- Upload progress (hidden until an upload is in progress) -->
-                    <div id="fw-upload-progress" 
-							class="hidden mt-4 border rounded p-4 bg-gray-300 shadow-sm text-sm">
-                        <div class="flex items-center gap-3 ">
-                            <span>Uploading…</span>
-                            <div class="flex-grow bg-gray-200 rounded-full h-3">
+
+                    <!-- Upload progress — sits between summary and buttons so it's always visible -->
+                    <div id="fw-upload-progress"
+                         class="hidden border rounded p-4 bg-gray-100 text-sm mb-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-gray-700 whitespace-nowrap">Uploading…</span>
+                            <div class="flex-grow bg-gray-300 rounded-full h-3">
                                 <div id="fw-progress-bar" class="bg-blue-600 rounded-full h-3" style="width:0%"></div>
                             </div>
                             <span id="fw-progress-pct" class="w-10 text-right">0%</span>
                         </div>
-					</div>
+                    </div>
 
-
-                    <!-- Hidden file input — triggered by the Upload button -->
-                    <input id="fw-file-input" type="file" accept=".bin" class="hidden" />
-
-                    <div class="mt-6 pt-4 border-t border-gray-300">
+                    <!-- Action buttons -->
+                    <div class="pt-4 mb-6">
                         <p id="fw-rollback-note"
                            class="hidden text-xs text-gray-500 mb-3 text-right">
                             Rollback is available after a second OTA upgrade, when a
@@ -476,6 +473,15 @@ document.addEventListener("DOMContentLoaded", () => {
                                 Factory Reset
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Hidden file input — triggered by the Upload button -->
+                    <input id="fw-file-input" type="file" accept=".bin" class="hidden" />
+
+                    <!-- Partition detail grid -->
+                    <div class="fw-section-title">Partitions</div>
+                    <div id="firmware-partitions" class="fw-partition-grid">
+                        <div class="text-gray-500 text-sm">Loading…</div>
                     </div>
                 `;
                 initFirmwareView();

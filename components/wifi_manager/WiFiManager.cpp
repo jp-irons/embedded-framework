@@ -35,7 +35,7 @@ void WiFiManager::start() {
     log.debug("start: starting embeddedServer");
     ctx.embeddedServer->start();
 
-    if (!currentCredential->ssid.empty()) {
+    if (currentCredential.has_value() && !currentCredential->ssid.empty()) {
         sm.onEvent(WiFiEvent::CredentialsProvided);
     } else {
         sm.onEvent(WiFiEvent::StartProvisioning);
@@ -233,8 +233,10 @@ WiFiStaStatus WiFiManager::getStaStatus() const {
     // 2. Connected?
     st.connected = (sm.getState() == WiFiState::STA_Connected);
 
-    // 3. Active SSID
-    st.ssid = currentCredential->ssid;
+    // 3. Active SSID — empty in AP/provisioning mode (no credential loaded)
+    if (currentCredential.has_value()) {
+        st.ssid = currentCredential->ssid;
+    }
 
     // 4. Last error reason (string)
     st.lastErrorReason = lastErrorReason;

@@ -162,7 +162,7 @@ async function submitProvisioning() {
     } catch (err) {
         if (!isAuthenticated() || err.message === "network") return;
         console.error("Submit failed:", err);
-        showMessage("error", "Save Failed", "Unable to save credential.");
+        showMessage("error", "Save Failed", err.message || "Unable to save credential.");
     }
 }
 
@@ -240,7 +240,7 @@ async function handleDeleteCredential(ssid) {
     } catch (err) {
         if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
-        showMessage("error", "Delete Failed", `Unable to delete "${ssid}".`);
+        showMessage("error", "Delete Failed", err.message || `Unable to delete "${ssid}".`);
     }
 }
 
@@ -251,7 +251,7 @@ async function handleMakeFirst(ssid) {
     } catch (err) {
         if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
-        showMessage("error", "Reorder Failed", "Unable to reorder credentials.");
+        showMessage("error", "Reorder Failed", err.message || "Unable to reorder credentials.");
     }
 }
 
@@ -277,7 +277,7 @@ async function handleClearCredentials() {
     } catch (err) {
         if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
-        showMessage("error", "Clear Failed", "Unable to clear credentials.");
+        showMessage("error", "Clear Failed", err.message || "Unable to clear credentials.");
     }
 }
 

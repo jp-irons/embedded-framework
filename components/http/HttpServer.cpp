@@ -39,8 +39,13 @@ void HttpServer::start() {
     }
 
     httpd_ssl_config_t conf = HTTPD_SSL_CONFIG_DEFAULT();
-    conf.httpd.uri_match_fn = httpd_uri_match_wildcard;
+    conf.httpd.uri_match_fn    = httpd_uri_match_wildcard;
     conf.httpd.lru_purge_enable = true;
+    // The framework UI loads ~10 files as parallel ES-module fetches.
+    // HTTPD_SSL_CONFIG_DEFAULT gives max_open_sockets=9 which is too tight
+    // once the redirect server also holds a few slots.  Set 13 here and keep
+    // CONFIG_LWIP_MAX_SOCKETS >= 16 in sdkconfig so lwIP has headroom.
+    conf.httpd.max_open_sockets = 13;
 
     if (!runtimeCertPem_.empty()) {
         // Use the per-device cert generated/loaded by DeviceCert

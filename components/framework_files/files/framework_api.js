@@ -89,7 +89,11 @@ async function get(url) {
         if (_token === tokenSnapshot) handle401(); // only act if token is unchanged
         throw new Error("unauthorized");
     }
-    if (!res.ok) throw new Error(`GET ${url} failed: ${res.status}`);
+    if (!res.ok) {
+        let msg = `HTTP ${res.status}`;
+        try { const d = await res.json(); if (d.error) msg = d.error; } catch {}
+        throw new Error(msg);
+    }
     return res.json();
 }
 
@@ -107,7 +111,11 @@ async function post(url, body = null) {
         if (_token === tokenSnapshot) handle401();
         throw new Error("unauthorized");
     }
-    if (!res.ok) throw new Error(`POST ${url} failed: ${res.status}`);
+    if (!res.ok) {
+        let msg = `HTTP ${res.status}`;
+        try { const d = await res.json(); if (d.error) msg = d.error; } catch {}
+        throw new Error(msg);
+    }
     return res.json().catch(() => ({}));
 }
 
@@ -120,7 +128,11 @@ async function del(url) {
         if (_token === tokenSnapshot) handle401();
         throw new Error("unauthorized");
     }
-    if (!res.ok) throw new Error(`DELETE ${url} failed: ${res.status}`);
+    if (!res.ok) {
+        let msg = `HTTP ${res.status}`;
+        try { const d = await res.json(); if (d.error) msg = d.error; } catch {}
+        throw new Error(msg);
+    }
     return res.json().catch(() => ({}));
 }
 
