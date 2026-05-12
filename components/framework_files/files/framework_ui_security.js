@@ -28,6 +28,7 @@ import { showMessage } from "./modal.js";
  * if the password has never been changed from its default.
  */
 export async function initHomeView() {
+    if (!isAuthenticated()) return;
     try {
         const status = await getAuthStatus();
         if (!status.passwordChanged) {

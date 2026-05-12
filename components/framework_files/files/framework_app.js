@@ -14,7 +14,7 @@ import { initDeviceView }                          from "./ui_device.js";
 import { initFirmwareView, teardownFirmwareView }  from "./ui_firmware.js";
 import { initHomeView, initSecurityView }          from "./ui_security.js";
 import { login, clearToken, onAuthRequired, getAuthStatus, isAuthenticated,
-         startReconnectPolling, stopReconnectPolling, isUploadActive } from "./api.js";
+         forceReauth, startReconnectPolling, stopReconnectPolling, isUploadActive } from "./api.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -266,19 +266,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     // showLoginOverlay — prevents a race where the heartbeat clears
                     // the callback before the user has had a chance to see the message.
                     clearMessageCallback();
-                    if (!appStarted) {
-                        appStarted = true;
-                        startAuthHeartbeat();
-                        hideLoginOverlay();
-                        initRouter({ routes, fallback: "#home" });
-                    } else {
-                        // Re-authentication after a 401 — the heartbeat was
-                        // stopped when the 401 fired; restart it now that we
-                        // have a fresh session token.
-                        startAuthHeartbeat();
-                        hideLoginOverlay();
-                        window.dispatchEvent(new Event("hashchange"));
-                    }
+                    // The router is always running — restart the heartbeat
+                    // and re-mount the current route via hashchange.
+                    startAuthHeartbeat();
+                    hideLoginOverlay();
+                    window.dispatchEvent(new Event("hashchange"));
                     return; // done — exit the submit handler
 
                 } catch (err) {
@@ -329,31 +321,6 @@ document.addEventListener("DOMContentLoaded", () => {
     //    overlay if the credential turns out to be stale.  Showing it
     //    unconditionally then hiding it once the round-trip completes causes a
     //    visible flash on every navigation between pages.
-    if (isAuthenticated()) {
-        getAuthStatus()
-            .then(() => {
-                // Credential is still valid — start the app without ever
-                // showing the overlay.
-                appStarted = true;
-                startAuthHeartbeat();
-                initRouter({ routes, fallback: "#home" });
-            })
-            .catch((err) => {
-                // Credential is stale or device unreachable — show the overlay.
-                showLoginOverlay();
-                // If the failure was a network error (device mid-reboot at
-                // page-load time), start reconnect polling immediately so the
-                // overlay auto-recovers when the device comes back.  A 401
-                // ("unauthorized") means the token is simply expired — the
-                // user just needs to type the password; no polling required.
-                if (err?.message === "network") {
-                    startReconnectPolling();
-                }
-            });
-    } else {
-        showLoginOverlay();
-    }
-
     // Route table
     const routes = [
         {
@@ -380,6 +347,7 @@ document.addEventListener("DOMContentLoaded", () => {
         {
             hash: "#wifi",
             mount(app) {
+                if (!isAuthenticated()) { forceReauth(); return; }
                 app.innerHTML = `
                     <h1 class="text-2xl font-semibold mb-4">Wi-Fi Provisioning</h1>
 
@@ -442,6 +410,7 @@ document.addEventListener("DOMContentLoaded", () => {
         {
             hash: "#firmware",
             mount(app) {
+                if (!isAuthenticated()) { forceReauth(); return; }
                 app.innerHTML = `
                     <h1 class="text-2xl font-semibold mb-4">Firmware</h1>
 
@@ -506,6 +475,7 @@ document.addEventListener("DOMContentLoaded", () => {
         {
             hash: "#device",
             mount(app) {
+                if (!isAuthenticated()) { forceReauth(); return; }
                 app.innerHTML = `
                     <h1 class="text-2xl font-semibold mb-4">Device</h1>
 
@@ -537,6 +507,7 @@ document.addEventListener("DOMContentLoaded", () => {
         {
             hash: "#security",
             mount(app) {
+                if (!isAuthenticated()) { forceReauth(); return; }
                 app.innerHTML = `
                     <h1 class="text-2xl font-semibold mb-4">Security</h1>
 
@@ -580,6 +551,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     ];
 
-    // Note: initRouter() is called inside the login handler above,
-    // after the first successful authentication.
+    // Always start the router immediately — index.html loads without auth.
+    // Protected routes (#wifi, #device, #firmware, #security) enforce auth
+    // themselves via forceReauth(); the home page is freely accessible.
+    appStarted = true;
+    initRouter({ routes, fallback: "#home" });
+
+    if (isAuthenticated()) {
+        // Validate the stored token quietly in the background.  On success,
+        // start the heartbeat.  On failure, show the overlay (stale token)
+        // or start reconnect polling (device mid-reboot at page-load time).
+        getAuthStatus()
+            .then(() => {
+                startAuthHeartbeat();
+            })
+            .catch((err) => {
+                showLoginOverlay();
+                if (err?.message === "network") {
+                    startReconnectPolling();
+                }
+            });
+    }
 });
