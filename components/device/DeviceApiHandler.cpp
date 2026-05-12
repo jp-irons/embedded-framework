@@ -1,15 +1,15 @@
 #include "device/DeviceApiHandler.hpp"
 
 #include "common/Result.hpp"
-#include "freertos/task.h"
 #include "logger/Logger.hpp"
 
 namespace device {
 
 static logger::Logger log{"DeviceApiHandler"};
 
-DeviceApiHandler::DeviceApiHandler(DeviceInterface& device)
-    : device_(device) {
+DeviceApiHandler::DeviceApiHandler(DeviceInterface& device, TimerInterface& timer)
+    : device_(device)
+    , timer_(timer) {
     log.debug("constructor");
 }
 
@@ -67,10 +67,11 @@ common::Result DeviceApiHandler::handleReboot(HttpRequest& req,
         return Result::Ok;
     }
     res.sendJson("{\"status\":\"rebooting\"}");
-    log.debug("waiting 500ms for TCP stack to flush");
-    vTaskDelay(pdMS_TO_TICKS(500));
-    log.info("rebooting device");
-    device_.reboot();
+    log.debug("scheduling reboot in 500ms");
+    timer_.runAfter(500, [this]() {
+        log.info("rebooting device");
+        device_.reboot();
+    });
     return Result::Ok;
 }
 

@@ -256,3 +256,25 @@ public:
 ```
 
 Refer to `CONTRIBUTING.md` in the framework repository for the full handler conventions.
+
+---
+
+## Serving static files
+
+The framework serves embedded static files through `AppFileTable`. Any file placed under `main/app_files/files/` is picked up automatically by the `GLOB_RECURSE` in `main/CMakeLists.txt`, embedded into the firmware image, and registered in the file table with its URL path.
+
+```
+main/
+  app_files/
+    files/
+      favicon.ico          → served at /favicon.ico
+      app/ui/index.html    → served at /app/ui/index.html
+      app/ui/styles.css    → served at /app/ui/styles.css
+      app/ui/app.js        → served at /app/ui/app.js
+```
+
+The app file handler is tried before the framework's own file handler, so app-provided files always take precedence over framework assets at the same path.
+
+### Favicon
+
+The framework does not provide a fallback `favicon.ico`. If your application does not include one at `main/app_files/files/favicon.ico`, browsers will receive a 404 for that request. Add your own favicon to suppress this.

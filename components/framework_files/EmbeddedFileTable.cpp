@@ -42,9 +42,6 @@ extern const uint8_t _binary_framework_ui_security_js_end[]   asm("_binary_frame
 extern const uint8_t _binary_framework_ui_wifi_js_start[]     asm("_binary_framework_ui_wifi_js_start");
 extern const uint8_t _binary_framework_ui_wifi_js_end[]       asm("_binary_framework_ui_wifi_js_end");
 
-extern const uint8_t _binary__favicon_ico_start[]             asm("_binary__favicon_ico_start");
-extern const uint8_t _binary__favicon_ico_end[]               asm("_binary__favicon_ico_end");
-
 // ------------------------------------------------------------
 // Static table of framework-owned embedded files
 // ------------------------------------------------------------
@@ -67,8 +64,6 @@ static const FileEntry files[] = {
     {"/ui_firmware.js", _binary_framework_ui_firmware_js_start, _binary_framework_ui_firmware_js_end},
     {"/ui_security.js", _binary_framework_ui_security_js_start, _binary_framework_ui_security_js_end},
     {"/ui_wifi.js",     _binary_framework_ui_wifi_js_start,     _binary_framework_ui_wifi_js_end},
-
-    {"/favicon.ico",    _binary__favicon_ico_start,             _binary__favicon_ico_end},
 };
 
 // ------------------------------------------------------------

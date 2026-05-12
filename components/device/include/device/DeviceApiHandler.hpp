@@ -2,6 +2,7 @@
 
 #include "common/Result.hpp"
 #include "device/DeviceInterface.hpp"
+#include "device/TimerInterface.hpp"
 #include "http/HttpHandler.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
@@ -10,13 +11,14 @@ namespace device {
 
 class DeviceApiHandler : public http::HttpHandler {
   public:
-    explicit DeviceApiHandler(DeviceInterface& device);
+    DeviceApiHandler(DeviceInterface& device, TimerInterface& timer);
     virtual ~DeviceApiHandler() = default;
 
     common::Result handle(http::HttpRequest& req, http::HttpResponse& res) override;
 
   private:
     DeviceInterface& device_;
+    TimerInterface&  timer_;
 
     common::Result handleGet    (http::HttpRequest& req, http::HttpResponse& res);
     common::Result handlePost   (http::HttpRequest& req, http::HttpResponse& res);

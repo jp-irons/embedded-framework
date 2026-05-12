@@ -113,7 +113,7 @@ void FrameworkContext::initialize() {
     // Create API handlers — inject device interface where needed
     wifiApi    = new wifi_manager::WiFiApiHandler(wifiCtx);
     networkApi = new network_store::NetworkApiHandler(networkStore);
-    deviceApi  = new device::DeviceApiHandler(*deviceInterface_);
+    deviceApi  = new device::DeviceApiHandler(*deviceInterface_, *timerInterface_);
     otaApi     = new ota::OtaApiHandler(*deviceInterface_);
 
     // Create server, inject the per-device cert, and wire in auth
