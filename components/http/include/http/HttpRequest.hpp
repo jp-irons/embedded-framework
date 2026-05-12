@@ -38,6 +38,22 @@ class HttpRequest {
     }
 
     /**
+     * Returns the Content-Length of the request body in bytes.
+     * Zero if no body was sent.
+     */
+    size_t contentLength() const { return req->content_len; }
+
+    /**
+     * Read up to len bytes from the request body into buf.
+     *
+     * Retries once on a transient socket timeout, then returns an error.
+     * Returns the number of bytes read (positive), or a negative value on
+     * unrecoverable error.  Callers should treat any non-positive return as
+     * a failure.
+     */
+    int receiveChunk(char *buf, size_t len);
+
+    /**
      * Extracts HTTP Basic Auth credentials from the Authorization header.
      *
      * Returns the decoded username and password if the header is present and

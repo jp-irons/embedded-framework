@@ -62,6 +62,19 @@ void HttpRequest::readBody() {
 }
 
 // ---------------------------------------------------------------------------
+// Streaming body read
+// ---------------------------------------------------------------------------
+
+int HttpRequest::receiveChunk(char *buf, size_t len) {
+    int received = httpd_req_recv(req, buf, len);
+    if (received == HTTPD_SOCK_ERR_TIMEOUT) {
+        // One transient timeout — retry once before giving up
+        received = httpd_req_recv(req, buf, len);
+    }
+    return received;
+}
+
+// ---------------------------------------------------------------------------
 // Auth helpers
 // ---------------------------------------------------------------------------
 

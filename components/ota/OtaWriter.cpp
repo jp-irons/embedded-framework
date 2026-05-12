@@ -13,8 +13,8 @@ namespace ota {
 
 static logger::Logger log{"OtaWriter"};
 
-bool OtaWriter::writeFromRequest(httpd_req_t *req, http::HttpResponse &res) {
-    const size_t totalLen = req->content_len;
+bool OtaWriter::writeFromRequest(http::HttpRequest &req, http::HttpResponse &res) {
+    const size_t totalLen = req.contentLength();
     if (totalLen == 0) {
         log.error("writeFromRequest: content_len == 0");
         res.sendJson(400, "No firmware data in request");
@@ -42,19 +42,13 @@ bool OtaWriter::writeFromRequest(httpd_req_t *req, http::HttpResponse &res) {
     }
 
     // ── Stream chunks ──────────────────────────────────────────────────────
-    char    buf[CHUNK_SIZE];
-    size_t  remaining = totalLen;
-    size_t  written   = 0;
+    char   buf[CHUNK_SIZE];
+    size_t remaining = totalLen;
+    size_t written   = 0;
 
     while (remaining > 0) {
         const size_t toRead  = std::min(remaining, CHUNK_SIZE);
-        int          received = httpd_req_recv(req, buf, toRead);
-
-        if (received == HTTPD_SOCK_ERR_TIMEOUT) {
-            // One transient timeout — retry once before giving up
-            log.warn("writeFromRequest: recv timeout at offset %zu — retrying", written);
-            received = httpd_req_recv(req, buf, toRead);
-        }
+        const int    received = req.receiveChunk(buf, toRead);
 
         if (received <= 0) {
             log.error("writeFromRequest: recv error %d at offset %zu / %zu",

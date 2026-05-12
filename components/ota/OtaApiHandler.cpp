@@ -204,12 +204,12 @@ common::Result OtaApiHandler::handleStatus(HttpRequest & /*req*/, HttpResponse &
 // ---------------------------------------------------------------------------
 
 common::Result OtaApiHandler::handleUpload(HttpRequest &req, HttpResponse &res) {
-    log.info("handleUpload(): content_len=%zu", (size_t)req.raw()->content_len);
+    log.info("handleUpload(): content_len=%zu", req.contentLength());
 
     // The body must NOT have been pre-read into memory — OtaWriter streams
     // it directly from the socket.  HttpRequest skips preload when content_len
     // exceeds MAX_PRELOAD_BYTES (64 KB), so any real firmware file is safe.
-    OtaWriter::writeFromRequest(req.raw(), res);
+    OtaWriter::writeFromRequest(req, res);
     // writeFromRequest() either reboots (success) or sends an error and returns false.
     return Result::Ok;
 }
