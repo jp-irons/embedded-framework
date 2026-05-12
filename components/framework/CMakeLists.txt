@@ -11,7 +11,6 @@ idf_component_register(
         device
         device_cert
         esp_platform
-        esp_wifi
         http
         logger
         ota

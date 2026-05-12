@@ -12,7 +12,6 @@
 #include "esp_platform/EspWiFiInterface.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiManager.hpp"
-#include "esp_mac.h"
 
 #include <cstdio>
 
@@ -24,18 +23,6 @@ namespace framework {
 static const char* TAG = "FrameworkContext";
 
 static logger::Logger log{TAG};
-
-// ---------------------------------------------------------------------------
-// Build a unique mDNS hostname from a prefix + last 3 bytes of WiFi STA MAC.
-// e.g. prefix="esp32"  →  "esp32-a1b2c3"
-// ---------------------------------------------------------------------------
-static std::string macBasedHostname(const std::string& prefix) {
-    uint8_t mac[6] = {};
-    esp_read_mac(mac, ESP_MAC_WIFI_STA);
-    char suffix[8];
-    snprintf(suffix, sizeof(suffix), "%02x%02x%02x", mac[3], mac[4], mac[5]);
-    return prefix + "-" + suffix;
-}
 
 // ---------------------------------------------------------------------------
 // Constructors
@@ -72,12 +59,16 @@ void FrameworkContext::initialize() {
     timerInterface_  = new esp_platform::EspTimerInterface();
     wifiCtx.timer    = timerInterface_;
 
-    // Read MAC once — used for hostname and AuthStore derivation
+    // Read device info once — MAC drives both the mDNS hostname and AuthStore.
+    const device::DeviceInfo devInfo = deviceInterface_->info();
     uint8_t mac[6] = {};
-    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    sscanf(devInfo.mac.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+           &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
 
-    // Build the per-device hostname from MAC address
-    const std::string hostname = macBasedHostname(mdnsPrefix_);
+    // Build per-device hostname: prefix + last 3 MAC bytes, e.g. "esp32-a1b2c3"
+    char macSuffix[8];
+    snprintf(macSuffix, sizeof(macSuffix), "%02x%02x%02x", mac[3], mac[4], mac[5]);
+    const std::string hostname = mdnsPrefix_ + "-" + macSuffix;
     log.info("Device hostname: %s.local", hostname.c_str());
 
     // Ensure a per-device TLS cert exists (generates + stores on first boot)
