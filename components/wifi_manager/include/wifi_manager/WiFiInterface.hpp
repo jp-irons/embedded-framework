@@ -1,6 +1,6 @@
 #pragma once
 
-#include "credential_store/WiFiCredential.hpp"
+#include "network_store/WiFiNetwork.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
 #include "esp_event_base.h"
 #include "esp_netif_types.h"
@@ -28,9 +28,9 @@ class WiFiInterface {
     common::Result startAp(const wifi_manager::ApConfig &cfg);
     common::Result stopAp();
 
-	wifi_config_t makeStaConfig(const credential_store::WiFiCredential& cred);
+	wifi_config_t makeStaConfig(const network_store::WiFiNetwork& cred);
 
-    WiFiStatus connectSta(const credential_store::WiFiCredential& cred);
+    WiFiStatus connectSta(const network_store::WiFiNetwork& cred);
     common::Result disconnectSta();
 
 	common::Result scan(std::vector<WiFiAp>& results);
@@ -59,7 +59,7 @@ class WiFiInterface {
 
     void handleIPEvent(esp_event_base_t base, int32_t id, void *data);
 
-    void connectTo(const credential_store::WiFiCredential &cred);
+    void connectTo(const network_store::WiFiNetwork &cred);
 
     void onSTAConnected();
     void onSTADisconnected(uint8_t reason);

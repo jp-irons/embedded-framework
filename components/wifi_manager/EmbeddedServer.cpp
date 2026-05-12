@@ -3,7 +3,7 @@
 #include "auth/AuthConfig.hpp"
 #include "auth/AuthStore.hpp"
 #include "common/Result.hpp"
-#include "credential_store/CredentialApiHandler.hpp"
+#include "network_store/NetworkApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
@@ -21,7 +21,7 @@ static logger::Logger log{"EmbeddedServer"};
 
 EmbeddedServer::EmbeddedServer(WiFiContext &ctx,
                                WiFiApiHandler &wifiApi,
-                               credential_store::CredentialApiHandler &credentialApi,
+                               network_store::NetworkApiHandler &networkApi,
                                device::DeviceApiHandler &deviceApi,
                                ota::OtaApiHandler &otaApi)
     : ctx(ctx)
@@ -30,7 +30,7 @@ EmbeddedServer::EmbeddedServer(WiFiContext &ctx,
     , frameworkFileTable_()
     , frameworkFileHandler_(ctx.rootUri + "/ui", "index.html", frameworkFileTable_)
     , wifiHandler(wifiApi)
-    , credentialHandler(credentialApi)
+    , networkHandler(networkApi)
     , deviceHandler(deviceApi)
     , otaHandler(otaApi) {
     log.debug("constructor");
@@ -52,7 +52,7 @@ bool EmbeddedServer::start() {
     if (!routesRegistered_) {
         log.debug("start() registering framework routes");
         frameworkRoutes_ = {
-            {apiUri_ + "/credentials/", &credentialHandler},
+            {apiUri_ + "/networks/",     &networkHandler},
             {apiUri_ + "/device/",      &deviceHandler},
             {apiUri_ + "/firmware/",    &otaHandler},
             {apiUri_ + "/wifi/",        &wifiHandler},

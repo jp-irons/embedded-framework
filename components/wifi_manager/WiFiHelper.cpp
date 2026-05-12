@@ -4,7 +4,7 @@
 
 namespace wifi_manager {
 	
-wifi_config_t makeStaConfig(const credential_store::WiFiCredential& cred) {
+wifi_config_t makeStaConfig(const network_store::WiFiNetwork& cred) {
     wifi_config_t cfg = {};
     auto& sta = cfg.sta;
 

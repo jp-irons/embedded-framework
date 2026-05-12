@@ -137,7 +137,7 @@ function requestClearNvs() {
     showConfirm(
         "danger",
         "Clear NVS",
-        "This will erase ALL stored data: WiFi credentials, the API password, " +
+        "This will erase ALL stored data: saved WiFi networks, the API password, " +
         "API keys, and the device TLS certificate. A new certificate will be " +
         "generated on the next reboot — your browser will show a new security " +
         "warning and you will need to accept it before reconnecting. Continue?",

@@ -9,13 +9,13 @@ void WiFiStateMachine::onEvent(WiFiEvent ev)
     case WiFiState::Idle:
         if (ev == WiFiEvent::StartProvisioning) {
             transitionTo(WiFiState::AP_Mode);
-        } else if (ev == WiFiEvent::CredentialsProvided) {
+        } else if (ev == WiFiEvent::NetworkProvided) {
             transitionTo(WiFiState::STA_Connecting);
         }
         break;
 
     case WiFiState::AP_Mode:
-        if (ev == WiFiEvent::CredentialsProvided) {
+        if (ev == WiFiEvent::NetworkProvided) {
             transitionTo(WiFiState::STA_Connecting);
         }
         break;

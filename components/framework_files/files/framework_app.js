@@ -394,13 +394,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
 
                     <div class="mt-6 pt-6 border-t border-gray-300">
-                        <label class="block font-medium mb-1">Saved Credentials</label>
+                        <label class="block font-medium mb-1">Saved Networks</label>
                         <ul id="cred-list" class="space-y-2"></ul>
 
                         <div class="flex justify-end gap-3 mt-4 pt-4">
                             <button id="btn-clear-creds"
                                     class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                                Clear credentials
+                                Clear networks
                             </button>
                             <button id="btn-reboot"
                                     class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">

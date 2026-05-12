@@ -6,7 +6,7 @@ idf_component_register(
     REQUIRES
         auth
         common
-        credential_store
+        network_store
         device
         device_cert
         esp_wifi

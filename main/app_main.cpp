@@ -64,14 +64,14 @@ extern "C" void setupLogging() {
     LogSinkRegistry::setLevelForTag("ApplicationContext", LogLevel::Debug);
     // core_api API Handlers
 	LogSinkRegistry::setLevelForTag("AuthApiHandler", LogLevel::Debug);
-	LogSinkRegistry::setLevelForTag("CredentialApiHandler", LogLevel::Debug);
+	LogSinkRegistry::setLevelForTag("NetworkApiHandler", LogLevel::Debug);
 	LogSinkRegistry::setLevelForTag("DeviceApiHandler", LogLevel::Debug);
 	LogSinkRegistry::setLevelForTag("OtaApiHandler", LogLevel::Debug);
     LogSinkRegistry::setLevelForTag("WiFiApiHandler", LogLevel::Debug);
 	// Device tier
 	LogSinkRegistry::setLevelForTag("DeviceInterface", LogLevel::Debug);
-    // credential_store
-    LogSinkRegistry::setLevelForTag("CredentialStore", LogLevel::Debug);
+    // network_store
+    LogSinkRegistry::setLevelForTag("NetworkStore", LogLevel::Debug);
     // framework
     LogSinkRegistry::setLevelForTag("FrameworkContext", LogLevel::Debug);
     // http

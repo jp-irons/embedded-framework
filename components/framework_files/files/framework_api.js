@@ -154,26 +154,26 @@ export function wifiStatus() {
 }
 
 
-// ---------- Credentials ----------
+// ---------- Networks ----------
 
-export function listCredentials() {
-    return get(`/framework/api/credentials/list?ts=${Date.now()}`);
+export function listNetworks() {
+    return get(`/framework/api/networks/list?ts=${Date.now()}`);
 }
 
-export function submitCredential(payload) {
-    return post("/framework/api/credentials/submit", payload);
+export function submitNetwork(payload) {
+    return post("/framework/api/networks/submit", payload);
 }
 
 export function makeFirst(ssid) {
-    return post("/framework/api/credentials/makeFirst", { ssid });
+    return post("/framework/api/networks/makeFirst", { ssid });
 }
 
-export function deleteCredential(ssid) {
-    return del(`/framework/api/credentials/${encodeURIComponent(ssid)}`);
+export function deleteNetwork(ssid) {
+    return del(`/framework/api/networks/${encodeURIComponent(ssid)}`);
 }
 
-export function clearCredentials() {
-    return post("/framework/api/credentials/clear");
+export function clearNetworks() {
+    return post("/framework/api/networks/clear");
 }
 
 // ---------- Firmware ----------

@@ -117,7 +117,7 @@ Result WiFiInterface::stopAp() {
     return Result::Ok;
 }
 
-wifi_config_t WiFiInterface::makeStaConfig(const credential_store::WiFiCredential &cred) {
+wifi_config_t WiFiInterface::makeStaConfig(const network_store::WiFiNetwork &cred) {
     wifi_config_t cfg = {};
     auto &sta = cfg.sta;
 
@@ -132,7 +132,7 @@ wifi_config_t WiFiInterface::makeStaConfig(const credential_store::WiFiCredentia
     return cfg;
 }
 
-WiFiStatus WiFiInterface::connectSta(const credential_store::WiFiCredential &cred) {
+WiFiStatus WiFiInterface::connectSta(const network_store::WiFiNetwork &cred) {
     log.info("Connecting STA to SSID: %s", cred.ssid.c_str());
 
     wifi_config_t cfg = makeStaConfig(cred);

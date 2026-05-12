@@ -30,8 +30,8 @@ class WiFiManager {
     WiFiContext &ctx;
     WiFiStateMachine sm;
 
-    std::size_t currentCredentialIndex = 0;
-	std::optional<credential_store::WiFiCredential> currentCredential;    
+    std::size_t currentNetworkIndex = 0;
+	std::optional<network_store::WiFiNetwork> currentNetwork;
 	int retryCount = 0;
     static constexpr int MAX_RETRIES = 3;
     std::string lastErrorReason;
@@ -39,8 +39,8 @@ class WiFiManager {
     device::DeferredExecutor deferred;
     MdnsManager mdns;
 
-    // Load credentials only at boot
-    void loadInitialCredential();
+    // Load networks only at boot
+    void loadInitialNetwork();
 
     // Wi-Fi actions
     void startAP();

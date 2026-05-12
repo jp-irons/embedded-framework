@@ -1,4 +1,4 @@
-#include "credential_store/CredentialStore.hpp"
+#include "network_store/NetworkStore.hpp"
 
 #include "common/Result.hpp"
 #include "esp_err.h"
@@ -9,19 +9,19 @@
 #include <cstring>
 #include "device/EspTypeAdapter.hpp"
 
-namespace credential_store {
+namespace network_store {
 
 using namespace common;
 
-static logger::Logger log{"CredentialStore"};
+static logger::Logger log{"NetworkStore"};
 
-CredentialStore::CredentialStore(const char *nvsNamespace)
+NetworkStore::NetworkStore(const char *nvsNamespace)
     : ns(nvsNamespace) {
     log.debug("constructor");
 }
 
-size_t CredentialStore::count() const {
-    std::vector<WiFiCredential> entries;
+size_t NetworkStore::count() const {
+    std::vector<WiFiNetwork> entries;
     Result r = loadAll(entries);
     if (r != Result::Ok) {
         return 0;
@@ -29,12 +29,12 @@ size_t CredentialStore::count() const {
     return entries.size();
 }
 
-Result CredentialStore::loadAll(std::vector<WiFiCredential> &out) const {
+Result NetworkStore::loadAll(std::vector<WiFiNetwork> &out) const {
     log.debug("loadAll");
     nvs_handle_t handle;
 	esp_err_t err = nvs_open(ns, NVS_READONLY, &handle);
 	if (err == ESP_ERR_NVS_NOT_FOUND) {
-	    log.debug("CredentialStore: namespace '%s' not found (empty store)", ns);
+	    log.debug("NetworkStore: namespace '%s' not found (empty store)", ns);
 	    return Result::Ok;
 	}
 	if (err != ESP_OK) {
@@ -45,10 +45,10 @@ Result CredentialStore::loadAll(std::vector<WiFiCredential> &out) const {
     size_t size = 0;
     err = nvs_get_blob(handle, "entries", nullptr, &size);
     if (err == ESP_ERR_NVS_NOT_FOUND) {
-        // No credentials stored yet — treat as empty store
-        log.debug("CredentialStore: no entries found (empty store)");
+        // No networks stored yet — treat as empty store
+        log.debug("NetworkStore: no entries found (empty store)");
         nvs_close(handle);
-        return Result::Ok; // or a special Empty result if you prefer
+        return Result::Ok;
     }
 
     if (err != ESP_OK) {
@@ -60,7 +60,7 @@ Result CredentialStore::loadAll(std::vector<WiFiCredential> &out) const {
 
     if (size == 0) {
         // Blob exists but is empty — also not an error
-        log.debug("CredentialStore: entries blob is empty");
+        log.debug("NetworkStore: entries blob is empty");
         nvs_close(handle);
         return Result::Ok;
     }
@@ -88,7 +88,7 @@ Result CredentialStore::loadAll(std::vector<WiFiCredential> &out) const {
         if (p + ssidLen + passLen > end)
             break;
 
-        WiFiCredential c;
+        WiFiNetwork c;
         c.ssid.assign((const char *) p, ssidLen);
         p += ssidLen;
 
@@ -102,7 +102,7 @@ Result CredentialStore::loadAll(std::vector<WiFiCredential> &out) const {
     return Result::Ok;
 }
 
-Result CredentialStore::loadAllSortedByPriority(std::vector<WiFiCredential> &out) const {
+Result NetworkStore::loadAllSortedByPriority(std::vector<WiFiNetwork> &out) const {
     auto res = loadAll(out);
     if (res != Result::Ok) {
         return res;
@@ -113,7 +113,7 @@ Result CredentialStore::loadAllSortedByPriority(std::vector<WiFiCredential> &out
     return Result::Ok;
 }
 
-Result CredentialStore::saveAll(std::vector<WiFiCredential> entries) {
+Result NetworkStore::saveAll(std::vector<WiFiNetwork> entries) {
     log.debug("saveAll");
 
     // 1. Sort by priority (just in case caller didn't)
@@ -166,9 +166,9 @@ Result CredentialStore::saveAll(std::vector<WiFiCredential> entries) {
     return Result::Ok;
 }
 
-Result CredentialStore::add(const WiFiCredential &entry) {
+Result NetworkStore::add(const WiFiNetwork &entry) {
     log.debug("add");
-    std::vector<WiFiCredential> entries;
+    std::vector<WiFiNetwork> entries;
     loadAll(entries);
 
     // Replace if SSID exists
@@ -183,19 +183,19 @@ Result CredentialStore::add(const WiFiCredential &entry) {
     return saveAll(entries);
 }
 
-Result CredentialStore::erase(const std::string &ssid) {
+Result NetworkStore::erase(const std::string &ssid) {
     log.debug("erase");
-    std::vector<WiFiCredential> entries;
+    std::vector<WiFiNetwork> entries;
     loadAll(entries);
 
     entries.erase(
-        std::remove_if(entries.begin(), entries.end(), [&](const WiFiCredential &e) { return e.ssid == ssid; }),
+        std::remove_if(entries.begin(), entries.end(), [&](const WiFiNetwork &e) { return e.ssid == ssid; }),
         entries.end());
 
     return saveAll(entries);
 }
 
-Result CredentialStore::clear() {
+Result NetworkStore::clear() {
     log.debug("clear");
     nvs_handle_t handle;
     esp_err_t err = nvs_open(ns, NVS_READWRITE, &handle);
@@ -210,9 +210,9 @@ Result CredentialStore::clear() {
     return Result::Ok;
 }
 
-Result CredentialStore::store(const WiFiCredential &cred) {
+Result NetworkStore::store(const WiFiNetwork &cred) {
     log.debug("store");
-    std::vector<WiFiCredential> list;
+    std::vector<WiFiNetwork> list;
     Result r = loadAll(list);
     if (r != Result::Ok) {
         return r;
@@ -235,13 +235,13 @@ Result CredentialStore::store(const WiFiCredential &cred) {
 
     // Sort by priority (lower = higher priority)
     std::sort(list.begin(), list.end(),
-              [](const WiFiCredential &a, const WiFiCredential &b) { return a.priority < b.priority; });
+              [](const WiFiNetwork &a, const WiFiNetwork &b) { return a.priority < b.priority; });
 
     return saveAll(list);
 }
 
-std::optional<WiFiCredential> CredentialStore::getByIndex(std::size_t index) const {
-    std::vector<WiFiCredential> all;
+std::optional<WiFiNetwork> NetworkStore::getByIndex(std::size_t index) const {
+    std::vector<WiFiNetwork> all;
     if (loadAllSortedByPriority(all)!=Result::Ok) {
         return std::nullopt;
     }
@@ -253,22 +253,22 @@ std::optional<WiFiCredential> CredentialStore::getByIndex(std::size_t index) con
     return all[index];
 }
 
-Result  CredentialStore::makeFirst(const std::string& ssid) {
+Result  NetworkStore::makeFirst(const std::string& ssid) {
 	log.debug("makeFirst");
-    std::vector<WiFiCredential> entries;
+    std::vector<WiFiNetwork> entries;
     loadAllSortedByPriority(entries);
 
     auto it = std::find_if(entries.begin(), entries.end(),
-        [&](const WiFiCredential& e) { return e.ssid == ssid; });
+        [&](const WiFiNetwork& e) { return e.ssid == ssid; });
 
     if (it == entries.end()) {
         log.error("makeFirst: SSID not found");
         return Result::NotFound;
     }
-	
+
 	log.debug(("makeFirst " + ssid).c_str());
 
-    WiFiCredential selected = *it;
+    WiFiNetwork selected = *it;
     entries.erase(it);
     entries.insert(entries.begin(), selected);
 
@@ -281,4 +281,4 @@ Result  CredentialStore::makeFirst(const std::string& ssid) {
 	return Result::Ok;
 }
 
-} // namespace credential_store
+} // namespace network_store

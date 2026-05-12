@@ -8,7 +8,7 @@
 #include "auth/AuthStore.hpp"
 #include "auth/SessionStore.hpp"
 #include "common/Result.hpp"
-#include "credential_store/CredentialApiHandler.hpp"
+#include "network_store/NetworkApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "http/HttpHandler.hpp"
 #include "http/HttpServer.hpp"
@@ -35,7 +35,7 @@ class EmbeddedServer : public http::HttpHandler {
   public:
     explicit EmbeddedServer(WiFiContext &ctx,
                             WiFiApiHandler &wifiApi,
-                            credential_store::CredentialApiHandler &credentialApi,
+                            network_store::NetworkApiHandler &networkApi,
                             device::DeviceApiHandler &deviceApi,
                             ota::OtaApiHandler &otaApi);
     ~EmbeddedServer();
@@ -135,7 +135,7 @@ class EmbeddedServer : public http::HttpHandler {
 
     // Framework API handlers (value members — constructed from ctor args)
     wifi_manager::WiFiApiHandler                  wifiHandler;
-    credential_store::CredentialApiHandler        credentialHandler;
+    network_store::NetworkApiHandler              networkHandler;
     device::DeviceApiHandler                      deviceHandler;
     ota::OtaApiHandler                            otaHandler;
 

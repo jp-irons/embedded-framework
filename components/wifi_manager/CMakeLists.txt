@@ -20,7 +20,7 @@ idf_component_register(
         espressif__mdns
         cjson
         common
-        credential_store
+        network_store
         device
         ota
         framework_files

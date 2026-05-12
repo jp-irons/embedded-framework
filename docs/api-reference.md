@@ -19,17 +19,17 @@ from the `assets_fs` LittleFS flash partition via `StaticFileHandler`.
 The `EmbeddedServer` dispatches requests by longest-prefix match against the following table.
 Trailing slashes in the registered prefixes are significant.
 
-### Credentials  —  `/framework/api/credentials/`
+### Networks  —  `/framework/api/networks/`
 
-Handler: `credential_store::CredentialApiHandler`
+Handler: `network_store::NetworkApiHandler`
 
 | Method | Sub-target    | Description                                      |
 |--------|--------------|--------------------------------------------------|
-| GET    | `list`       | Return all stored Wi-Fi credentials              |
-| POST   | `submit`     | Add or update a credential (SSID + password)     |
-| DELETE | `delete`     | Remove a credential by SSID                      |
-| POST   | `clear`      | Remove all stored credentials                    |
-| POST   | `makeFirst`  | Move a named credential to position 0            |
+| GET    | `list`       | Return all saved Wi-Fi networks                  |
+| POST   | `submit`     | Add or update a network (SSID + password)        |
+| DELETE | `delete`     | Remove a network by SSID                         |
+| POST   | `clear`      | Remove all saved networks                        |
+| POST   | `makeFirst`  | Move a named network to position 0               |
 
 ### Device  —  `/framework/api/device/`
 

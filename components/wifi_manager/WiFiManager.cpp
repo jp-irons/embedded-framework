@@ -1,7 +1,7 @@
 #include "wifi_manager/WiFiManager.hpp"
 
 #include "common/Result.hpp"
-#include "credential_store/CredentialStore.hpp"
+#include "network_store/NetworkStore.hpp"
 #include "logger/Logger.hpp"
 #include "wifi_manager/EmbeddedServer.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
@@ -23,7 +23,7 @@ WiFiManager::WiFiManager(WiFiContext &ctx)
 
 void WiFiManager::start() {
     log.debug("start()");
-    loadInitialCredential();
+    loadInitialNetwork();
 
     Result r = ctx.wifiInterface->startDriver();
     if (r != Result::Ok) {
@@ -35,8 +35,8 @@ void WiFiManager::start() {
     log.debug("start: starting embeddedServer");
     ctx.embeddedServer->start();
 
-    if (currentCredential.has_value() && !currentCredential->ssid.empty()) {
-        sm.onEvent(WiFiEvent::CredentialsProvided);
+    if (currentNetwork.has_value() && !currentNetwork->ssid.empty()) {
+        sm.onEvent(WiFiEvent::NetworkProvided);
     } else {
         sm.onEvent(WiFiEvent::StartProvisioning);
     }
@@ -58,6 +58,7 @@ void WiFiManager::onStateChanged(WiFiState oldState, WiFiState newState) {
         case WiFiState::AP_Mode:
             retryCount = 0;
             startAP();
+            mdns.start(ctx.mdnsHostname);
             if (ctx.embeddedServer)
                 ctx.embeddedServer->startProvisioningMode();
             break;
@@ -95,29 +96,29 @@ void WiFiManager::onDisconnect() {
     // Stop mDNS — IP is no longer valid
     mdns.stop();
 
-    // Retry the same credential first
+    // Retry the same network first
     if (retryCount < MAX_RETRIES) {
         retryCount++;
-        log.info("Retrying credential %d (%d/%d tries)",
-                 currentCredentialIndex, retryCount, MAX_RETRIES);
+        log.info("Retrying network %d (%d/%d tries)",
+                 currentNetworkIndex, retryCount, MAX_RETRIES);
         startSTA();
         return;
     }
 
-    // Move to the next credential
+    // Move to the next network
     retryCount = 0;
-    currentCredentialIndex++;
-	std::size_t credentialListSize = ctx.credentialStore->count();
+    currentNetworkIndex++;
+	std::size_t networkListSize = ctx.networkStore->count();
 
-    if (currentCredentialIndex < credentialListSize) {
-        log.warn("Credential failed, trying next (%d/%d credentials)",
-                 currentCredentialIndex + 1, credentialListSize);
+    if (currentNetworkIndex < networkListSize) {
+        log.warn("Network failed, trying next (%d/%d networks)",
+                 currentNetworkIndex + 1, networkListSize);
         startSTA();
         return;
     }
 
-    // All credentials exhausted
-    log.error("All credentials failed — falling back to AP");
+    // All networks exhausted
+    log.error("All networks failed — falling back to AP");
     sm.onEvent(WiFiEvent::ConnectFail);
 }
 
@@ -128,17 +129,17 @@ void WiFiManager::onFatalError() {
 }
 
 //
-// Load credentials only at boot
+// Load networks only at boot
 //
 
-void WiFiManager::loadInitialCredential() {
-    log.debug("loadInitialCredential()");
-    if (!ctx.credentialStore)
+void WiFiManager::loadInitialNetwork() {
+    log.debug("loadInitialNetwork()");
+    if (!ctx.networkStore)
         return;
 
-    std::vector<credential_store::WiFiCredential> all;
-    if (Result::Ok == ctx.credentialStore->loadAllSortedByPriority(all) && !all.empty()) {
-        currentCredential = all.front();
+    std::vector<network_store::WiFiNetwork> all;
+    if (Result::Ok == ctx.networkStore->loadAllSortedByPriority(all) && !all.empty()) {
+        currentNetwork = all.front();
     }
 }
 
@@ -168,16 +169,16 @@ void WiFiManager::stopAP() {
 
 void WiFiManager::startSTA() {
     log.info("Starting STA mode");
-    auto credOpt = ctx.credentialStore->getByIndex(currentCredentialIndex);
+    auto credOpt = ctx.networkStore->getByIndex(currentNetworkIndex);
 
-	currentCredential = ctx.credentialStore->getByIndex(currentCredentialIndex);
+	currentNetwork = ctx.networkStore->getByIndex(currentNetworkIndex);
     if (!credOpt) {
-        currentCredential = std::nullopt;
+        currentNetwork = std::nullopt;
         sm.onEvent(WiFiEvent::ConnectFail);
         return;
     }
 
-    currentCredential = *credOpt;   // store it for UI layers
+    currentNetwork = *credOpt;   // store it for UI layers
     ctx.wifiInterface->connectSta(*credOpt);
 }
 
@@ -233,9 +234,9 @@ WiFiStaStatus WiFiManager::getStaStatus() const {
     // 2. Connected?
     st.connected = (sm.getState() == WiFiState::STA_Connected);
 
-    // 3. Active SSID — empty in AP/provisioning mode (no credential loaded)
-    if (currentCredential.has_value()) {
-        st.ssid = currentCredential->ssid;
+    // 3. Active SSID — empty in AP/provisioning mode (no network loaded)
+    if (currentNetwork.has_value()) {
+        st.ssid = currentNetwork->ssid;
     }
 
     // 4. Last error reason (string)

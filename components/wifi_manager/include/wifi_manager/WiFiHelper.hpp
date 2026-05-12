@@ -1,6 +1,6 @@
 #pragma once
 
-#include "credential_store/WiFiCredential.hpp"
+#include "network_store/WiFiNetwork.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
 #include "esp_wifi_types_generic.h"
 
@@ -8,9 +8,9 @@ namespace wifi_manager {
 
 wifi_auth_mode_t toEspAuth(wifi_manager::WiFiAuthMode mode);
 
-wifi_config_t toEspConfig(const credential_store::WiFiCredential& cred);
+wifi_config_t toEspConfig(const network_store::WiFiNetwork& cred);
 
-wifi_config_t makeStaConfig(const credential_store::WiFiCredential& cred);
+wifi_config_t makeStaConfig(const network_store::WiFiNetwork& cred);
 
 wifi_config_t makeApConfig(const wifi_manager::ApConfig& cfg);
 

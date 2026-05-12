@@ -1,6 +1,6 @@
 #include "framework/FrameworkContext.hpp"
 
-#include "credential_store/CredentialApiHandler.hpp"
+#include "network_store/NetworkApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "device/DeviceInterface.hpp"
 #include "http/HttpHandler.hpp"
@@ -98,7 +98,7 @@ void FrameworkContext::initialize() {
     wifiCtx.apConfig        = apConfig;
     wifiCtx.rootUri         = rootUri_;
     wifiCtx.mdnsHostname    = hostname;
-    wifiCtx.credentialStore = &credentialStore;
+    wifiCtx.networkStore = &networkStore;
 
     // Create state machine first (so it exists before any events fire)
     wifiManager = new wifi_manager::WiFiManager(wifiCtx);
@@ -106,13 +106,13 @@ void FrameworkContext::initialize() {
 
     // Create API handlers
     wifiApi       = new wifi_manager::WiFiApiHandler(wifiCtx);
-    credentialApi = new credential_store::CredentialApiHandler(credentialStore);
+    networkApi = new network_store::NetworkApiHandler(networkStore);
     deviceApi     = new device::DeviceApiHandler();
     otaApi        = new ota::OtaApiHandler();
 
     // Create server, inject the per-device cert, and wire in auth
     embeddedServer = new wifi_manager::EmbeddedServer(
-        wifiCtx, *wifiApi, *credentialApi, *deviceApi, *otaApi);
+        wifiCtx, *wifiApi, *networkApi, *deviceApi, *otaApi);
     if (deviceCert_.isLoaded()) {
         embeddedServer->setCert(deviceCert_.certPem(), deviceCert_.keyPem());
     }
@@ -135,7 +135,7 @@ FrameworkContext::~FrameworkContext() {
     delete wifiInterface;
     delete wifiManager;
     delete wifiApi;
-    delete credentialApi;
+    delete networkApi;
     delete otaApi;
 }
 

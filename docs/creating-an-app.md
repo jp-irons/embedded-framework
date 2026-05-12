@@ -20,7 +20,7 @@ my_app/                          ← your git repository
     components/
       auth/
       common/
-      credential_store/
+      network_store/
       device/
       device_cert/
       _framework_files/

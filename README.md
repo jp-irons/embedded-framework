@@ -9,7 +9,7 @@ The framework is aimed at engineers who need predictable behaviour, maintainable
 - Wi-Fi provisioning with explicit AP → STA state machine
 - Embedded web UI served from a LittleFS flash partition
 - Modular, transport-agnostic HTTP API handlers
-- Credential storage backed by NVS
+- Wi-Fi network storage backed by NVS
 - OTA firmware update with rollback protection and boot-attempt guardian
 - Per-device TLS certificate generated on first boot and persisted in NVS
 - mDNS advertising with MAC-derived hostname
@@ -114,7 +114,7 @@ components/
   common/               Result type, shared utilities
   logger/               Tag-based log sink with per-tag level filtering
   http/                 HttpServer (esp_http_server wrapper), HttpRequest, HttpResponse, HttpHandler base
-  credential_store/     NVS-backed Wi-Fi credential store + CredentialApiHandler
+  network_store/        NVS-backed Wi-Fi network store + NetworkApiHandler
   device/               Device info, reboot, NVS clear + DeviceApiHandler
   device_cert/          Per-device TLS cert (generated on first boot, stored in NVS)
   framework_files/      LittleFS-backed static asset server + EmbeddedAssetTable

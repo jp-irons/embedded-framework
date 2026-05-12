@@ -8,7 +8,7 @@ idf_component_register(
         app_files/AppFileTable.cpp
     REQUIRES
         auth
-        credential_store
+        network_store
         framework_files
         esp_driver_tsens
         framework

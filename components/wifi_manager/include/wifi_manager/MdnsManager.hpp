@@ -11,8 +11,10 @@ namespace wifi_manager {
  * _http._tcp (port 80) and _https._tcp (port 443) service records so
  * that browsers can find it by name regardless of its DHCP-assigned IP.
  *
- * Lifecycle: call start() once STA has an IP, stop() on disconnect.
- * Calling start() again after stop() is safe.
+ * Lifecycle: call start() once the active interface is up — either when STA
+ * obtains an IP, or immediately after the soft-AP is started (the AP netif
+ * has a static IP and is ready at that point).  stop() on disconnect/idle.
+ * Calling start() again while already running is safe — it restarts cleanly.
  */
 class MdnsManager {
   public:

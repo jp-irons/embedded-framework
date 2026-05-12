@@ -1,7 +1,7 @@
 //
 // framework_ui_wifi.js
 //
-// WiFi view: network scan, saved credentials list, provisioning form,
+// WiFi view: network scan, saved networks list, provisioning form,
 // and connection status polling.
 //
 // Exports:
@@ -12,11 +12,11 @@
 import {
     scanWifi,
     wifiStatus,
-    listCredentials,
-    submitCredential,
+    listNetworks,
+    submitNetwork,
     makeFirst,
-    deleteCredential   as apiDeleteCredential,
-    clearCredentials   as apiClearCredentials,
+    deleteNetwork   as apiDeleteNetwork,
+    clearNetworks   as apiClearNetworks,
     isAuthenticated,
     forceReauth
 } from "./api.js";
@@ -51,7 +51,7 @@ export function initWifiView() {
     if (btnReboot) btnReboot.onclick = requestReboot;
 
     const btnClearCreds = document.getElementById("btn-clear-creds");
-    if (btnClearCreds) btnClearCreds.onclick = requestClearCredentials;
+    if (btnClearCreds) btnClearCreds.onclick = requestClearNetworks;
 
     const btnSave = document.getElementById("btn-save");
     if (btnSave) btnSave.onclick = submitProvisioning;
@@ -60,7 +60,7 @@ export function initWifiView() {
     stopStatusPolling();
 
     loadScanResults();
-    refreshCredentials();
+    refreshNetworks();
     startStatusPolling();
 }
 
@@ -153,16 +153,16 @@ async function submitProvisioning() {
     if (!payload) return;
 
     try {
-        await submitCredential(payload);
+        await submitNetwork(payload);
         document.getElementById("password").value = "";
         document.querySelectorAll(".ssid-select").forEach(cb => cb.checked = false);
         document.querySelectorAll(".bssid-lock").forEach(cb => cb.checked = false);
-        showMessage("success", "Credential Saved", `${payload.ssid} added.`);
-        await refreshCredentials();
+        showMessage("success", "Network Saved", `${payload.ssid} added.`);
+        await refreshNetworks();
     } catch (err) {
         if (!isAuthenticated() || err.message === "network") return;
         console.error("Submit failed:", err);
-        showMessage("error", "Save Failed", err.message || "Unable to save credential.");
+        showMessage("error", "Save Failed", err.message || "Unable to save network.");
     }
 }
 
@@ -171,9 +171,9 @@ async function submitProvisioning() {
 // Credential list UI
 // ============================================================
 
-async function refreshCredentials() {
+async function refreshNetworks() {
     try {
-        const creds = await listCredentials();
+        const creds = await listNetworks();
         renderCredList(creds);
     } catch (err) {
         // Network error → device is rebooting; keep quiet and let the polling
@@ -182,7 +182,7 @@ async function refreshCredentials() {
         // Any other failure (401, truncated response, unexpected status) means
         // the session is likely dead.  Trigger re-login immediately rather than
         // showing a confusing "Load Failed" popup that the user has to dismiss.
-        console.warn("Credentials load failed — triggering re-auth:", err);
+        console.warn("Networks load failed — triggering re-auth:", err);
         forceReauth();
     }
 }
@@ -214,7 +214,7 @@ function renderCredList(creds) {
         const btnDelete = document.createElement("button");
         btnDelete.textContent = "Delete";
         btnDelete.className = "px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700";
-        btnDelete.onclick = () => requestDeleteCredential(c.ssid);
+        btnDelete.onclick = () => requestDeleteNetwork(c.ssid);
         btnGroup.appendChild(btnDelete);
 
         li.appendChild(name);
@@ -223,20 +223,20 @@ function renderCredList(creds) {
     });
 }
 
-function requestDeleteCredential(ssid) {
+function requestDeleteNetwork(ssid) {
     showConfirm(
         "danger",
-        "Delete Credential",
+        "Delete Network",
         `Do you want to delete "${ssid}"?`,
-        () => handleDeleteCredential(ssid)
+        () => handleDeleteNetwork(ssid)
     );
 }
 
-async function handleDeleteCredential(ssid) {
+async function handleDeleteNetwork(ssid) {
     try {
-        await apiDeleteCredential(ssid);
-        await refreshCredentials();
-        showMessage("success", "Deleted", `Credential "${ssid}" has been removed.`);
+        await apiDeleteNetwork(ssid);
+        await refreshNetworks();
+        showMessage("success", "Deleted", `Network "${ssid}" has been removed.`);
     } catch (err) {
         if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
@@ -247,37 +247,37 @@ async function handleDeleteCredential(ssid) {
 async function handleMakeFirst(ssid) {
     try {
         await makeFirst(ssid);
-        await refreshCredentials();
+        await refreshNetworks();
     } catch (err) {
         if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
-        showMessage("error", "Reorder Failed", err.message || "Unable to reorder credentials.");
+        showMessage("error", "Reorder Failed", err.message || "Unable to reorder networks.");
     }
 }
 
 
 // ============================================================
-// Clear credentials
+// Clear networks
 // ============================================================
 
-function requestClearCredentials() {
+function requestClearNetworks() {
     showConfirm(
         "warning",
-        "Clear All Credentials",
-        "Do you want to remove all saved WiFi credentials?",
-        handleClearCredentials
+        "Clear All Networks",
+        "Do you want to remove all saved WiFi networks?",
+        handleClearNetworks
     );
 }
 
-async function handleClearCredentials() {
+async function handleClearNetworks() {
     try {
-        await apiClearCredentials();
-        await refreshCredentials();
-        showMessage("success", "Cleared", "All credentials have been removed.");
+        await apiClearNetworks();
+        await refreshNetworks();
+        showMessage("success", "Cleared", "All networks have been removed.");
     } catch (err) {
         if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
-        showMessage("error", "Clear Failed", err.message || "Unable to clear credentials.");
+        showMessage("error", "Clear Failed", err.message || "Unable to clear networks.");
     }
 }
 

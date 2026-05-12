@@ -1,10 +1,10 @@
 idf_component_register(
-    SRCS 
-    	CredentialStore.cpp
-		CredentialApiHandler.cpp
+    SRCS
+    	NetworkStore.cpp
+		NetworkApiHandler.cpp
     INCLUDE_DIRS
         include
-    REQUIRES 
+    REQUIRES
         cjson
   		common
   		device

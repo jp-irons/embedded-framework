@@ -8,13 +8,13 @@ class HttpRequest;
 class HttpResponse;
 } // namespace http
 
-namespace credential_store {
+namespace network_store {
 
-class CredentialStore;
+class NetworkStore;
 
-class CredentialApiHandler : public http::HttpHandler {
+class NetworkApiHandler : public http::HttpHandler {
   public:
-    CredentialApiHandler(credential_store::CredentialStore &store);
+    NetworkApiHandler(network_store::NetworkStore &store);
     common::Result handle(http::HttpRequest &req, http::HttpResponse &res) override;
 
   private:
@@ -26,7 +26,7 @@ class CredentialApiHandler : public http::HttpHandler {
     common::Result handleClear(http::HttpRequest &req, http::HttpResponse &res);
     common::Result handleMakeFirst(http::HttpRequest &req, http::HttpResponse &res);
 
-    credential_store::CredentialStore &store;
+    network_store::NetworkStore &store;
 };
 
-} // namespace credential_store
+} // namespace network_store

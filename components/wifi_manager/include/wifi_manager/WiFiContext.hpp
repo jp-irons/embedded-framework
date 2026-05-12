@@ -1,9 +1,9 @@
 #pragma once
 
-#include "credential_store/CredentialStore.hpp"
+#include "network_store/NetworkStore.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
-namespace credential_store {
-class CredentialStore;
+namespace network_store {
+class NetworkStore;
 }
 
 namespace wifi_manager {
@@ -14,7 +14,7 @@ class EmbeddedServer;
 
 struct WiFiContext {
     EmbeddedServer *embeddedServer = nullptr;
-    credential_store::CredentialStore *credentialStore = nullptr;
+    network_store::NetworkStore *networkStore = nullptr;
 
     WiFiInterface *wifiInterface = nullptr;
 	WiFiManager *wifiManager = nullptr;

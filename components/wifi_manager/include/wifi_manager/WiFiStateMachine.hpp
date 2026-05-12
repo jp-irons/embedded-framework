@@ -12,7 +12,7 @@ enum class WiFiState {
 
 enum class WiFiEvent {
     StartProvisioning,
-    CredentialsProvided,
+    NetworkProvided,
     ConnectSuccess,
     ConnectFail,
     Disconnect,

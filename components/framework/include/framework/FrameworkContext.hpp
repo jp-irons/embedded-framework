@@ -5,8 +5,8 @@
 #include "auth/AuthConfig.hpp"
 #include "auth/AuthStore.hpp"
 #include "auth/SessionStore.hpp"
-#include "credential_store/CredentialApiHandler.hpp"
-#include "credential_store/CredentialStore.hpp"
+#include "network_store/NetworkApiHandler.hpp"
+#include "network_store/NetworkStore.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "device_cert/DeviceCert.hpp"
 #include "http/HttpHandler.hpp"
@@ -14,8 +14,8 @@
 #include "ota/OtaApiHandler.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 
-namespace credential_store {
-class CredentialStore;
+namespace network_store {
+class NetworkStore;
 }
 
 namespace wifi_manager {
@@ -105,9 +105,9 @@ class FrameworkContext {
     // Always-present value types
     // NOTE: SessionStore and ApiKeyStore must be declared before authApi so
     // they are initialised first (authApi constructor takes references to them).
-    wifi_manager::WiFiContext         wifiCtx;
-    credential_store::CredentialStore credentialStore;
-    auth::AuthStore                   authStore;
+    wifi_manager::WiFiContext      wifiCtx;
+    network_store::NetworkStore    networkStore;
+    auth::AuthStore                authStore;
     auth::SessionStore                sessionStore;
     auth::ApiKeyStore                 apiKeyStore;
     auth::AuthApiHandler              authApi{authStore, sessionStore, apiKeyStore};
@@ -117,7 +117,7 @@ class FrameworkContext {
     wifi_manager::WiFiInterface              *wifiInterface  = nullptr;
     wifi_manager::WiFiManager                *wifiManager    = nullptr;
     wifi_manager::WiFiApiHandler             *wifiApi        = nullptr;
-    credential_store::CredentialApiHandler   *credentialApi  = nullptr;
+    network_store::NetworkApiHandler         *networkApi     = nullptr;
     device::DeviceApiHandler                 *deviceApi      = nullptr;
     ota::OtaApiHandler                       *otaApi         = nullptr;
 
