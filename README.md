@@ -39,17 +39,16 @@ The remainder of this document covers building and running the **demo applicatio
 
 ## Getting started
 
-Clone the repository then configure, build, and flash:
+Clone the repository then build and flash:
 
 ```bash
-# If sdkconfig does not yet exist, or after changing sdkconfig.defaults:
-rm -f sdkconfig
-
 idf.py build
 idf.py -p /dev/ttyUSB0 flash monitor
 ```
 
-The first build generates `sdkconfig` from `sdkconfig.defaults`. If you change `sdkconfig.defaults` (e.g. to enable or reconfigure OTA rollback) you must delete `sdkconfig` and rebuild so the bootloader picks up the changes.
+`sdkconfig` is committed and is the source of truth for the build configuration. There is no need to delete it before building.
+
+`sdkconfig.defaults` exists as a baseline for regeneration. Only delete `sdkconfig` and rebuild if you deliberately want to regenerate from `sdkconfig.defaults` — and only after verifying that `sdkconfig.defaults` reflects all current settings, since any settings present in `sdkconfig` but absent from `sdkconfig.defaults` will be lost.
 
 ### Building a flashable OTA binary
 
@@ -63,13 +62,15 @@ The version comes from `version.txt`. Upload this file via the firmware page in 
 
 ## Partition layout
 
+See [docs/flash_layout.md](docs/flash_layout.md) for full details and guidance on changing the layout.
+
 ```
-nvs        data  nvs      0x9000    24 KB   NVS key-value store
-otadata    data  ota      0xF000     8 KB   OTA boot selection
-factory    app   factory  0x20000    2 MB   Factory image (USB flash only)
-ota_0      app   ota_0    0x220000   2 MB   OTA slot 0
-ota_1      app   ota_1    0x420000   2 MB   OTA slot 1
-assets_fs  data  littlefs 0x620000   1.9 MB Embedded web UI and static assets
+nvs        data  nvs      0x009000   24 KB     NVS key-value store
+otadata    data  ota      0x00F000    8 KB     OTA boot-slot selection record
+factory    app   factory  0x020000    2 MB     Factory image (USB flash only)
+ota_0      app   ota_0    0x220000    2 MB     OTA slot 0
+ota_1      app   ota_1    0x420000    2 MB     OTA slot 1
+assets_fs  data  littlefs 0x620000    1.875 MB Embedded web UI and static assets
 ```
 
 A custom `partitions.csv` is selected via `sdkconfig.defaults`:
@@ -109,13 +110,14 @@ main/
   ApplicationContext     Application-specific startup and main loop hook
 
 components/
+  auth/                 API key store, session store + AuthApiHandler
   common/               Result type, shared utilities
   logger/               Tag-based log sink with per-tag level filtering
   http/                 HttpServer (esp_http_server wrapper), HttpRequest, HttpResponse, HttpHandler base
   credential_store/     NVS-backed Wi-Fi credential store + CredentialApiHandler
   device/               Device info, reboot, NVS clear + DeviceApiHandler
   device_cert/          Per-device TLS cert (generated on first boot, stored in NVS)
-  _framework_files/       LittleFS-backed static asset server + EmbeddedAssetTable
+  framework_files/      LittleFS-backed static asset server + EmbeddedAssetTable
   framework/            FrameworkContext: owns and wires all components
   ota/                  OtaManager (boot guardian), OtaWriter (streaming flash), OtaApiHandler
   wifi_manager/         WiFiInterface, WiFiManager, WiFiStateMachine, EmbeddedServer, WiFiApiHandler
@@ -145,47 +147,7 @@ Implement `ApplicationContext` (in `main/`) for your application-specific logic.
 
 ## API reference
 
-All routes are relative to the configured `rootUri` (default `/framework/api`). The framework's `EmbeddedServer` dispatches by prefix match, so routes are registered as shown below.
-
-### Credentials — `/framework/api/credentials/`
-
-| Method | Target | Description |
-|--------|--------|-------------|
-| GET    | `list`      | List stored Wi-Fi credentials |
-| POST   | `submit`    | Add or update a credential |
-| DELETE | `delete`    | Remove a credential by SSID |
-| POST   | `clear`     | Remove all stored credentials |
-| POST   | `makeFirst` | Promote a credential to first position |
-
-### Device — `/framework/api/device/`
-
-| Method | Target     | Description |
-|--------|-----------|-------------|
-| GET    | `info`    | Chip info, IDF version, uptime, IP, heap, temperature |
-| POST   | `reboot`  | Restart the device |
-| POST   | `clearNvs`| Erase all NVS partitions and reboot |
-
-### Wi-Fi — `/framework/api/wifi/`
-
-| Method | Target       | Description |
-|--------|-------------|-------------|
-| GET    | `status`    | Current Wi-Fi state and connection info |
-| GET    | `scan`      | Scan for nearby access points |
-| POST   | `connect`   | Connect to an SSID |
-| POST   | `disconnect`| Disconnect from current AP |
-
-### Firmware (OTA) — `/framework/api/firmware/`
-
-| Method | Target         | Description |
-|--------|---------------|-------------|
-| GET    | `status`      | Partition table with state, version, and build metadata for factory, ota_0, ota_1 |
-| POST   | `upload`      | Stream a firmware binary to the inactive OTA slot and reboot |
-| POST   | `rollback`    | Boot the previous VALID OTA slot (409 if none available) |
-| POST   | `factoryReset`| Erase OTA data and reboot to the factory partition |
-
-### Static assets
-
-All other requests are handled by `EmbeddedServer`, which serves files from the `assets_fs` LittleFS partition. Requests to `/` and `/index.html` redirect to `/runtime/index.html`.
+See [docs/api-reference.md](docs/api-reference.md) for the full route table, response shapes, and state value definitions.
 
 ## Configuration
 

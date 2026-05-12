@@ -110,7 +110,7 @@ After any partition change, fullclean, build and re-flash the bootloader via USB
 
 ## Static assets (embedded UI)
 
-The web UI source files live in `components/_framework_files/files/`. They are bundled into the `assets_fs` LittleFS partition at flash time. The JavaScript stack is vanilla ES2020 — no build step, no bundler. The three main files are:
+The web UI source files live in `components/framework_files/files/`. They are bundled into the `assets_fs` LittleFS partition at flash time. The JavaScript stack is vanilla ES2020 — no build step, no bundler. The three main files are:
 
 - `_framework_api.js` — fetch wrappers for every API endpoint
 - `_framework_app.js` — route definitions and HTML templates
