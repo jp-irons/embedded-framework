@@ -1,7 +1,9 @@
 #pragma once
 
 #include "auth/AuthConfig.hpp"
+#include "common/KeyValueStore.hpp"
 #include "common/Result.hpp"
+#include "device/RandomInterface.hpp"
 
 #include <cstdint>
 #include <string>
@@ -19,7 +21,7 @@ namespace auth {
  *     existing NVS value so the password is stable across reboots.
  *
  *   passwordChanged == true   →  operator owns the password.
- *     The stored password is loaded from NVS unchanged, regardless of
+ *     The stored password is loaded from the store unchanged, regardless of
  *     what the current AuthConfig says.
  *
  * Call init() once at boot before any other method.
@@ -32,27 +34,32 @@ class AuthStore {
      * @param authConfig  The compiled-in auth policy from AuthConfig.
      * @param mac         WiFi STA MAC address (6 bytes).  Used only when
      *                    authConfig.source() == Source::FromMac.
+     * @param kvs         Key-value store bound to the "auth" namespace.
+     * @param rng         Random number generator for Generated-mode passwords.
      */
-    common::Result init(const AuthConfig &authConfig, const uint8_t mac[6]);
+    common::Result init(const AuthConfig&        authConfig,
+                        const uint8_t            mac[6],
+                        common::KeyValueStore&   kvs,
+                        device::RandomInterface& rng);
 
     /**
      * Returns true if the supplied password matches the stored password.
      * Comparison is constant-time to avoid timing side-channels.
      */
-    bool verify(const std::string &password) const;
+    bool verify(const std::string& password) const;
 
     /**
      * Change the password.  Persists the new value and sets passwordChanged
-     * to true.  Subsequent boots will load this password from NVS regardless
-     * of AuthConfig.
+     * to true.  Subsequent boots will load this password from the store
+     * regardless of AuthConfig.
      */
-    common::Result changePassword(const std::string &newPassword);
+    common::Result changePassword(const std::string& newPassword);
 
     /**
      * Returns the current effective password.
      * Exposed so the provisioning UI can display the default to the user.
      */
-    const std::string &password() const { return password_; }
+    const std::string& password() const { return password_; }
 
     /**
      * Returns true if the operator has changed the password at least once
@@ -68,18 +75,20 @@ class AuthStore {
     size_t getPasswordLen() const { return password_.size(); }
 
   private:
-    std::string deriveFromMac(const std::string &stub, const uint8_t mac[6]) const;
+    std::string deriveFromMac(const std::string& stub, const uint8_t mac[6]) const;
     std::string generateRandom() const;
 
-    common::Result persistToNvs(const std::string &password, bool changed);
-    common::Result loadFromNvs(std::string &out) const;
+    common::Result persistToStore(const std::string& password, bool changed);
+    common::Result loadFromStore(std::string& out) const;
+
+    common::KeyValueStore*   kvs_ = nullptr;
+    device::RandomInterface* rng_ = nullptr;
 
     std::string password_;
     bool        passwordChanged_ = false;
 
-    static constexpr const char *NVS_NAMESPACE    = "auth";
-    static constexpr const char *NVS_KEY_PASSWORD = "password";
-    static constexpr const char *NVS_KEY_CHANGED  = "pw_changed";
+    static constexpr const char* NVS_KEY_PASSWORD = "password";
+    static constexpr const char* NVS_KEY_CHANGED  = "pw_changed";
 };
 
 } // namespace auth

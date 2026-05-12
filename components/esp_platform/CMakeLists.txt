@@ -1,7 +1,10 @@
 idf_component_register(
     SRCS
+        EspClockInterface.cpp
         EspDeviceInterface.cpp
         EspMdnsManager.cpp
+        EspNvsStore.cpp
+        EspRandomInterface.cpp
         EspTimerInterface.cpp
         EspWiFiInterface.cpp
         WiFiHelper.cpp

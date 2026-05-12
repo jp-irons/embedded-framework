@@ -1,13 +1,8 @@
 #include "auth/ApiKeyStore.hpp"
 
-#include "esp_platform/EspTypeAdapter.hpp"
 #include "logger/Logger.hpp"
 
-#include "esp_random.h"
-#include "nvs.h"
-
 #include <cstdio>
-#include <vector>
 
 namespace auth {
 
@@ -21,7 +16,7 @@ static logger::Logger log{"ApiKeyStore"};
 
 std::string ApiKeyStore::generateToken() {
     uint8_t bytes[32];
-    esp_fill_random(bytes, sizeof(bytes));
+    rng_->fillRandom(bytes, sizeof(bytes));
 
     char hex[65];
     for (int i = 0; i < 32; ++i) {
@@ -34,60 +29,30 @@ std::string ApiKeyStore::generateToken() {
 // Public API
 // ---------------------------------------------------------------------------
 
-Result ApiKeyStore::init() {
-    nvs_handle_t h;
-    esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READONLY, &h);
-    if (err == ESP_ERR_NVS_NOT_FOUND) {
-        log.debug("No API key stored (namespace not found)");
+Result ApiKeyStore::init(KeyValueStore& kvs, device::RandomInterface& rng) {
+    kvs_ = &kvs;
+    rng_ = &rng;
+
+    Result r = kvs_->getString(NVS_KEY, key_);
+    if (r == Result::NotFound) {
+        log.debug("No API key stored");
         return Result::NotFound;
     }
-    if (err != ESP_OK) {
-        log.warn("NVS open failed (%d)", (int)err);
-        return esp_platform::toResult(err);
+    if (r != Result::Ok) {
+        log.warn("Failed to load API key (%s)", toString(r));
+        return r;
     }
 
-    size_t len = 0;
-    err = nvs_get_str(h, NVS_KEY, nullptr, &len);
-    if (err == ESP_ERR_NVS_NOT_FOUND) {
-        nvs_close(h);
-        log.debug("No API key stored (key not found)");
-        return Result::NotFound;
-    }
-    if (err != ESP_OK) {
-        nvs_close(h);
-        return esp_platform::toResult(err);
-    }
-
-    std::vector<char> tmp(len);
-    err = nvs_get_str(h, NVS_KEY, tmp.data(), &len);
-    nvs_close(h);
-    if (err != ESP_OK) {
-        return esp_platform::toResult(err);
-    }
-
-    key_.assign(tmp.data(), len - 1); // strip null terminator
-    log.info("API key loaded from NVS");
+    log.info("API key loaded");
     return Result::Ok;
 }
 
 std::string ApiKeyStore::generate() {
     const std::string token = generateToken();
 
-    nvs_handle_t h;
-    esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &h);
-    if (err != ESP_OK) {
-        log.error("NVS open failed, cannot persist API key (%d)", (int)err);
-        return {};
-    }
-
-    err = nvs_set_str(h, NVS_KEY, token.c_str());
-    if (err == ESP_OK) {
-        err = nvs_commit(h);
-    }
-    nvs_close(h);
-
-    if (err != ESP_OK) {
-        log.error("NVS write failed, API key not persisted (%d)", (int)err);
+    Result r = kvs_->setString(NVS_KEY, token);
+    if (r != Result::Ok) {
+        log.error("Failed to persist API key (%s)", toString(r));
         return {};
     }
 
@@ -96,7 +61,7 @@ std::string ApiKeyStore::generate() {
     return token;
 }
 
-bool ApiKeyStore::validate(const std::string &token) const {
+bool ApiKeyStore::validate(const std::string& token) const {
     if (key_.empty() || key_.size() != token.size()) {
         return false;
     }
@@ -110,30 +75,14 @@ bool ApiKeyStore::validate(const std::string &token) const {
 }
 
 Result ApiKeyStore::revoke() {
-    nvs_handle_t h;
-    esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &h);
-    if (err != ESP_OK) {
-        return esp_platform::toResult(err);
-    }
-
-    err = nvs_erase_key(h, NVS_KEY);
-    if (err == ESP_ERR_NVS_NOT_FOUND) {
-        // Nothing stored — treat as success
-        err = ESP_OK;
-    }
-    if (err == ESP_OK) {
-        err = nvs_commit(h);
-    }
-    nvs_close(h);
-
-    if (err == ESP_OK) {
+    Result r = kvs_->eraseKey(NVS_KEY);
+    if (r == Result::Ok) {
         key_.clear();
         log.info("API key revoked");
     } else {
-        log.warn("Failed to revoke API key from NVS (%d)", (int)err);
+        log.warn("Failed to revoke API key (%s)", toString(r));
     }
-
-    return esp_platform::toResult(err);
+    return r;
 }
 
 } // namespace auth

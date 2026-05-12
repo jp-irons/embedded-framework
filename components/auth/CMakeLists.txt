@@ -9,10 +9,8 @@ idf_component_register(
     REQUIRES
         cjson
         common
-        esp_platform
-        esp_hw_support
+        device
         http
         logger
         mbedtls
-        nvs_flash
 )

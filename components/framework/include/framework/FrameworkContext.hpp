@@ -7,8 +7,11 @@
 #include "auth/SessionStore.hpp"
 #include "network_store/NetworkApiHandler.hpp"
 #include "network_store/NetworkStore.hpp"
+#include "common/KeyValueStore.hpp"
+#include "device/ClockInterface.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "device/DeviceInterface.hpp"
+#include "device/RandomInterface.hpp"
 #include "device/TimerInterface.hpp"
 #include "device_cert/DeviceCert.hpp"
 #include "http/HttpHandler.hpp"
@@ -115,10 +118,13 @@ class FrameworkContext {
     auth::AuthApiHandler           authApi{authStore, sessionStore, apiKeyStore};
 
     // Owned heap objects — abstract pointers; concrete types
-    // (EspDeviceInterface, EspWiFiInterface, EspTimerInterface, EspMdnsManager)
+    // (EspDeviceInterface, EspWiFiInterface, EspTimerInterface, EspMdnsManager,
+    //  EspNvsStore, EspRandomInterface, EspClockInterface)
     // are created in initialize() and only referenced by name in FrameworkContext.cpp.
     device::DeviceInterface*              deviceInterface_ = nullptr;
     device::TimerInterface*               timerInterface_  = nullptr;
+    device::RandomInterface*              randomInterface_ = nullptr;
+    device::ClockInterface*               clockInterface_  = nullptr;
     wifi_manager::MdnsInterface*          mdnsInterface_   = nullptr;
     wifi_manager::WiFiInterface*          wifiInterface    = nullptr;
     wifi_manager::EmbeddedServer*         embeddedServer   = nullptr;
@@ -127,6 +133,8 @@ class FrameworkContext {
     network_store::NetworkApiHandler*     networkApi       = nullptr;
     device::DeviceApiHandler*             deviceApi        = nullptr;
     ota::OtaApiHandler*                   otaApi           = nullptr;
+    common::KeyValueStore*                nvsAuth_         = nullptr;
+    common::KeyValueStore*                nvsNetwork_      = nullptr;
 
     void initialize();
 };

@@ -1,11 +1,8 @@
 #include "auth/AuthStore.hpp"
 
-#include "esp_platform/EspTypeAdapter.hpp"
 #include "logger/Logger.hpp"
 
-#include "esp_random.h"
 #include "psa/crypto.h"
-#include "nvs.h"
 
 #include <cstdio>
 #include <cstring>
@@ -27,7 +24,7 @@ static logger::Logger log{"AuthStore"};
 //
 // Uses the PSA Crypto API (TF-PSA-Crypto / mbedTLS 4.x) — the legacy
 // mbedtls_sha256_* functions are not available in ESP-IDF 6.x.
-std::string AuthStore::deriveFromMac(const std::string &stub, const uint8_t mac[6]) const {
+std::string AuthStore::deriveFromMac(const std::string& stub, const uint8_t mac[6]) const {
     // Concatenate stub + mac into a single input buffer
     std::vector<uint8_t> input;
     input.reserve(stub.size() + 6);
@@ -64,73 +61,51 @@ std::string AuthStore::generateRandom() const {
 
     char buf[kLen + 1];
     for (size_t i = 0; i < kLen; ++i) {
-        buf[i] = kChars[esp_random() % kNumChars];
+        buf[i] = kChars[rng_->random32() % kNumChars];
     }
     buf[kLen] = '\0';
     return std::string(buf);
 }
 
 // ---------------------------------------------------------------------------
-// NVS helpers
+// Store helpers
 // ---------------------------------------------------------------------------
 
-Result AuthStore::loadFromNvs(std::string &out) const {
-    nvs_handle_t h;
-    esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READONLY, &h);
-    if (err == ESP_ERR_NVS_NOT_FOUND) {
+Result AuthStore::loadFromStore(std::string& out) const {
+    Result r = kvs_->getString(NVS_KEY_PASSWORD, out);
+    if (r == Result::NotFound) {
         return Result::NotFound;
     }
-    if (err != ESP_OK) {
-        return esp_platform::toResult(err);
+    if (r != Result::Ok) {
+        log.warn("Failed to load password from store (%s)", toString(r));
     }
-
-    size_t len = 0;
-    err = nvs_get_str(h, NVS_KEY_PASSWORD, nullptr, &len);
-    if (err == ESP_ERR_NVS_NOT_FOUND) {
-        nvs_close(h);
-        return Result::NotFound;
-    }
-    if (err != ESP_OK) {
-        nvs_close(h);
-        return esp_platform::toResult(err);
-    }
-
-    std::vector<char> tmp(len);
-    err = nvs_get_str(h, NVS_KEY_PASSWORD, tmp.data(), &len);
-    nvs_close(h);
-    if (err != ESP_OK) {
-        return esp_platform::toResult(err);
-    }
-
-    out.assign(tmp.data(), len - 1); // strip null terminator
-    return Result::Ok;
+    return r;
 }
 
-Result AuthStore::persistToNvs(const std::string &password, bool changed) {
-    nvs_handle_t h;
-    esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &h);
-    if (err != ESP_OK) {
-        return esp_platform::toResult(err);
+Result AuthStore::persistToStore(const std::string& password, bool changed) {
+    Result r = kvs_->setString(NVS_KEY_PASSWORD, password);
+    if (r != Result::Ok) {
+        log.warn("Failed to persist password (%s)", toString(r));
+        return r;
     }
-
-    err = nvs_set_str(h, NVS_KEY_PASSWORD, password.c_str());
-    if (err == ESP_OK) {
-        err = nvs_set_u8(h, NVS_KEY_CHANGED, changed ? 1 : 0);
+    r = kvs_->setU8(NVS_KEY_CHANGED, changed ? 1 : 0);
+    if (r != Result::Ok) {
+        log.warn("Failed to persist pw_changed flag (%s)", toString(r));
     }
-    if (err == ESP_OK) {
-        err = nvs_commit(h);
-    }
-
-    nvs_close(h);
-    return esp_platform::toResult(err);
+    return r;
 }
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
-Result AuthStore::init(const AuthConfig &authConfig, const uint8_t mac[6]) {
+Result AuthStore::init(const AuthConfig&        authConfig,
+                       const uint8_t            mac[6],
+                       KeyValueStore&           kvs,
+                       device::RandomInterface& rng) {
     log.debug("init");
+    kvs_ = &kvs;
+    rng_ = &rng;
 
     // PSA must be initialised before psa_hash_compute can be called.
     // This is idempotent — safe to call even if DeviceCert already did it.
@@ -138,28 +113,19 @@ Result AuthStore::init(const AuthConfig &authConfig, const uint8_t mac[6]) {
 
     // ── Read the operator-changed flag ────────────────────────────────────
     uint8_t changedFlag = 0;
-    {
-        nvs_handle_t h;
-        esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READONLY, &h);
-        if (err == ESP_OK) {
-            // Ignore not-found — changedFlag stays 0 (first boot)
-            nvs_get_u8(h, NVS_KEY_CHANGED, &changedFlag);
-            nvs_close(h);
-        }
-        // Any other open error is also treated as first boot
-    }
+    kvs_->getU8(NVS_KEY_CHANGED, changedFlag); // NotFound → changedFlag stays 0
 
     // ── Operator owns the password ────────────────────────────────────────
     if (changedFlag) {
-        Result r = loadFromNvs(password_);
+        Result r = loadFromStore(password_);
         if (r == Result::Ok) {
             passwordChanged_ = true;
-            log.info("Loaded operator-set password from NVS");
+            log.info("Loaded operator-set password from store");
             return Result::Ok;
         }
-        // NVS inconsistency — changed flag set but password missing.
+        // Store inconsistency — changed flag set but password missing.
         // Fall through to reapply the default and let the operator re-set it.
-        log.warn("pw_changed flag set but password missing from NVS — reapplying default");
+        log.warn("pw_changed flag set but password missing — reapplying default");
     }
 
     // ── Developer owns the default ────────────────────────────────────────
@@ -172,8 +138,8 @@ Result AuthStore::init(const AuthConfig &authConfig, const uint8_t mac[6]) {
             // so the password is stable across reboots until the operator
             // changes it.  Only generate a new one on a true first boot or
             // after NVS has been wiped.
-            if (loadFromNvs(password_) == Result::Ok) {
-                log.debug("Loaded existing generated password from NVS");
+            if (loadFromStore(password_) == Result::Ok) {
+                log.debug("Loaded existing generated password from store");
                 return Result::Ok;
             }
             password_ = generateRandom();
@@ -191,19 +157,16 @@ Result AuthStore::init(const AuthConfig &authConfig, const uint8_t mac[6]) {
             break;
     }
 
-    Result r = persistToNvs(password_, false);
+    Result r = persistToStore(password_, false);
     if (r != Result::Ok) {
-        log.warn("Failed to persist default password to NVS (%s)", toString(r));
+        log.warn("Failed to persist default password (%s)", toString(r));
         // Not fatal — password_ is still valid in memory for this boot
     }
     return Result::Ok;
 }
 
-bool AuthStore::verify(const std::string &password) const {
-    // mbedtls_ssl_safer_memcmp is not available at application level;
-    // use a simple length-then-content comparison.  Both branches execute
-    // the same number of iterations to reduce timing leakage.
-    const std::string &stored = password_;
+bool AuthStore::verify(const std::string& password) const {
+    const std::string& stored = password_;
     bool match = (password.size() == stored.size());
     uint8_t diff = 0;
     size_t  len  = match ? stored.size() : 0;
@@ -213,9 +176,9 @@ bool AuthStore::verify(const std::string &password) const {
     return match && (diff == 0);
 }
 
-Result AuthStore::changePassword(const std::string &newPassword) {
+Result AuthStore::changePassword(const std::string& newPassword) {
     log.info("Operator changing password");
-    Result r = persistToNvs(newPassword, true);
+    Result r = persistToStore(newPassword, true);
     if (r == Result::Ok) {
         password_        = newPassword;
         passwordChanged_ = true;

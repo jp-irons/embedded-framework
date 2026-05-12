@@ -1,20 +1,22 @@
 #pragma once
 
+#include "common/KeyValueStore.hpp"
 #include "common/Result.hpp"
+#include "device/RandomInterface.hpp"
 
 #include <string>
 
 namespace auth {
 
 /**
- * NVS-backed API key store for machine-to-machine access.
+ * Persistent API key store for machine-to-machine access.
  *
  * A single API key is supported per device.  The key is a 64-character
  * lowercase hex string (32 random bytes from the hardware RNG), identical
  * in format to session tokens.
  *
  * Unlike session tokens, API keys:
- *   - Survive device reboots (stored in NVS under namespace "auth", key "api_key")
+ *   - Survive device reboots (stored under key "api_key" in the supplied store)
  *   - Have no idle timeout
  *   - Are intended for headless / automated clients
  *
@@ -26,17 +28,18 @@ namespace auth {
 class ApiKeyStore {
   public:
     /**
-     * Load any persisted API key from NVS.
+     * Bind the store to its backing KeyValueStore and RNG, then load any
+     * persisted API key.
      * Must be called before validate() / isSet().
      * Returns Ok on success, NotFound if no key is stored (not an error),
-     * or an error code if NVS fails unexpectedly.
+     * or an error code if the store fails unexpectedly.
      */
-    common::Result init();
+    common::Result init(common::KeyValueStore& kvs, device::RandomInterface& rng);
 
     /**
-     * Generate a new random API key, persist it to NVS, and return it.
+     * Generate a new random API key, persist it, and return it.
      * The new key overwrites any previously stored key.
-     * Returns the key string on success, or an empty string if NVS write fails.
+     * Returns the key string on success, or an empty string on failure.
      */
     std::string generate();
 
@@ -45,10 +48,10 @@ class ApiKeyStore {
      * Returns false immediately if no key has been generated yet.
      * Comparison is constant-time.
      */
-    bool validate(const std::string &token) const;
+    bool validate(const std::string& token) const;
 
     /**
-     * Delete the stored API key from NVS and clear it from RAM.
+     * Delete the stored API key and clear it from RAM.
      * After this call isSet() returns false until generate() is called again.
      */
     common::Result revoke();
@@ -57,12 +60,14 @@ class ApiKeyStore {
     bool isSet() const { return !key_.empty(); }
 
   private:
-    static std::string generateToken();
+    std::string generateToken();
+
+    common::KeyValueStore*   kvs_ = nullptr;
+    device::RandomInterface* rng_ = nullptr;
 
     std::string key_;
 
-    static constexpr const char *NVS_NAMESPACE = "auth";
-    static constexpr const char *NVS_KEY       = "api_key";
+    static constexpr const char* NVS_KEY = "api_key";
 };
 
 } // namespace auth

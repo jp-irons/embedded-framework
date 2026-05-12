@@ -6,9 +6,7 @@ idf_component_register(
         include
     REQUIRES
         cjson
-  		common
-  		esp_platform
-  		nvs_flash
-    	http
+        common
+        http
         logger
 )

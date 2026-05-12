@@ -2,8 +2,11 @@
 
 #include "network_store/NetworkApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
+#include "esp_platform/EspClockInterface.hpp"
 #include "esp_platform/EspDeviceInterface.hpp"
 #include "esp_platform/EspMdnsManager.hpp"
+#include "esp_platform/EspNvsStore.hpp"
+#include "esp_platform/EspRandomInterface.hpp"
 #include "esp_platform/EspTimerInterface.hpp"
 #include "http/HttpHandler.hpp"
 #include "http_types/HttpTypes.hpp"
@@ -60,6 +63,18 @@ void FrameworkContext::initialize() {
     timerInterface_  = new esp_platform::EspTimerInterface();
     wifiCtx.timer    = timerInterface_;
 
+    // Create the random and clock implementations — used by auth stores.
+    randomInterface_ = new esp_platform::EspRandomInterface();
+    clockInterface_  = new esp_platform::EspClockInterface();
+
+    // Create the NVS-backed key-value stores — one per namespace.
+    nvsAuth_    = new esp_platform::EspNvsStore("auth");
+    nvsNetwork_ = new esp_platform::EspNvsStore("wifi_creds");
+
+    // Initialise the stores with their backing KVS / RNG / clock.
+    networkStore.init(*nvsNetwork_);
+    sessionStore.init(*randomInterface_, *clockInterface_);
+
     // Create the mDNS implementation — injected into WiFiManager via context.
     mdnsInterface_        = new wifi_manager::EspMdnsManager();
     wifiCtx.mdnsInterface = mdnsInterface_;
@@ -84,14 +99,14 @@ void FrameworkContext::initialize() {
     }
 
     // Initialise auth — derives/loads password according to AuthConfig policy
-    common::Result authResult = authStore.init(authConfig_, mac);
+    common::Result authResult = authStore.init(authConfig_, mac, *nvsAuth_, *randomInterface_);
     if (authResult != common::Result::Ok) {
         log.warn("AuthStore::init failed (%s) — auth will not be enforced",
                  common::toString(authResult));
     }
 
-    // Load any persisted API key from NVS (NotFound is normal on first boot)
-    common::Result apiKeyResult = apiKeyStore.init();
+    // Load any persisted API key (NotFound is normal on first boot)
+    common::Result apiKeyResult = apiKeyStore.init(*nvsAuth_, *randomInterface_);
     if (apiKeyResult != common::Result::Ok &&
         apiKeyResult != common::Result::NotFound) {
         log.warn("ApiKeyStore::init failed (%s) — API key unavailable",
@@ -147,6 +162,10 @@ FrameworkContext::~FrameworkContext() {
     delete otaApi;
     delete mdnsInterface_;
     delete timerInterface_;
+    delete clockInterface_;
+    delete randomInterface_;
+    delete nvsNetwork_;
+    delete nvsAuth_;
     delete deviceInterface_;
 }
 

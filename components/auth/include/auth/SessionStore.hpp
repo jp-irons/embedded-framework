@@ -1,5 +1,8 @@
 #pragma once
 
+#include "device/ClockInterface.hpp"
+#include "device/RandomInterface.hpp"
+
 #include <array>
 #include <cstdint>
 #include <string>
@@ -22,9 +25,17 @@ namespace auth {
  *
  * When the store is full the oldest (least-recently-seen) session is
  * silently evicted to make room.
+ *
+ * Call init() once at boot before create() / validate().
  */
 class SessionStore {
   public:
+    /**
+     * Bind the store to its RNG and clock.
+     * Must be called before create() / validate().
+     */
+    void init(device::RandomInterface& rng, device::ClockInterface& clock);
+
     /**
      * Generate a new session token and record it in the store.
      * @returns the raw token string — send this to the client once.
@@ -36,10 +47,10 @@ class SessionStore {
      * timeout.  Updates the last-seen timestamp on success.
      * Comparison is constant-time.
      */
-    bool validate(const std::string &token);
+    bool validate(const std::string& token);
 
     /** Remove a specific token (logout). */
-    void invalidate(const std::string &token);
+    void invalidate(const std::string& token);
 
     /** Remove all tokens — call on password change. */
     void invalidateAll();
@@ -47,7 +58,7 @@ class SessionStore {
   private:
     struct Session {
         std::string token;
-        int64_t     createdAt = 0; // esp_timer_get_time() microseconds
+        int64_t     createdAt = 0; // monotonic microseconds since boot
         int64_t     lastSeen  = 0;
         bool        active    = false;
     };
@@ -60,7 +71,10 @@ class SessionStore {
 
     std::array<Session, MAX_SESSIONS> sessions_{};
 
-    static std::string generateToken();
+    device::RandomInterface* rng_   = nullptr;
+    device::ClockInterface*  clock_ = nullptr;
+
+    std::string generateToken();
 };
 
 } // namespace auth
