@@ -5,10 +5,11 @@
 
 static logger::Logger log{"ApplicationContext"};
 
-ApplicationContext::ApplicationContext(framework::FrameworkContext &fw)
+ApplicationContext::ApplicationContext(framework::FrameworkContext& fw)
     : fw_(fw)
     , appFileTable_()
-    , appFileHandler_("", "index.html", appFileTable_) {
+    , appFileHandler_("", "index.html", appFileTable_)
+    , temperatureHandler_(fw.getDevice()) {
     log.debug("constructor");
 }
 

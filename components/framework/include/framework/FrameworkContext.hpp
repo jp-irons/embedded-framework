@@ -8,6 +8,7 @@
 #include "network_store/NetworkApiHandler.hpp"
 #include "network_store/NetworkStore.hpp"
 #include "device/DeviceApiHandler.hpp"
+#include "device/DeviceInterface.hpp"
 #include "device_cert/DeviceCert.hpp"
 #include "http/HttpHandler.hpp"
 #include "http/HttpTypes.hpp"
@@ -20,6 +21,7 @@ class NetworkStore;
 
 namespace wifi_manager {
 class WiFiApiHandler;
+class WiFiInterface;
 }
 
 namespace framework {
@@ -45,16 +47,23 @@ class FrameworkContext {
      *                      appended automatically, e.g. "esp32" → "esp32-a1b2c3".
      *                      Defaults to "esp32".
      */
-    FrameworkContext(const wifi_manager::ApConfig &apConfig,
+    FrameworkContext(const wifi_manager::ApConfig& apConfig,
                      auth::AuthConfig authConfig,
                      std::string rootUri    = "/framework",
                      std::string mdnsPrefix = "esp32");
 
     ~FrameworkContext();
 
-    const std::string &getRootUri() const { return rootUri_; }
+    const std::string& getRootUri() const { return rootUri_; }
 
-    const wifi_manager::ApConfig &getApConfig() const { return apConfig; }
+    const wifi_manager::ApConfig& getApConfig() const { return apConfig; }
+
+    /**
+     * Returns the device interface for injection into app-tier handlers
+     * (e.g. TemperatureHandler).  The reference is valid for the lifetime of
+     * this FrameworkContext.
+     */
+    device::DeviceInterface& getDevice();
 
     // -----------------------------------------------------------------------
     // App injection API
@@ -64,36 +73,27 @@ class FrameworkContext {
     /**
      * Set the URL that the root path (/) redirects to.
      * Default: "/framework/ui/"
-     * Typical override: fw_.setEntryPoint("/app/ui/");
      */
     void setEntryPoint(std::string path);
 
     /**
      * Register an app static-file handler for the given URL prefix.
-     * The handler is tried after all framework API routes but before the
-     * framework's own file handler.
-     *
-     * Example:
-     *   fw_.addFileHandler("/app/ui/", &myAppFileHandler_);
      */
-    void addFileHandler(std::string prefix, http::HttpHandler *handler);
+    void addFileHandler(std::string prefix, http::HttpHandler* handler);
 
     /**
      * Register an app API route for the given method + URL prefix.
-     * The handler is tried after all framework API routes.
-     *
-     * Example:
-     *   fw_.addRoute(http::HttpMethod::Get, "/app/api/status", &statusHandler_);
      */
-    void addRoute(http::HttpMethod method, std::string prefix, http::HttpHandler *handler);
-
+    void addRoute(http::HttpMethod method, std::string prefix,
+                  http::HttpHandler* handler);
 
     void start();
     void stop();
 
   private:
     wifi_manager::ApConfig apConfig = {
-        .ssid = "ESP32 FW Test", .password = "password", .channel = 1, .maxConnections = 4};
+        .ssid = "ESP32 FW Test", .password = "password",
+        .channel = 1, .maxConnections = 4};
     std::string      rootUri_    = "/framework";
     std::string      mdnsPrefix_ = "esp32";
     auth::AuthConfig authConfig_ = auth::AuthConfig::withPassword("esp32admin")
@@ -108,18 +108,21 @@ class FrameworkContext {
     wifi_manager::WiFiContext      wifiCtx;
     network_store::NetworkStore    networkStore;
     auth::AuthStore                authStore;
-    auth::SessionStore                sessionStore;
-    auth::ApiKeyStore                 apiKeyStore;
-    auth::AuthApiHandler              authApi{authStore, sessionStore, apiKeyStore};
+    auth::SessionStore             sessionStore;
+    auth::ApiKeyStore              apiKeyStore;
+    auth::AuthApiHandler           authApi{authStore, sessionStore, apiKeyStore};
 
-    // Owned heap objects
-    wifi_manager::EmbeddedServer             *embeddedServer = nullptr;
-    wifi_manager::WiFiInterface              *wifiInterface  = nullptr;
-    wifi_manager::WiFiManager                *wifiManager    = nullptr;
-    wifi_manager::WiFiApiHandler             *wifiApi        = nullptr;
-    network_store::NetworkApiHandler         *networkApi     = nullptr;
-    device::DeviceApiHandler                 *deviceApi      = nullptr;
-    ota::OtaApiHandler                       *otaApi         = nullptr;
+    // Owned heap objects — device and WiFi are abstract pointers; concrete
+    // types (EspDeviceInterface, EspWiFiInterface) are created in initialize()
+    // and only referenced by name in FrameworkContext.cpp.
+    device::DeviceInterface*              deviceInterface_ = nullptr;
+    wifi_manager::WiFiInterface*          wifiInterface    = nullptr;
+    wifi_manager::EmbeddedServer*         embeddedServer   = nullptr;
+    wifi_manager::WiFiManager*            wifiManager      = nullptr;
+    wifi_manager::WiFiApiHandler*         wifiApi          = nullptr;
+    network_store::NetworkApiHandler*     networkApi       = nullptr;
+    device::DeviceApiHandler*             deviceApi        = nullptr;
+    ota::OtaApiHandler*                   otaApi           = nullptr;
 
     void initialize();
 };

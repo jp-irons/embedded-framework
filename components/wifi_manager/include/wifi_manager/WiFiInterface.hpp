@@ -1,73 +1,40 @@
 #pragma once
 
+#include "common/Result.hpp"
 #include "network_store/WiFiNetwork.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
-#include "esp_event_base.h"
-#include "esp_netif_types.h"
-#include "esp_wifi_types_generic.h"
 #include <vector>
-
-namespace common {
-enum class Result;
-}
 
 namespace wifi_manager {
 
-struct WiFiContext;
-// forward declaration
-class WiFiStateMachine;
-// forward declaration
-
+/**
+ * Abstract WiFi driver interface.
+ *
+ * Only framework types appear on the boundary (ApConfig, WiFiNetwork,
+ * IpAddress, WiFiStatus, Result, WiFiAp).  No ESP-IDF headers are included
+ * here; all ESP-IDF types and includes are confined to EspWiFiInterface.
+ *
+ * WiFiManager holds a WiFiInterface* so it remains portable and unit-testable
+ * without a real WiFi driver.  The ESP-IDF concrete implementation is
+ * EspWiFiInterface.
+ */
 class WiFiInterface {
   public:
-    explicit WiFiInterface(WiFiContext &ctx);
+    virtual ~WiFiInterface() = default;
 
-    common::Result startDriver();
-    common::Result stopDriver();
+    virtual common::Result startDriver() = 0;
+    virtual common::Result stopDriver()  = 0;
 
-    common::Result startAp(const wifi_manager::ApConfig &cfg);
-    common::Result stopAp();
+    virtual common::Result startAp(const ApConfig& cfg) = 0;
+    virtual common::Result stopAp()                      = 0;
 
-	wifi_config_t makeStaConfig(const network_store::WiFiNetwork& cred);
+    virtual WiFiStatus     connectSta(const network_store::WiFiNetwork& cred) = 0;
+    virtual common::Result disconnectSta()                                     = 0;
 
-    WiFiStatus connectSta(const network_store::WiFiNetwork& cred);
-    common::Result disconnectSta();
+    virtual common::Result scan(std::vector<WiFiAp>& results) = 0;
 
-	common::Result scan(std::vector<WiFiAp>& results);
-	
-	IpAddress getApIp() const;
-	IpAddress getStaIp() const;
-
-  private:
-    WiFiContext &ctx;
-
-    esp_netif_t *apNetif = nullptr;
-    esp_netif_t *staNetif = nullptr;
-	
-	bool driverStarted = false;
-
-	bool apActive = false;
-	bool staActive = false;
-
-	wifi_mode_t currentMode = WIFI_MODE_NULL;
-
-    static void wifiEventHandler(void *arg, esp_event_base_t base, int32_t id, void *data);
-
-    static void ipEventHandler(void *arg, esp_event_base_t base, int32_t id, void *data);
-
-    void handleWiFiEvent(esp_event_base_t base, int32_t id, void *data);
-
-    void handleIPEvent(esp_event_base_t base, int32_t id, void *data);
-
-    void connectTo(const network_store::WiFiNetwork &cred);
-
-    void onSTAConnected();
-    void onSTADisconnected(uint8_t reason);
-	static WiFiAuthMode toAuthMode(wifi_auth_mode_t mode);
-	wifi_mode_t computeMode() const;
-	common::Result setStaState(bool enable);
-
-
+    virtual IpAddress getApIp()  const = 0;
+    virtual IpAddress getStaIp() const = 0;
 };
 
 } // namespace wifi_manager

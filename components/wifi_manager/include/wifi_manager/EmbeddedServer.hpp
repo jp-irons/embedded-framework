@@ -147,6 +147,10 @@ class EmbeddedServer : public http::HttpHandler {
     std::vector<AppRoute>       appRoutes_;
     std::vector<AppFileHandler> appFileHandlers_;
 
+    // Set to true after the first completed HTTPS request; used to call
+    // markValid() exactly once to cancel the OTA rollback timer.
+    bool otaMarkedValid_ = false;
+
     // Auth — null until setAuth() is called
     auth::AuthStore        *authStore_        = nullptr;
     const auth::AuthConfig *authConfig_       = nullptr;

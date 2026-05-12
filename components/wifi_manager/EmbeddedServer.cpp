@@ -73,10 +73,6 @@ bool EmbeddedServer::start() {
         log.warn("EmbeddedServer started but STA IP unknown");
     }
 
-    // HTTP server is listening → system is healthy enough to validate the
-    // running OTA image and cancel the automatic rollback timer.
-    ota::OtaManager::markValid();
-
     return true;
 }
 
@@ -267,8 +263,16 @@ common::Result EmbeddedServer::handle(http::HttpRequest &req, http::HttpResponse
     common::Result result = frameworkFileHandler_.handle(req, res);
     if (result == common::Result::NotFound) {
         log.warn("no handler found for '%s'", path.c_str());
-        return res.sendJsonError(404, "Not found: " + path);
+        result = res.sendJsonError(404, "Not found: " + path);
     }
+
+    // First completed HTTPS request — any status — proves the full stack is
+    // healthy.  Mark the running OTA image valid to cancel rollback.
+    if (!otaMarkedValid_) {
+        otaMarkedValid_ = true;
+        ota::OtaManager::markValid();
+    }
+
     return result;
 }
 

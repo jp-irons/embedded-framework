@@ -4,7 +4,7 @@ idf_component_register(
         MdnsManager.cpp
         WiFiApiHandler.cpp
         WiFiHelper.cpp
-        WiFiInterface.cpp
+        EspWiFiInterface.cpp
         WiFiManager.cpp
         WiFiStateMachine.cpp
         WiFiTypes.cpp

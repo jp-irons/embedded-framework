@@ -5,7 +5,6 @@
 #include "esp_app_format.h"
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
-#include "esp_system.h"
 #include "freertos/task.h"
 #include "http/HttpHandler.hpp"
 #include "logger/Logger.hpp"
@@ -16,7 +15,8 @@ namespace ota {
 
 static logger::Logger log{"OtaApiHandler"};
 
-OtaApiHandler::OtaApiHandler() {
+OtaApiHandler::OtaApiHandler(device::DeviceInterface& device)
+    : device_(device) {
     log.debug("constructor");
 }
 
@@ -264,7 +264,7 @@ common::Result OtaApiHandler::handleRollback(HttpRequest & /*req*/, HttpResponse
         "{\"status\":\"ok\","
         "\"message\":\"Rolling back to previous firmware. Device is rebooting...\"}");
     vTaskDelay(pdMS_TO_TICKS(500));
-    esp_restart();
+    device_.reboot();
 
     return Result::Ok; // unreachable
 }
@@ -295,7 +295,7 @@ common::Result OtaApiHandler::handleFactoryReset(HttpRequest & /*req*/, HttpResp
         "{\"status\":\"ok\","
         "\"message\":\"Factory reset complete. Device is rebooting to factory firmware...\"}");
     vTaskDelay(pdMS_TO_TICKS(500));
-    esp_restart();
+    device_.reboot();
 
     return Result::Ok; // unreachable
 }

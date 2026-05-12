@@ -7,6 +7,7 @@ idf_component_register(
         include
     REQUIRES
         common
+        device
         http
         logger
         app_update

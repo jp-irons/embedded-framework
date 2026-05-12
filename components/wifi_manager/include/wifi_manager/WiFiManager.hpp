@@ -34,6 +34,9 @@ class WiFiManager {
 	std::optional<network_store::WiFiNetwork> currentNetwork;
 	int retryCount = 0;
     static constexpr int MAX_RETRIES = 3;
+    int driverRetryCount = 0;
+    static constexpr int MAX_DRIVER_RETRIES = 3;
+    static constexpr uint32_t DRIVER_RETRY_DELAY_MS = 3000;
     std::string lastErrorReason;
 
     device::DeferredExecutor deferred;
@@ -50,6 +53,7 @@ class WiFiManager {
 
     // Retry logic
     void scheduleRetry();
+    void retryDriver();
 };
 
 } // namespace wifi_manager

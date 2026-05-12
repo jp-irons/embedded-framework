@@ -8,6 +8,7 @@ enum class WiFiState {
     AP_Mode,
     STA_Connecting,
     STA_Connected,
+    DriverFailed,
 };
 
 enum class WiFiEvent {

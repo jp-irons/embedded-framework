@@ -1,6 +1,5 @@
 #include "TemperatureHandler.hpp"
 
-#include "device/DeviceInterface.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
 #include "logger/Logger.hpp"
@@ -9,13 +8,16 @@
 
 static logger::Logger log{"TemperatureHandler"};
 
-// Sensor lifecycle is owned by device::readTemperature() in DeviceInterface.
+// Sensor lifecycle is owned by EspDeviceInterface::readTemperature().
 // Having two owners caused "Already installed" errors from the ESP-IDF driver.
-TemperatureHandler::TemperatureHandler() = default;
+TemperatureHandler::TemperatureHandler(device::DeviceInterface& device)
+    : device_(device) {}
+
 TemperatureHandler::~TemperatureHandler() = default;
 
-common::Result TemperatureHandler::handle(http::HttpRequest &req, http::HttpResponse &res) {
-    float celsius = device::readTemperature();
+common::Result TemperatureHandler::handle(http::HttpRequest& /*req*/,
+                                           http::HttpResponse& res) {
+    float celsius = device_.readTemperature();
 
     char body[32];
     snprintf(body, sizeof(body), "{\"celsius\":%.1f}", celsius);

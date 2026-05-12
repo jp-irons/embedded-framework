@@ -76,6 +76,12 @@ void WiFiManager::onStateChanged(WiFiState oldState, WiFiState newState) {
             mdns.stop();
             break;
 
+        case WiFiState::DriverFailed:
+            driverRetryCount = 0;
+            log.warn("Driver failed — scheduling retry in %ums", DRIVER_RETRY_DELAY_MS);
+            deferred.runAfter(DRIVER_RETRY_DELAY_MS, [this]() { retryDriver(); });
+            break;
+
         default:
             break;
     }
@@ -193,6 +199,35 @@ void WiFiManager::stopSTA() {
 //
 // Retry logic
 //
+
+void WiFiManager::retryDriver()
+{
+    driverRetryCount++;
+    log.info("retryDriver(): attempt %d/%d", driverRetryCount, MAX_DRIVER_RETRIES);
+
+    Result r = ctx.wifiInterface->startDriver();
+    if (r == Result::Ok) {
+        log.info("retryDriver(): driver recovered");
+        ctx.embeddedServer->start();
+        if (currentNetwork.has_value() && !currentNetwork->ssid.empty()) {
+            sm.onEvent(WiFiEvent::NetworkProvided);
+        } else {
+            sm.onEvent(WiFiEvent::StartProvisioning);
+        }
+        return;
+    }
+
+    if (driverRetryCount < MAX_DRIVER_RETRIES) {
+        log.warn("retryDriver(): failed, next attempt in %ums", DRIVER_RETRY_DELAY_MS);
+        deferred.runAfter(DRIVER_RETRY_DELAY_MS, [this]() { retryDriver(); });
+    } else {
+        log.error("retryDriver(): driver failed after %d attempts — invoking fatal handler",
+                  MAX_DRIVER_RETRIES);
+        if (ctx.onDriverFatal) {
+            ctx.onDriverFatal();
+        }
+    }
+}
 
 void WiFiManager::scheduleRetry() {
     if (retryCount >= MAX_RETRIES) {

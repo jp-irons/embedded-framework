@@ -19,20 +19,22 @@
  */
 class ApplicationContext {
   public:
-    explicit ApplicationContext(framework::FrameworkContext &fw);
+    explicit ApplicationContext(framework::FrameworkContext& fw);
     ~ApplicationContext();
 
     void start();
     void loop();
 
   private:
-    framework::FrameworkContext &fw_;
+    framework::FrameworkContext& fw_;
 
     // App embedded file table + handler.
     // appFileTable_ MUST be declared before appFileHandler_ so it is
     // initialised first (appFileHandler_ holds a reference to it).
-    AppFileTable                         appFileTable_;
+    AppFileTable                          appFileTable_;
     framework_files::EmbeddedFileHandler  appFileHandler_;
 
+    // temperatureHandler_ is declared after fw_ so that fw_.getDevice() is
+    // valid when the initialiser list runs.
     TemperatureHandler temperatureHandler_;
 };
