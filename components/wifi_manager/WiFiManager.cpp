@@ -4,6 +4,7 @@
 #include "network_store/NetworkStore.hpp"
 #include "logger/Logger.hpp"
 #include "wifi_manager/EmbeddedServer.hpp"
+#include "wifi_manager/MdnsInterface.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
 
@@ -56,7 +57,7 @@ void WiFiManager::onStateChanged(WiFiState oldState, WiFiState newState) {
         case WiFiState::AP_Mode:
             retryCount = 0;
             startAP();
-            mdns.start(ctx.mdnsHostname);
+            if (ctx.mdnsInterface) ctx.mdnsInterface->start(ctx.mdnsHostname);
             if (ctx.embeddedServer)
                 ctx.embeddedServer->startProvisioningMode();
             break;
@@ -71,7 +72,7 @@ void WiFiManager::onStateChanged(WiFiState oldState, WiFiState newState) {
         case WiFiState::Idle:
             stopAP();
             stopSTA();
-            mdns.stop();
+            if (ctx.mdnsInterface) ctx.mdnsInterface->stop();
             break;
 
         case WiFiState::DriverFailed:
@@ -98,7 +99,7 @@ void WiFiManager::onConnectFail() {
 
 void WiFiManager::onDisconnect() {
     // Stop mDNS — IP is no longer valid
-    mdns.stop();
+    if (ctx.mdnsInterface) ctx.mdnsInterface->stop();
 
     // Retry the same network first
     if (retryCount < MAX_RETRIES) {
@@ -246,7 +247,7 @@ void WiFiManager::onStaGotIp(const StaIpInfo &info) {
     log.info("STA got IP: %s (mask %s, gw %s)", info.ip.c_str(), info.netmask.c_str(), info.gateway.c_str());
 
     // Advertise via mDNS so the device is reachable by hostname regardless of IP
-    mdns.start(ctx.mdnsHostname);
+    if (ctx.mdnsInterface) ctx.mdnsInterface->start(ctx.mdnsHostname);
     log.info("Device reachable at https://%s.local", ctx.mdnsHostname.c_str());
 
     // Feed the state machine

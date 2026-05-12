@@ -1,6 +1,5 @@
 #pragma once
 
-#include "wifi_manager/MdnsManager.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiStateMachine.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
@@ -37,8 +36,6 @@ class WiFiManager {
     static constexpr int MAX_DRIVER_RETRIES = 3;
     static constexpr uint32_t DRIVER_RETRY_DELAY_MS = 3000;
     std::string lastErrorReason;
-
-    MdnsManager mdns;
 
     // Load networks only at boot
     void loadInitialNetwork();

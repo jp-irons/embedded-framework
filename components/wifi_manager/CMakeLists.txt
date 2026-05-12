@@ -1,7 +1,6 @@
 idf_component_register(
     SRCS
         EmbeddedServer.cpp
-        MdnsManager.cpp
         WiFiApiHandler.cpp
         WiFiHelper.cpp
         WiFiManager.cpp
@@ -12,7 +11,6 @@ idf_component_register(
     REQUIRES
         auth
         esp_wifi
-        espressif__mdns
         cjson
         common
         http_types

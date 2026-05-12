@@ -21,6 +21,7 @@ class NetworkStore;
 }
 
 namespace wifi_manager {
+class MdnsInterface;
 class WiFiApiHandler;
 class WiFiInterface;
 }
@@ -114,10 +115,11 @@ class FrameworkContext {
     auth::AuthApiHandler           authApi{authStore, sessionStore, apiKeyStore};
 
     // Owned heap objects — abstract pointers; concrete types
-    // (EspDeviceInterface, EspWiFiInterface, EspTimerInterface) are created in
-    // initialize() and only referenced by name in FrameworkContext.cpp.
+    // (EspDeviceInterface, EspWiFiInterface, EspTimerInterface, EspMdnsManager)
+    // are created in initialize() and only referenced by name in FrameworkContext.cpp.
     device::DeviceInterface*              deviceInterface_ = nullptr;
     device::TimerInterface*               timerInterface_  = nullptr;
+    wifi_manager::MdnsInterface*          mdnsInterface_   = nullptr;
     wifi_manager::WiFiInterface*          wifiInterface    = nullptr;
     wifi_manager::EmbeddedServer*         embeddedServer   = nullptr;
     wifi_manager::WiFiManager*            wifiManager      = nullptr;

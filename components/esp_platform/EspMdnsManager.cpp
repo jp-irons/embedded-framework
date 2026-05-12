@@ -1,17 +1,17 @@
-#include "wifi_manager/MdnsManager.hpp"
+#include "esp_platform/EspMdnsManager.hpp"
 
 #include "logger/Logger.hpp"
 #include "mdns.h"
 
 namespace wifi_manager {
 
-static logger::Logger log{"MdnsManager"};
+static logger::Logger log{"EspMdnsManager"};
 
-MdnsManager::~MdnsManager() {
+EspMdnsManager::~EspMdnsManager() {
     stop();
 }
 
-void MdnsManager::start(const std::string &hostname) {
+void EspMdnsManager::start(const std::string &hostname) {
     if (running_) {
         log.debug("already running — stopping before restart");
         stop();
@@ -50,7 +50,7 @@ void MdnsManager::start(const std::string &hostname) {
     log.info("mDNS started - hostname: %s.local", hostname_.c_str());
 }
 
-void MdnsManager::stop() {
+void EspMdnsManager::stop() {
     if (!running_) {
         return;
     }

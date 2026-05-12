@@ -11,6 +11,7 @@ class NetworkStore;
 
 namespace wifi_manager {
 
+class MdnsInterface;
 class WiFiInterface;
 class WiFiManager;
 class EmbeddedServer;
@@ -19,8 +20,9 @@ struct WiFiContext {
     EmbeddedServer *embeddedServer = nullptr;
     network_store::NetworkStore *networkStore = nullptr;
 
-    WiFiInterface *wifiInterface = nullptr;
-	WiFiManager *wifiManager = nullptr;
+    MdnsInterface  *mdnsInterface  = nullptr;
+    WiFiInterface  *wifiInterface  = nullptr;
+    WiFiManager    *wifiManager    = nullptr;
 
     ApConfig apConfig;
 

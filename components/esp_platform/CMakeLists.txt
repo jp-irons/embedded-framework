@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         EspDeviceInterface.cpp
+        EspMdnsManager.cpp
         EspTimerInterface.cpp
         EspWiFiInterface.cpp
     INCLUDE_DIRS
@@ -19,4 +20,5 @@ idf_component_register(
         esp_driver_tsens
         esp_wifi
         esp_event
+        espressif__mdns
 )

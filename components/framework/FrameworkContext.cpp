@@ -3,6 +3,7 @@
 #include "network_store/NetworkApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "esp_platform/EspDeviceInterface.hpp"
+#include "esp_platform/EspMdnsManager.hpp"
 #include "esp_platform/EspTimerInterface.hpp"
 #include "http/HttpHandler.hpp"
 #include "http_types/HttpTypes.hpp"
@@ -58,6 +59,10 @@ void FrameworkContext::initialize() {
     // Create the timer implementation — used by WiFiManager for retry delays.
     timerInterface_  = new esp_platform::EspTimerInterface();
     wifiCtx.timer    = timerInterface_;
+
+    // Create the mDNS implementation — injected into WiFiManager via context.
+    mdnsInterface_        = new wifi_manager::EspMdnsManager();
+    wifiCtx.mdnsInterface = mdnsInterface_;
 
     // Read device info once — MAC drives both the mDNS hostname and AuthStore.
     const device::DeviceInfo devInfo = deviceInterface_->info();
@@ -140,6 +145,7 @@ FrameworkContext::~FrameworkContext() {
     delete networkApi;
     delete deviceApi;
     delete otaApi;
+    delete mdnsInterface_;
     delete timerInterface_;
     delete deviceInterface_;
 }
