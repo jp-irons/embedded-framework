@@ -13,7 +13,7 @@ struct WiFiContext;
  * ESP-IDF concrete implementation of WiFiInterface.
  *
  * All ESP-IDF includes and types are confined to this header and its
- * corresponding .cpp.  Nothing outside the wifi_manager component needs to
+ * corresponding .cpp.  Nothing outside the esp_platform component needs to
  * include this file — consumers depend only on WiFiInterface.hpp.
  */
 class EspWiFiInterface : public WiFiInterface {

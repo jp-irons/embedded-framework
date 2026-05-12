@@ -1,6 +1,6 @@
 #include "ApplicationContext.hpp"
 
-#include "http/HttpTypes.hpp"
+#include "http_types/HttpTypes.hpp"
 #include "logger/Logger.hpp"
 
 static logger::Logger log{"ApplicationContext"};

@@ -9,7 +9,7 @@ idf_component_register(
         esp_http_server
         esp_https_server
         common
-        device
+        http_types
         logger
         mbedtls
     EMBED_TXTFILES

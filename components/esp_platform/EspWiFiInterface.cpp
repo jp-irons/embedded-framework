@@ -1,7 +1,7 @@
-#include "wifi_manager/EspWiFiInterface.hpp"
+#include "esp_platform/EspWiFiInterface.hpp"
 
 #include "common/Result.hpp"
-#include "device/EspTypeAdapter.hpp"
+#include "esp_platform/EspTypeAdapter.hpp"
 #include "esp_event.h"
 #include "esp_event_base.h"
 #include "esp_wifi.h"
@@ -93,7 +93,7 @@ Result EspWiFiInterface::startAp(const ApConfig& config) {
     }
 
     if (useOpen) {
-        ap_cfg.ap.authmode   = WIFI_AUTH_OPEN;
+        ap_cfg.ap.authmode    = WIFI_AUTH_OPEN;
         ap_cfg.ap.password[0] = '\0';
     } else {
         ap_cfg.ap.authmode = WIFI_AUTH_WPA2_PSK;
@@ -261,7 +261,7 @@ Result EspWiFiInterface::scan(std::vector<WiFiAp>& outAps) {
     log.debug("scan starting scan");
     esp_err_t err = esp_wifi_scan_start(&scanConfig, true);
     if (err != ESP_OK) {
-        r = device::toResult(err);
+        r = esp_platform::toResult(err);
         log.error("scan esp_wifi_scan_start returned error");
         setStaState(initialStaActive);
         return r;
@@ -270,7 +270,7 @@ Result EspWiFiInterface::scan(std::vector<WiFiAp>& outAps) {
     uint16_t apCount = 0;
     err = esp_wifi_scan_get_ap_num(&apCount);
     if (err != ESP_OK) {
-        r = device::toResult(err);
+        r = esp_platform::toResult(err);
         log.error("scan() esp_wifi_scan_get_ap_num error");
         setStaState(initialStaActive);
         return r;
@@ -279,7 +279,7 @@ Result EspWiFiInterface::scan(std::vector<WiFiAp>& outAps) {
     std::vector<wifi_ap_record_t> records(apCount);
     err = esp_wifi_scan_get_ap_records(&apCount, records.data());
     if (err != ESP_OK) {
-        r = device::toResult(err);
+        r = esp_platform::toResult(err);
         log.error("scan() esp_wifi_scan_get_ap_records error");
         setStaState(initialStaActive);
         return r;
@@ -356,7 +356,7 @@ Result EspWiFiInterface::setStaState(bool enable) {
 
     esp_err_t err = esp_wifi_set_mode(mode);
     if (err != ESP_OK) {
-        Result r = device::toResult(err);
+        Result r = esp_platform::toResult(err);
         log.error("setStaState() esp_wifi_set_mode error");
         staActive = !enable; // rollback
         return r;

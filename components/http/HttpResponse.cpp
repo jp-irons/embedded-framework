@@ -1,6 +1,6 @@
 #include "http/HttpResponse.hpp"
 
-#include "http/HttpTypes.hpp"
+#include "http_types/HttpTypes.hpp"
 #include "logger/Logger.hpp"
 
 #include "esp_http_server.h"

@@ -7,7 +7,7 @@
 
 #include <algorithm>
 #include <cstring>
-#include "device/EspTypeAdapter.hpp"
+#include "esp_platform/EspTypeAdapter.hpp"
 
 namespace network_store {
 
@@ -38,7 +38,7 @@ Result NetworkStore::loadAll(std::vector<WiFiNetwork> &out) const {
 	    return Result::Ok;
 	}
 	if (err != ESP_OK) {
-	    Result r = device::toResult(err);
+	    Result r = esp_platform::toResult(err);
 	    log.warn("Error '%s' opening namespace", toString(r));
 	    return r;
 	}
@@ -52,7 +52,7 @@ Result NetworkStore::loadAll(std::vector<WiFiNetwork> &out) const {
     }
 
     if (err != ESP_OK) {
-        Result r = device::toResult(err);
+        Result r = esp_platform::toResult(err);
         log.warn("Error '%s' accessing nvs", toString(r));
         nvs_close(handle);
         return r;
@@ -70,7 +70,7 @@ Result NetworkStore::loadAll(std::vector<WiFiNetwork> &out) const {
     nvs_close(handle);
 
     if (err != ESP_OK) {
-        Result r = device::toResult(err);
+        Result r = esp_platform::toResult(err);
         log.warn("Error '%s' reading nvs", toString(r));
         nvs_close(handle);
         return r;
@@ -153,7 +153,7 @@ Result NetworkStore::saveAll(std::vector<WiFiNetwork> entries) {
     nvs_handle_t handle;
     esp_err_t err = nvs_open(ns, NVS_READWRITE, &handle);
     if (err != ESP_OK) {
-        Result r = device::toResult(err);
+        Result r = esp_platform::toResult(err);
         log.warn("Error '%s' opening nvs", r);
         return r;
     }
@@ -200,7 +200,7 @@ Result NetworkStore::clear() {
     nvs_handle_t handle;
     esp_err_t err = nvs_open(ns, NVS_READWRITE, &handle);
     if (err != ESP_OK)
-        return device::toResult(err);
+        return esp_platform::toResult(err);
 
     err = nvs_erase_key(handle, "entries");
     if (err == ESP_OK)

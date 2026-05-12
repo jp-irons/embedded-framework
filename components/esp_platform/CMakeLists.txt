@@ -1,0 +1,21 @@
+idf_component_register(
+    SRCS
+        EspDeviceInterface.cpp
+        EspWiFiInterface.cpp
+    INCLUDE_DIRS
+        include
+    REQUIRES
+        common
+        logger
+        device
+        wifi_manager
+        network_store
+        esp_timer
+        esp_netif
+        nvs_flash
+        esp_psram
+        app_update
+        esp_driver_tsens
+        esp_wifi
+        esp_event
+)

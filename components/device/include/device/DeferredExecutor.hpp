@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <functional>
-#include "esp_timer.h"
+#include "esp_timer.h" // TODO: move DeferredExecutor to esp_platform — abstract the timer behind an interface so device carries no ESP-IDF dependency
 
 namespace device {
 

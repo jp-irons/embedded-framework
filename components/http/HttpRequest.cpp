@@ -7,6 +7,64 @@
 
 namespace http {
 
+// ---------------------------------------------------------------------------
+// Private helper — file scope only
+// ---------------------------------------------------------------------------
+
+static HttpMethod toHttpMethod(int method) {
+    switch (method) {
+        case HTTP_GET:     return HttpMethod::Get;
+        case HTTP_POST:    return HttpMethod::Post;
+        case HTTP_PUT:     return HttpMethod::Put;
+        case HTTP_DELETE:  return HttpMethod::Delete;
+        case HTTP_PATCH:   return HttpMethod::Patch;
+        case HTTP_HEAD:    return HttpMethod::Head;
+        case HTTP_OPTIONS: return HttpMethod::Options;
+        default:           return HttpMethod::Get;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Constructor / readBody
+// ---------------------------------------------------------------------------
+
+HttpRequest::HttpRequest(httpd_req_t *r)
+    : req(r)
+    , method_(toHttpMethod(r->method)) {
+    readBody();
+}
+
+void HttpRequest::readBody() {
+    const size_t len = req->content_len;
+
+    if (len == 0) {
+        bodyStorage_.clear();
+        return;
+    }
+
+    if (len > MAX_PRELOAD_BYTES) {
+        // Large body (e.g. firmware upload) — leave data in the socket
+        // buffer so the handler can stream it via httpd_req_recv().
+        bodyStorage_.clear();
+        return;
+    }
+
+    bodyStorage_.resize(len);
+
+    int received = httpd_req_recv(req, bodyStorage_.data(), len);
+    if (received <= 0) {
+        bodyStorage_.clear();
+        return;
+    }
+
+    // Shrink to actual bytes received
+    bodyStorage_.resize(received);
+}
+
+// ---------------------------------------------------------------------------
+// Auth helpers
+// ---------------------------------------------------------------------------
+
 std::optional<BasicAuth> HttpRequest::extractBasicAuth() const {
     static constexpr const char *HEADER_NAME = "Authorization";
     static constexpr const char *BASIC_PREFIX = "Basic ";

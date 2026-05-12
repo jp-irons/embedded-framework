@@ -9,7 +9,7 @@ idf_component_register(
     REQUIRES
         cjson
         common
-        device
+        esp_platform
         esp_hw_support
         http
         logger

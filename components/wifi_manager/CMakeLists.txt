@@ -4,7 +4,6 @@ idf_component_register(
         MdnsManager.cpp
         WiFiApiHandler.cpp
         WiFiHelper.cpp
-        EspWiFiInterface.cpp
         WiFiManager.cpp
         WiFiStateMachine.cpp
         WiFiTypes.cpp
@@ -13,13 +12,10 @@ idf_component_register(
     REQUIRES
         auth
         esp_wifi
-        esp_event
-        esp_netif
-        nvs_flash
-        esp_timer
         espressif__mdns
         cjson
         common
+        http_types
         network_store
         device
         ota

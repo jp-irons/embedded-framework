@@ -1,8 +1,7 @@
 idf_component_register(
     SRCS
-    	DeferredExecutor.cpp
-    	DeviceApiHandler.cpp
-    	EspDeviceInterface.cpp
+        DeferredExecutor.cpp
+        DeviceApiHandler.cpp
     INCLUDE_DIRS
         include
     REQUIRES
@@ -10,9 +9,4 @@ idf_component_register(
         http
         logger
         esp_timer
-        esp_netif
-        nvs_flash
-        esp_psram
-        app_update
-        esp_driver_tsens
 )

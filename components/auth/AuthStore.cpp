@@ -1,6 +1,6 @@
 #include "auth/AuthStore.hpp"
 
-#include "device/EspTypeAdapter.hpp"
+#include "esp_platform/EspTypeAdapter.hpp"
 #include "logger/Logger.hpp"
 
 #include "esp_random.h"
@@ -81,7 +81,7 @@ Result AuthStore::loadFromNvs(std::string &out) const {
         return Result::NotFound;
     }
     if (err != ESP_OK) {
-        return device::toResult(err);
+        return esp_platform::toResult(err);
     }
 
     size_t len = 0;
@@ -92,14 +92,14 @@ Result AuthStore::loadFromNvs(std::string &out) const {
     }
     if (err != ESP_OK) {
         nvs_close(h);
-        return device::toResult(err);
+        return esp_platform::toResult(err);
     }
 
     std::vector<char> tmp(len);
     err = nvs_get_str(h, NVS_KEY_PASSWORD, tmp.data(), &len);
     nvs_close(h);
     if (err != ESP_OK) {
-        return device::toResult(err);
+        return esp_platform::toResult(err);
     }
 
     out.assign(tmp.data(), len - 1); // strip null terminator
@@ -110,7 +110,7 @@ Result AuthStore::persistToNvs(const std::string &password, bool changed) {
     nvs_handle_t h;
     esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &h);
     if (err != ESP_OK) {
-        return device::toResult(err);
+        return esp_platform::toResult(err);
     }
 
     err = nvs_set_str(h, NVS_KEY_PASSWORD, password.c_str());
@@ -122,7 +122,7 @@ Result AuthStore::persistToNvs(const std::string &password, bool changed) {
     }
 
     nvs_close(h);
-    return device::toResult(err);
+    return esp_platform::toResult(err);
 }
 
 // ---------------------------------------------------------------------------

@@ -11,7 +11,7 @@
 #include "device/DeviceInterface.hpp"
 #include "device_cert/DeviceCert.hpp"
 #include "http/HttpHandler.hpp"
-#include "http/HttpTypes.hpp"
+#include "http_types/HttpTypes.hpp"
 #include "ota/OtaApiHandler.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 

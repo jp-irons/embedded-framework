@@ -7,7 +7,7 @@ idf_component_register(
     REQUIRES
         cjson
   		common
-  		device
+  		esp_platform
   		nvs_flash
     	http
         logger

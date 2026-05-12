@@ -1,6 +1,5 @@
 #include "http/HttpServer.hpp"
 
-#include "device/EspTypeAdapter.hpp"
 #include "http/HttpHandler.hpp"
 #include "http/HttpRequest.hpp"
 #include "logger/Logger.hpp"
@@ -10,6 +9,19 @@
 #include <cstring>
 
 namespace http {
+
+static httpd_method_t toEspIdfMethod(HttpMethod method) {
+    switch (method) {
+        case HttpMethod::Get:     return HTTP_GET;
+        case HttpMethod::Post:    return HTTP_POST;
+        case HttpMethod::Put:     return HTTP_PUT;
+        case HttpMethod::Delete:  return HTTP_DELETE;
+        case HttpMethod::Patch:   return HTTP_PATCH;
+        case HttpMethod::Head:    return HTTP_HEAD;
+        case HttpMethod::Options: return HTTP_OPTIONS;
+    }
+    return HTTP_GET;
+}
 
 using namespace http;
 
@@ -171,7 +183,7 @@ void HttpServer::addRoute(HttpMethod method, const std::string &path, HttpHandle
     ownedPaths.push_back(path);
     httpd_uri_t uri = {
         .uri      = ownedPaths.back().c_str(),
-        .method   = device::toEspIdfMethod(method),
+        .method   = toEspIdfMethod(method),
         .handler  = &HttpServer::handlerAdapter,
         .user_ctx = handler
     };

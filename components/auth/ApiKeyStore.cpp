@@ -1,6 +1,6 @@
 #include "auth/ApiKeyStore.hpp"
 
-#include "device/EspTypeAdapter.hpp"
+#include "esp_platform/EspTypeAdapter.hpp"
 #include "logger/Logger.hpp"
 
 #include "esp_random.h"
@@ -43,7 +43,7 @@ Result ApiKeyStore::init() {
     }
     if (err != ESP_OK) {
         log.warn("NVS open failed (%d)", (int)err);
-        return device::toResult(err);
+        return esp_platform::toResult(err);
     }
 
     size_t len = 0;
@@ -55,14 +55,14 @@ Result ApiKeyStore::init() {
     }
     if (err != ESP_OK) {
         nvs_close(h);
-        return device::toResult(err);
+        return esp_platform::toResult(err);
     }
 
     std::vector<char> tmp(len);
     err = nvs_get_str(h, NVS_KEY, tmp.data(), &len);
     nvs_close(h);
     if (err != ESP_OK) {
-        return device::toResult(err);
+        return esp_platform::toResult(err);
     }
 
     key_.assign(tmp.data(), len - 1); // strip null terminator
@@ -113,7 +113,7 @@ Result ApiKeyStore::revoke() {
     nvs_handle_t h;
     esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &h);
     if (err != ESP_OK) {
-        return device::toResult(err);
+        return esp_platform::toResult(err);
     }
 
     err = nvs_erase_key(h, NVS_KEY);
@@ -133,7 +133,7 @@ Result ApiKeyStore::revoke() {
         log.warn("Failed to revoke API key from NVS (%d)", (int)err);
     }
 
-    return device::toResult(err);
+    return esp_platform::toResult(err);
 }
 
 } // namespace auth

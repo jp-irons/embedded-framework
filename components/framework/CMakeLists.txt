@@ -6,9 +6,11 @@ idf_component_register(
     REQUIRES
         auth
         common
+        http_types
         network_store
         device
         device_cert
+        esp_platform
         esp_wifi
         http
         logger

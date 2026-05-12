@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 namespace http {
 
 enum class HttpMethod {
@@ -52,4 +53,4 @@ inline std::string httpStatusToString(int code) {
     }
 }
 
-}
+} // namespace http

@@ -1,6 +1,6 @@
 #include "device/DeferredExecutor.hpp"
 
-#include "esp_timer.h"
+#include "esp_timer.h" // TODO: see DeferredExecutor.hpp — pending move to esp_platform
 
 namespace device {
 

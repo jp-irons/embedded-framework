@@ -1,6 +1,6 @@
-#include "device/EspDeviceInterface.hpp"
+#include "esp_platform/EspDeviceInterface.hpp"
 
-#include "device/EspTypeAdapter.hpp"
+#include "esp_platform/EspTypeAdapter.hpp"
 #include "driver/temperature_sensor.h"
 #include "esp_chip_info.h"
 #include "esp_event.h"
@@ -123,15 +123,15 @@ Result EspDeviceInterface::init() {
 
     // 1. Initialize NVS
     log.debug("nvs_flash_init");
-    Result r = toResult(nvs_flash_init());
+    Result r = esp_platform::toResult(nvs_flash_init());
     if (r != Result::Ok) {
         log.error("Failed to init NVS: %s - erase then init", toString(r));
-        r = toResult(nvs_flash_erase());
+        r = esp_platform::toResult(nvs_flash_erase());
         if (r != Result::Ok) {
             log.error("Failed to erase flash: %s", toString(r));
             return r;
         }
-        r = toResult(nvs_flash_init());
+        r = esp_platform::toResult(nvs_flash_init());
         if (r != Result::Ok) {
             log.error("Failed to init after erase: %s", toString(r));
             return r;
@@ -140,7 +140,7 @@ Result EspDeviceInterface::init() {
 
     // 2. Initialize event loop
     log.debug("init event loop");
-    r = toResult(esp_event_loop_create_default());
+    r = esp_platform::toResult(esp_event_loop_create_default());
     if (r != Result::Ok) {
         log.error("Failed to initialise event loop: %s", toString(r));
         return r;
@@ -148,7 +148,7 @@ Result EspDeviceInterface::init() {
 
     // 3. Initialize netif
     log.debug("init netif");
-    r = toResult(esp_netif_init());
+    r = esp_platform::toResult(esp_netif_init());
     if (r != Result::Ok) {
         log.error("Failed to initialise netif: %s", toString(r));
         return r;
@@ -166,13 +166,13 @@ Result EspDeviceInterface::reboot() {
 Result EspDeviceInterface::clearNvs() {
     log.debug("clearNvs()");
 
-    Result r = toResult(nvs_flash_erase());
+    Result r = esp_platform::toResult(nvs_flash_erase());
     if (r != Result::Ok) {
         log.error("Failed to erase NVS: %s", toString(r));
         return r;
     }
 
-    r = toResult(nvs_flash_init());
+    r = esp_platform::toResult(nvs_flash_init());
     if (r != Result::Ok) {
         log.error("Failed to re-init NVS: %s", toString(r));
         return r;

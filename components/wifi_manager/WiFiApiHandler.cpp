@@ -4,7 +4,7 @@
 #include "common/Result.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
-#include "http/HttpTypes.hpp"
+#include "http_types/HttpTypes.hpp"
 #include "logger/Logger.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
