@@ -1,8 +1,10 @@
 #pragma once
 
+#include "device/TimerInterface.hpp"
 #include "network_store/NetworkStore.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
 #include <functional>
+
 namespace network_store {
 class NetworkStore;
 }
@@ -27,6 +29,10 @@ struct WiFiContext {
     // Hostname advertised via mDNS (without the .local suffix).
     // Set before WiFiManager::start() -- typically via FrameworkContext.
     std::string mdnsHostname = "esp32";
+
+    // One-shot deferred timer — used by WiFiManager for retry delays.
+    // Must be set before WiFiManager::start().
+    device::TimerInterface* timer = nullptr;
 
     // Called by WiFiManager when the WiFi driver fails and all retries are
     // exhausted.  Typically wired to device::reboot() by FrameworkContext so

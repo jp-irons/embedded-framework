@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         EspDeviceInterface.cpp
+        EspTimerInterface.cpp
         EspWiFiInterface.cpp
     INCLUDE_DIRS
         include

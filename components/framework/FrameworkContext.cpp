@@ -3,6 +3,7 @@
 #include "network_store/NetworkApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "esp_platform/EspDeviceInterface.hpp"
+#include "esp_platform/EspTimerInterface.hpp"
 #include "http/HttpHandler.hpp"
 #include "http_types/HttpTypes.hpp"
 #include "logger/Logger.hpp"
@@ -66,6 +67,10 @@ void FrameworkContext::initialize() {
     // netif.  Everything else depends on those being ready.
     deviceInterface_ = new device::EspDeviceInterface();
     deviceInterface_->init();
+
+    // Create the timer implementation — used by WiFiManager for retry delays.
+    timerInterface_  = new esp_platform::EspTimerInterface();
+    wifiCtx.timer    = timerInterface_;
 
     // Read MAC once — used for hostname and AuthStore derivation
     uint8_t mac[6] = {};
@@ -144,6 +149,7 @@ FrameworkContext::~FrameworkContext() {
     delete networkApi;
     delete deviceApi;
     delete otaApi;
+    delete timerInterface_;
     delete deviceInterface_;
 }
 

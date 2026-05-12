@@ -1,6 +1,5 @@
 #pragma once
 
-#include "device/DeferredExecutor.hpp"
 #include "wifi_manager/MdnsManager.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 #include "wifi_manager/WiFiStateMachine.hpp"
@@ -39,7 +38,6 @@ class WiFiManager {
     static constexpr uint32_t DRIVER_RETRY_DELAY_MS = 3000;
     std::string lastErrorReason;
 
-    device::DeferredExecutor deferred;
     MdnsManager mdns;
 
     // Load networks only at boot

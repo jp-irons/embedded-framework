@@ -9,6 +9,7 @@
 #include "network_store/NetworkStore.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "device/DeviceInterface.hpp"
+#include "device/TimerInterface.hpp"
 #include "device_cert/DeviceCert.hpp"
 #include "http/HttpHandler.hpp"
 #include "http_types/HttpTypes.hpp"
@@ -112,10 +113,11 @@ class FrameworkContext {
     auth::ApiKeyStore              apiKeyStore;
     auth::AuthApiHandler           authApi{authStore, sessionStore, apiKeyStore};
 
-    // Owned heap objects — device and WiFi are abstract pointers; concrete
-    // types (EspDeviceInterface, EspWiFiInterface) are created in initialize()
-    // and only referenced by name in FrameworkContext.cpp.
+    // Owned heap objects — abstract pointers; concrete types
+    // (EspDeviceInterface, EspWiFiInterface, EspTimerInterface) are created in
+    // initialize() and only referenced by name in FrameworkContext.cpp.
     device::DeviceInterface*              deviceInterface_ = nullptr;
+    device::TimerInterface*               timerInterface_  = nullptr;
     wifi_manager::WiFiInterface*          wifiInterface    = nullptr;
     wifi_manager::EmbeddedServer*         embeddedServer   = nullptr;
     wifi_manager::WiFiManager*            wifiManager      = nullptr;

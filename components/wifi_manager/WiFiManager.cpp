@@ -42,9 +42,7 @@ void WiFiManager::start() {
     }
 }
 
-void WiFiManager::loop() {
-    // DeferredExecutor uses esp_timer callbacks, so nothing needed here.
-}
+void WiFiManager::loop() {}
 
 //
 // ESP-IDF event handlers
@@ -79,7 +77,7 @@ void WiFiManager::onStateChanged(WiFiState oldState, WiFiState newState) {
         case WiFiState::DriverFailed:
             driverRetryCount = 0;
             log.warn("Driver failed — scheduling retry in %ums", DRIVER_RETRY_DELAY_MS);
-            deferred.runAfter(DRIVER_RETRY_DELAY_MS, [this]() { retryDriver(); });
+            ctx.timer->runAfter(DRIVER_RETRY_DELAY_MS, [this]() { retryDriver(); });
             break;
 
         default:
@@ -219,7 +217,7 @@ void WiFiManager::retryDriver()
 
     if (driverRetryCount < MAX_DRIVER_RETRIES) {
         log.warn("retryDriver(): failed, next attempt in %ums", DRIVER_RETRY_DELAY_MS);
-        deferred.runAfter(DRIVER_RETRY_DELAY_MS, [this]() { retryDriver(); });
+        ctx.timer->runAfter(DRIVER_RETRY_DELAY_MS, [this]() { retryDriver(); });
     } else {
         log.error("retryDriver(): driver failed after %d attempts — invoking fatal handler",
                   MAX_DRIVER_RETRIES);
@@ -238,7 +236,7 @@ void WiFiManager::scheduleRetry() {
 
     retryCount++;
 
-    deferred.runAfter(500, [this]() {
+    ctx.timer->runAfter(500, [this]() {
         log.info("Retrying STA connection (%d/%d)", retryCount, MAX_RETRIES);
         startSTA();
     });
