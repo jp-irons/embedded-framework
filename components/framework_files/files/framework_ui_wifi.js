@@ -264,7 +264,7 @@ function requestClearNetworks() {
     showConfirm(
         "warning",
         "Clear All Networks",
-        "Do you want to remove all saved WiFi networks?",
+        "Do you want to remove all saved Wi-Fi networks?",
         handleClearNetworks
     );
 }

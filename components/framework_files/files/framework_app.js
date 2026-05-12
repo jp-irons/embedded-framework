@@ -368,7 +368,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <h1 class="text-2xl font-semibold mb-4">Device Management</h1>
                     <p class="text-gray-700 mb-6">
                         This interface supports configuration of device features
-                        including WiFi, Firmware, and Reboot.
+                        including Wi-Fi, Firmware, and Reboot.
                     </p>
                     <p class="text-sm text-gray-500 mt-6">
                         This interface is embedded in firmware and always available.
@@ -381,7 +381,7 @@ document.addEventListener("DOMContentLoaded", () => {
             hash: "#wifi",
             mount(app) {
                 app.innerHTML = `
-                    <h1 class="text-2xl font-semibold mb-4">WiFi Provisioning</h1>
+                    <h1 class="text-2xl font-semibold mb-4">Wi-Fi Provisioning</h1>
 
                     <div class="mt-6 pt-6 border-t border-gray-300">
                         <div class="flex items-center gap-3">
