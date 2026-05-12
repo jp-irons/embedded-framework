@@ -8,8 +8,6 @@ namespace wifi_manager {
 
 wifi_auth_mode_t toEspAuth(wifi_manager::WiFiAuthMode mode);
 
-wifi_config_t toEspConfig(const network_store::WiFiNetwork& cred);
-
 wifi_config_t makeStaConfig(const network_store::WiFiNetwork& cred);
 
 wifi_config_t makeApConfig(const wifi_manager::ApConfig& cfg);

@@ -58,7 +58,6 @@ class EspWiFiInterface : public WiFiInterface {
     static WiFiAuthMode toAuthMode(wifi_auth_mode_t mode);
     wifi_mode_t         computeMode() const;
     common::Result      setStaState(bool enable);
-    wifi_config_t       makeStaConfig(const network_store::WiFiNetwork& cred);
 };
 
 } // namespace wifi_manager

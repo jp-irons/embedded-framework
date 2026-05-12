@@ -9,7 +9,7 @@
 #include "logger/Logger.hpp"
 #include "wifi_manager/EmbeddedServer.hpp"
 #include "wifi_manager/WiFiContext.hpp"
-#include "wifi_manager/WiFiHelper.hpp"
+#include "esp_platform/WiFiHelper.hpp"
 #include "wifi_manager/WiFiManager.hpp"
 #include "wifi_manager/WiFiTypes.hpp"
 
@@ -125,24 +125,10 @@ Result EspWiFiInterface::stopAp() {
 // STA MODE
 // ---------------------------------------------------------------------------
 
-wifi_config_t EspWiFiInterface::makeStaConfig(const network_store::WiFiNetwork& cred) {
-    wifi_config_t cfg = {};
-    auto&         sta = cfg.sta;
-
-    strncpy((char*)sta.ssid,     cred.ssid.c_str(),     sizeof(sta.ssid));
-    strncpy((char*)sta.password, cred.password.c_str(), sizeof(sta.password));
-
-    sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
-    sta.pmf_cfg.capable    = true;
-    sta.pmf_cfg.required   = false;
-
-    return cfg;
-}
-
 WiFiStatus EspWiFiInterface::connectSta(const network_store::WiFiNetwork& cred) {
     log.info("Connecting STA to SSID: %s", cred.ssid.c_str());
 
-    wifi_config_t cfg = makeStaConfig(cred);
+    wifi_config_t cfg = wifi_manager::makeStaConfig(cred);
 
     // Ensure STA is in a clean idle state
     esp_wifi_disconnect();

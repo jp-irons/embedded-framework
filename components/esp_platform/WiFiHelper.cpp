@@ -1,9 +1,9 @@
-#include "wifi_manager/WiFiHelper.hpp"
+#include "esp_platform/WiFiHelper.hpp"
 
 #include <cstring>          // for strncpy
 
 namespace wifi_manager {
-	
+
 wifi_config_t makeStaConfig(const network_store::WiFiNetwork& cred) {
     wifi_config_t cfg = {};
     auto& sta = cfg.sta;
@@ -61,7 +61,7 @@ wifi_auth_mode_t toEspAuth(WiFiAuthMode mode) {
         default:
             return WIFI_AUTH_OPEN;
     }
-};
+}
 
 std::string toString(uint8_t reason) {
     return toString(toWiFiError(reason));
@@ -69,7 +69,7 @@ std::string toString(uint8_t reason) {
 
 WiFiError toWiFiError(uint8_t reason) {
     switch (reason) {
-		case 1: return WiFiError::UNKNOWN;
+        case 1: return WiFiError::UNKNOWN;
         // -------------------------
         // Authentication failures
         // -------------------------
@@ -89,13 +89,13 @@ WiFiError toWiFiError(uint8_t reason) {
         // -------------------------
         case 4: // WIFI_REASON_ASSOC_EXPIRE
         case 200: // WIFI_REASON_BEACON_TIMEOUT
-        case 203: // WIFI ASSOC_FAIL";
-         	return WiFiError::CONNECTION_TIMEOUT;
+        case 203: // WIFI ASSOC_FAIL
+            return WiFiError::CONNECTION_TIMEOUT;
 
-       // -------------------------
+        // -------------------------
         // Handshake failures
         // -------------------------
-		case 14: //4WAY_HANDSHAKE_TIMEOUT
+        case 14: // 4WAY_HANDSHAKE_TIMEOUT
         case 204: // WIFI_REASON_HANDSHAKE_TIMEOUT
             return WiFiError::HANDSHAKE_TIMEOUT;
 
@@ -103,7 +103,7 @@ WiFiError toWiFiError(uint8_t reason) {
         // AP kicked us off (normal)
         // -------------------------
         case 3: // WIFI_REASON_ASSOC_LEAVE
-		case 8: // WIFI_REASON_ASSOC_LEAVE duplicate
+        case 8: // WIFI_REASON_ASSOC_LEAVE duplicate
             return WiFiError::NONE;
 
         // -------------------------

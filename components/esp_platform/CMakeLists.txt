@@ -4,6 +4,7 @@ idf_component_register(
         EspMdnsManager.cpp
         EspTimerInterface.cpp
         EspWiFiInterface.cpp
+        WiFiHelper.cpp
     INCLUDE_DIRS
         include
     REQUIRES

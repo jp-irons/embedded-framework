@@ -2,7 +2,6 @@ idf_component_register(
     SRCS
         EmbeddedServer.cpp
         WiFiApiHandler.cpp
-        WiFiHelper.cpp
         WiFiManager.cpp
         WiFiStateMachine.cpp
         WiFiTypes.cpp
@@ -10,7 +9,6 @@ idf_component_register(
         include
     REQUIRES
         auth
-        esp_wifi
         cjson
         common
         http_types
