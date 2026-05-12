@@ -14,7 +14,7 @@ import { initDeviceView }                          from "./ui_device.js";
 import { initFirmwareView, teardownFirmwareView }  from "./ui_firmware.js";
 import { initHomeView, initSecurityView }          from "./ui_security.js";
 import { login, clearToken, onAuthRequired, getAuthStatus, isAuthenticated,
-         startReconnectPolling, stopReconnectPolling } from "./api.js";
+         startReconnectPolling, stopReconnectPolling, isUploadActive } from "./api.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -119,7 +119,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // again; a stale token gets a 401 which flows through handle401() →
     // onAuthRequired() → showLoginOverlay() as normal.
     document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible" && appStarted && isAuthenticated()) {
+        if (document.visibilityState === "visible" && appStarted && isAuthenticated()
+                && !isUploadActive()) {
             console.debug("[visibility] tab visible → auth check");
             getAuthStatus().catch(() => {}); // 401 handled inside api.js handle401()
         }
@@ -139,8 +140,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // a network error that is silently ignored, the device comes back, and
     // nothing triggers again — leaving the user on a stale page indefinitely.
     //
-    // The heartbeat fills that gap.  It fires getAuthStatus() every 3 seconds
-    // (matching the reconnect-poll cadence) while the session token is held.
+    // The heartbeat fills that gap.  It fires getAuthStatus() every 30 seconds
+    // while the session token is held.  A complementary visibilitychange listener
+    // fires an immediate check whenever the user returns to the tab, which covers
+    // the common case of the device rebooting while the tab was in the background —
+    // making the long interval safe without sacrificing responsiveness.
     // A 401 flows through handle401() → onAuthRequired() → showLoginOverlay()
     // exactly as any other auth failure would.  Network errors (device still
     // booting / TLS not yet stable) are silently ignored — the next tick
@@ -150,7 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function startAuthHeartbeat() {
         if (_heartbeatTimer) return; // already running
-        console.debug("[heartbeat] starting (3 s interval)");
+        console.debug("[heartbeat] starting (30 s interval)");
         _heartbeatTimer = setInterval(async () => {
             if (!appStarted) return;
             if (!isAuthenticated()) {
@@ -168,6 +172,15 @@ document.addEventListener("DOMContentLoaded", () => {
             const msgModal = document.getElementById("message-modal");
             if (msgModal && !msgModal.classList.contains("hidden")) {
                 console.debug("[heartbeat] message modal open — skipping tick");
+                return;
+            }
+
+            // Don't fire a concurrent request while a firmware upload is in flight.
+            // The upload occupies the httpd worker; a simultaneous auth check can
+            // race with it and, depending on httpd load in STA mode, produce a
+            // spurious 401 that shows the login overlay mid-upload.
+            if (isUploadActive()) {
+                console.debug("[heartbeat] upload in progress — skipping tick");
                 return;
             }
 
@@ -189,7 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // "network" → device still rebooting / TLS not yet stable;
                 // keep the heartbeat running so we retry on the next tick.
             }
-        }, 3_000);
+        }, 30_000);
     }
 
     function stopAuthHeartbeat() {

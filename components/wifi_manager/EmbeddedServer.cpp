@@ -119,10 +119,6 @@ void EmbeddedServer::addAppFileHandler(std::string prefix, http::HttpHandler *ha
     appFileHandlers_.push_back({std::move(prefix), handler});
 }
 
-void EmbeddedServer::setFaviconTable(framework_files::EmbeddedFileTable *table) {
-    log.info("setFaviconTable");
-    appFaviconTable_ = table;
-}
 
 void EmbeddedServer::warnIfFrameworkNamespace(const std::string &prefix) const {
     if (prefix.rfind("/framework/", 0) == 0) {
@@ -266,26 +262,14 @@ common::Result EmbeddedServer::handle(http::HttpRequest &req, http::HttpResponse
         }
     }
 
-    // ── 6. Favicon — app table first, framework built-in as fallback ─────────
-    if (path == "/favicon.ico") {
-        if (appFaviconTable_) {
-            const auto *file = appFaviconTable_->find("/favicon.ico");
-            if (file) {
-                log.debug("serving favicon from app table");
-                return res.send(file->data, file->size, "image/x-icon");
-            }
-        }
-        const auto *file = frameworkFileTable_.find("/favicon.ico");
-        if (file) {
-            log.debug("serving favicon from framework fallback");
-            return res.send(file->data, file->size, "image/x-icon");
-        }
-        return res.sendJsonError(404, "favicon.ico not found");
-    }
-
-    // ── 7. Framework file handler fallback (framework UI assets) ──────────────
+    // ── 6. Framework file handler fallback (framework UI assets) ──────────────
     log.debug("falling back to framework file handler");
-    return frameworkFileHandler_.handle(req, res);
+    common::Result result = frameworkFileHandler_.handle(req, res);
+    if (result == common::Result::NotFound) {
+        log.warn("no handler found for '%s'", path.c_str());
+        return res.sendJsonError(404, "Not found: " + path);
+    }
+    return result;
 }
 
 } // namespace wifi_manager

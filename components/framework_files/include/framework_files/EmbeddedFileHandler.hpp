@@ -15,10 +15,14 @@ namespace framework_files {
  * framework and the app can create their own handler instances backed by
  * different file tables (FrameworkFileTable vs AppFileTable).
  *
- * URL stripping: EmbeddedFileHandler strips `basePath` from the front of each
- * request path before looking it up in the table, so the table entries only
- * need bare names like "/index.html" regardless of what URL prefix the files
- * are served from.
+ * URL stripping: if basePath is non-empty it is stripped from the front of the
+ * request path before the table lookup.  Pass "" to skip stripping and use full
+ * URL paths as table keys (e.g. "/app/ui/index.html", "/favicon.ico").
+ *
+ * Directory paths (empty or trailing "/") are resolved to defaultFile.
+ *
+ * Returns NotFound (without sending a response) when no entry matches, so the
+ * caller can fall through to another handler or send its own 404.
  */
 class EmbeddedFileHandler : public http::HttpHandler {
   public:

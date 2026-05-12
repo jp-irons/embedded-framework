@@ -28,14 +28,20 @@ common::Result EmbeddedFileHandler::handle(http::HttpRequest &request,
     if (!base.empty() && path.rfind(base, 0) == 0) {
         path = path.substr(base.size());
     }
-    if (path.empty() || path == "/") {
+    // Any directory-like path resolves to the default file:
+    //   empty ("")      — base was stripped and nothing remained → prepend "/"
+    //   exactly "/"     — root after stripping              → prepend (reuse back()=='/')
+    //   trailing "/"    — e.g. "/app/ui/" with no stripping → append only
+    if (path.empty()) {
         path = "/" + defaultFile;
+    } else if (path.back() == '/') {
+        path += defaultFile;
     }
 
     const EmbeddedFile *file = table.find(path);
     if (!file) {
-        log.warn("File not found: %s", path.c_str());
-        return response.sendJsonError(404, "File '" + path + "' not found");
+        log.debug("not found: %s", path.c_str());
+        return common::Result::NotFound;
     }
 
     const char *type = contentTypeForPath(path);

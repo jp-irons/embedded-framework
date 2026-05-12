@@ -8,7 +8,7 @@ static logger::Logger log{"ApplicationContext"};
 ApplicationContext::ApplicationContext(framework::FrameworkContext &fw)
     : fw_(fw)
     , appFileTable_()
-    , appFileHandler_("/app/ui", "index.html", appFileTable_) {
+    , appFileHandler_("", "index.html", appFileTable_) {
     log.debug("constructor");
 }
 
@@ -20,13 +20,11 @@ void ApplicationContext::start() {
     log.debug("start");
 
     // ── Register app static-file handler ──────────────────────────────────
-    // Requests to /app/ui/* are served from main/files/ embedded at build time.
-    fw_.addFileHandler("/app/ui/", &appFileHandler_);
-
-    // ── Register app favicon ───────────────────────────────────────────────
-    // The app's file table is checked first for /favicon.ico; the framework's
-    // built-in generic icon is served as a fallback if no entry is found.
-    fw_.setFaviconTable(&appFileTable_);
+    // Mounted at "/" so all paths are looked up verbatim in the app file table.
+    // Framework routes and the framework file handler are still tried first
+    // (or as fallback) — the app handler returns NotFound for anything not in
+    // its table, allowing requests to fall through.
+    fw_.addFileHandler("/", &appFileHandler_);
 
     // ── Set the entry point ────────────────────────────────────────────────
     // Visiting the root URL (/) will redirect here.  Remove or change this

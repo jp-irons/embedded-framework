@@ -156,9 +156,6 @@ void FrameworkContext::addRoute(http::HttpMethod method, std::string prefix,
     embeddedServer->addAppRoute(method, std::move(prefix), handler);
 }
 
-void FrameworkContext::setFaviconTable(framework_files::EmbeddedFileTable *table) {
-    embeddedServer->setFaviconTable(table);
-}
 
 // ---------------------------------------------------------------------------
 // Lifecycle

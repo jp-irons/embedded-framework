@@ -31,9 +31,9 @@ extern const uint8_t _binary_favicon_ico_start[]    asm("_binary_favicon_ico_sta
 extern const uint8_t _binary_favicon_ico_end[]      asm("_binary_favicon_ico_end");
 
 // ------------------------------------------------------------
-// File table — paths are looked up after EmbeddedFileHandler
-// strips the URL prefix (e.g. "/app/ui"), so entries use bare
-// names like "/index.html".
+// File table — entries use the full request URL path.
+// EmbeddedFileHandler is mounted at "/" with no prefix stripping,
+// so paths here must match the URL exactly as the browser requests it.
 // ------------------------------------------------------------
 
 namespace {
@@ -44,10 +44,10 @@ struct FileEntry {
 };
 
 static const FileEntry files[] = {
-    {"/index.html",   _binary_app_index_html_start, _binary_app_index_html_end},
-    {"/styles.css",   _binary_styles_css_start,     _binary_styles_css_end},
-    {"/app.js",       _binary_app_js_start,         _binary_app_js_end},
-    {"/favicon.ico",  _binary_favicon_ico_start,    _binary_favicon_ico_end},
+    {"/app/ui/index.html", _binary_app_index_html_start, _binary_app_index_html_end},
+    {"/app/ui/styles.css", _binary_styles_css_start,     _binary_styles_css_end},
+    {"/app/ui/app.js",     _binary_app_js_start,         _binary_app_js_end},
+    {"/favicon.ico",       _binary_favicon_ico_start,    _binary_favicon_ico_end},
 };
 } // anonymous namespace
 

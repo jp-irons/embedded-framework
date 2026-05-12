@@ -37,6 +37,9 @@ const SESSION_KEY = "fw_auth_token";
 
 let _token          = (() => { try { return sessionStorage.getItem(SESSION_KEY); } catch { return null; } })();
 let _authRequiredCb = null;
+let _uploadActive   = false; // true while an OTA firmware upload XHR is in flight
+
+export function isUploadActive() { return _uploadActive; }
 
 export function setToken(token) {
     _token = token;
@@ -195,6 +198,7 @@ export function uploadFirmware(file, onProgress) {
         // the snapshot, handle401() would wipe the new token and re-show the
         // login overlay even if the user has already logged back in.
         const tokenSnapshot = _token;
+        _uploadActive = true;
         const xhr = new XMLHttpRequest();
         xhr.open("POST", "/framework/api/firmware/upload");
         xhr.setRequestHeader("Content-Type", "application/octet-stream");
@@ -209,6 +213,7 @@ export function uploadFirmware(file, onProgress) {
         }
 
         xhr.onload = () => {
+            _uploadActive = false;
             if (xhr.status === 401) {
                 if (_token === tokenSnapshot) handle401();
                 reject(new Error("Unauthorized"));
@@ -228,10 +233,10 @@ export function uploadFirmware(file, onProgress) {
         // catch block in handleFirmwareUpload treats this as a stale callback
         // and discards it silently.  If the token is unchanged, surface the
         // real message so a genuine connectivity failure is shown to the user.
-        xhr.onerror   = () => reject(new Error(
-            _token !== tokenSnapshot ? "network" : "Network error during upload"));
-        xhr.ontimeout = () => reject(new Error(
-            _token !== tokenSnapshot ? "network" : "Upload timed out"));
+        xhr.onerror   = () => { _uploadActive = false; reject(new Error(
+            _token !== tokenSnapshot ? "network" : "Network error during upload")); };
+        xhr.ontimeout = () => { _uploadActive = false; reject(new Error(
+            _token !== tokenSnapshot ? "network" : "Upload timed out")); };
 
         // Send the raw binary — no multipart wrapper needed
         xhr.send(file);

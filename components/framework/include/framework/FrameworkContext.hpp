@@ -1,6 +1,5 @@
 #pragma once
 
-#include "framework_files/EmbeddedFileTable.hpp"
 #include "auth/ApiKeyStore.hpp"
 #include "auth/AuthApiHandler.hpp"
 #include "auth/AuthConfig.hpp"
@@ -88,14 +87,6 @@ class FrameworkContext {
      */
     void addRoute(http::HttpMethod method, std::string prefix, http::HttpHandler *handler);
 
-    /**
-     * Register the app's file table as the primary source for /favicon.ico.
-     * The framework's built-in generic icon is served as a fallback when the
-     * app's table has no "/favicon.ico" entry (or this is never called).
-     *
-     * Must be called before start().
-     */
-    void setFaviconTable(framework_files::EmbeddedFileTable *table);
 
     void start();
     void stop();
