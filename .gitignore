@@ -3,7 +3,6 @@
 # -----------------------------------------------------------------------------
 build/
 sdkconfig.old
-sdkconfig.defaults
 flasher_args.json
 partition_table/
 bootloader/
