@@ -14,7 +14,7 @@
 
 namespace ota {
 
-static logger::Logger log{"OtaApiHandler"};
+static logger::Logger log{OtaApiHandler::TAG};
 
 OtaApiHandler::OtaApiHandler(device::DeviceInterface& device)
     : device_(device) {

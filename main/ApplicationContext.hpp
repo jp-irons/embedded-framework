@@ -19,6 +19,8 @@
  */
 class ApplicationContext {
   public:
+    static constexpr const char* TAG = "ApplicationContext";
+
     explicit ApplicationContext(framework::FrameworkContext& fw);
     ~ApplicationContext();
 

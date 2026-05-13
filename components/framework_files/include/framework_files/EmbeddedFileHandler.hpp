@@ -26,6 +26,8 @@ namespace framework_files {
  */
 class EmbeddedFileHandler : public http::HttpHandler {
   public:
+    static constexpr const char* TAG = "EmbeddedFileHandler";
+
     /**
      * @param basePath    URL prefix stripped before table lookup (e.g. "/app/ui").
      * @param defaultFile Filename served when the path is empty after stripping.

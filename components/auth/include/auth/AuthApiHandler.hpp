@@ -45,6 +45,8 @@ namespace auth {
  */
 class AuthApiHandler : public http::HttpHandler {
   public:
+    static constexpr const char* TAG = "AuthApiHandler";
+
     explicit AuthApiHandler(AuthStore    &store,
                             SessionStore &sessionStore,
                             ApiKeyStore  &apiKeyStore);

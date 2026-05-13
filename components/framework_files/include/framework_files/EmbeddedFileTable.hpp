@@ -21,6 +21,8 @@ struct EmbeddedFile {
  */
 class EmbeddedFileTable {
 public:
+    static constexpr const char* TAG = "EmbeddedFileTable";
+
     virtual ~EmbeddedFileTable() = default;
 
     /** Look up a file by its bare path (e.g. "/index.html"). */

@@ -14,7 +14,7 @@ namespace network_store {
 using namespace http;
 using namespace common;
 
-static logger::Logger log{"NetworkApiHandler"};
+static logger::Logger log{NetworkApiHandler::TAG};
 
 NetworkApiHandler::NetworkApiHandler(NetworkStore &s)
     : store(s) {

@@ -16,6 +16,8 @@ namespace wifi_manager {
 
 class WiFiApiHandler : public http::HttpHandler {
   public:
+    static constexpr const char* TAG = "WiFiApiHandler";
+
     explicit WiFiApiHandler(wifi_manager::WiFiContext &wifi);
 
     common::Result handle(http::HttpRequest &req, http::HttpResponse &res) override;

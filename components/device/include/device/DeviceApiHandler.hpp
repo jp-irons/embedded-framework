@@ -11,6 +11,8 @@ namespace device {
 
 class DeviceApiHandler : public http::HttpHandler {
   public:
+    static constexpr const char* TAG = "DeviceApiHandler";
+
     DeviceApiHandler(DeviceInterface& device, TimerInterface& timer);
     virtual ~DeviceApiHandler() = default;
 

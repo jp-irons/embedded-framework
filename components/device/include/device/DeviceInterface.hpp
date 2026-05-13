@@ -35,6 +35,7 @@ struct DeviceInfo {
  */
 class DeviceInterface {
   public:
+
     virtual ~DeviceInterface() = default;
 
     virtual common::Result init()            = 0;

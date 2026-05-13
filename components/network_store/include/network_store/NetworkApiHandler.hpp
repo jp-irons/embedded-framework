@@ -14,6 +14,8 @@ class NetworkStore;
 
 class NetworkApiHandler : public http::HttpHandler {
   public:
+    static constexpr const char* TAG = "NetworkApiHandler";
+
     NetworkApiHandler(network_store::NetworkStore &store);
     common::Result handle(http::HttpRequest &req, http::HttpResponse &res) override;
 

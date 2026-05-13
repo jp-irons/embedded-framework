@@ -17,7 +17,7 @@ namespace wifi_manager {
 using namespace http;
 using namespace common;
 
-static logger::Logger log{"WiFiApiHandler"};
+static logger::Logger log{WiFiApiHandler::TAG};
 
 WiFiApiHandler::WiFiApiHandler(WiFiContext &w)
     : wifiCtx(w) {

@@ -26,9 +26,7 @@ namespace framework {
 // Default root URI is "/framework" — declared as an in-class default in FrameworkContext.hpp.
 // API endpoints mount at rootUri/api/*, UI assets at rootUri/ui/*.
 
-static const char* TAG = "FrameworkContext";
-
-static logger::Logger log{TAG};
+static logger::Logger log{FrameworkContext::TAG};
 
 // ---------------------------------------------------------------------------
 // Constructors
@@ -61,7 +59,7 @@ void FrameworkContext::initialize() {
 
     // Create the device implementation first — init() sets up NVS, event loop,
     // netif.  Everything else depends on those being ready.
-    deviceInterface_ = new device::EspDeviceInterface();
+    deviceInterface_ = new esp_platform::EspDeviceInterface();
     deviceInterface_->init();
 
     // Create the timer implementation — used by WiFiManager for retry delays.
@@ -81,7 +79,7 @@ void FrameworkContext::initialize() {
     sessionStore.init(*randomInterface_, *clockInterface_);
 
     // Create the mDNS implementation — injected into WiFiManager via context.
-    mdnsInterface_        = new wifi_manager::EspMdnsManager();
+    mdnsInterface_        = new esp_platform::EspMdnsManager();
     wifiCtx.mdnsInterface = mdnsInterface_;
 
     // Read device info once — MAC drives both the mDNS hostname and AuthStore.
@@ -147,7 +145,7 @@ void FrameworkContext::initialize() {
     wifiCtx.embeddedServer = embeddedServer;
 
     // Create WiFiInterface LAST — registers event handlers, may trigger events
-    wifiInterface = new wifi_manager::EspWiFiInterface(wifiCtx);
+    wifiInterface = new esp_platform::EspWiFiInterface(wifiCtx);
     wifiCtx.wifiInterface = wifiInterface;
 }
 

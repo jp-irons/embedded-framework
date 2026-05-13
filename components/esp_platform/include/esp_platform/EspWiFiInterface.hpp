@@ -6,36 +6,40 @@
 #include "esp_wifi_types_generic.h"
 
 namespace wifi_manager {
-
 struct WiFiContext;
+} // namespace wifi_manager
+
+namespace esp_platform {
 
 /**
- * ESP-IDF concrete implementation of WiFiInterface.
+ * ESP-IDF concrete implementation of wifi_manager::WiFiInterface.
  *
  * All ESP-IDF includes and types are confined to this header and its
  * corresponding .cpp.  Nothing outside the esp_platform component needs to
  * include this file — consumers depend only on WiFiInterface.hpp.
  */
-class EspWiFiInterface : public WiFiInterface {
+class EspWiFiInterface : public wifi_manager::WiFiInterface {
   public:
-    explicit EspWiFiInterface(WiFiContext& ctx);
+  	static constexpr const char* TAG = "EspWiFiInterface";
+	
+    explicit EspWiFiInterface(wifi_manager::WiFiContext& ctx);
 
     common::Result startDriver() override;
     common::Result stopDriver()  override;
 
-    common::Result startAp(const ApConfig& cfg) override;
-    common::Result stopAp()                      override;
+    common::Result startAp(const wifi_manager::ApConfig& cfg) override;
+    common::Result stopAp()                                   override;
 
-    WiFiStatus     connectSta(const network_store::WiFiNetwork& cred) override;
-    common::Result disconnectSta()                                     override;
+    wifi_manager::WiFiStatus connectSta(const network_store::WiFiNetwork& cred) override;
+    common::Result           disconnectSta()                                     override;
 
-    common::Result scan(std::vector<WiFiAp>& results) override;
+    common::Result scan(std::vector<wifi_manager::WiFiAp>& results) override;
 
-    IpAddress getApIp()  const override;
-    IpAddress getStaIp() const override;
+    wifi_manager::IpAddress getApIp()  const override;
+    wifi_manager::IpAddress getStaIp() const override;
 
   private:
-    WiFiContext& ctx;
+    wifi_manager::WiFiContext& ctx;
 
     esp_netif_t* apNetif  = nullptr;
     esp_netif_t* staNetif = nullptr;
@@ -55,9 +59,9 @@ class EspWiFiInterface : public WiFiInterface {
     void onSTAConnected();
     void onSTADisconnected(uint8_t reason);
 
-    static WiFiAuthMode toAuthMode(wifi_auth_mode_t mode);
-    wifi_mode_t         computeMode() const;
-    common::Result      setStaState(bool enable);
+    static wifi_manager::WiFiAuthMode toAuthMode(wifi_auth_mode_t mode);
+    wifi_mode_t                       computeMode() const;
+    common::Result                    setStaState(bool enable);
 };
 
-} // namespace wifi_manager
+} // namespace esp_platform

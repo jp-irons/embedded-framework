@@ -3,7 +3,7 @@
 #include "http_types/HttpTypes.hpp"
 #include "logger/Logger.hpp"
 
-static logger::Logger log{"ApplicationContext"};
+static logger::Logger log{ApplicationContext::TAG};
 
 ApplicationContext::ApplicationContext(framework::FrameworkContext& fw)
     : fw_(fw)

@@ -5,7 +5,7 @@
 
 namespace device {
 
-static logger::Logger log{"DeviceApiHandler"};
+static logger::Logger log{DeviceApiHandler::TAG};
 
 DeviceApiHandler::DeviceApiHandler(DeviceInterface& device, TimerInterface& timer)
     : device_(device)

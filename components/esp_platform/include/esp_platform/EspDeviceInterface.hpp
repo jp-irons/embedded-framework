@@ -2,22 +2,23 @@
 
 #include "device/DeviceInterface.hpp"
 
-namespace device {
+namespace esp_platform {
 
 /**
- * ESP-IDF concrete implementation of DeviceInterface.
+ * ESP-IDF concrete implementation of device::DeviceInterface.
  *
  * All ESP-IDF includes and types are confined to EspDeviceInterface.cpp.
  * Nothing outside the esp_platform component needs to include this file —
  * consumers depend only on DeviceInterface.hpp.
  */
-class EspDeviceInterface : public DeviceInterface {
+class EspDeviceInterface : public device::DeviceInterface {
   public:
-    common::Result init()            override;
-    common::Result reboot()          override;
-    common::Result clearNvs()        override;
-    DeviceInfo     info()            override;
-    float          readTemperature() override;
+  	static constexpr const char* TAG = "EspDeviceInterface";
+    common::Result     init()            override;
+    common::Result     reboot()          override;
+    common::Result     clearNvs()        override;
+    device::DeviceInfo info()            override;
+    float              readTemperature() override;
 };
 
-} // namespace device
+} // namespace esp_platform

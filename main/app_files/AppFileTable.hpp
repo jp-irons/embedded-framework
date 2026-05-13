@@ -11,6 +11,8 @@
  */
 class AppFileTable : public framework_files::EmbeddedFileTable {
 public:
+    static constexpr const char* TAG = "AppFileTable";
+
     const framework_files::EmbeddedFile* find(std::string_view path) const override;
     const uint8_t* find(const char* path, size_t& outSize) const override;
 };

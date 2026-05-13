@@ -13,6 +13,7 @@ namespace http {
  */
 class HttpServer {
   public:
+
     virtual ~HttpServer() = default;
 
     /**

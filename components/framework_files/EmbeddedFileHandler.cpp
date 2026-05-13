@@ -7,7 +7,7 @@ namespace framework_files {
 
 using namespace http;
 
-static logger::Logger log{"EmbeddedFileHandler"};
+static logger::Logger log{EmbeddedFileHandler::TAG};
 
 EmbeddedFileHandler::EmbeddedFileHandler(std::string basePath,
                                          std::string defaultFile,

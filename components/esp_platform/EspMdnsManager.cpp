@@ -3,7 +3,7 @@
 #include "logger/Logger.hpp"
 #include "mdns.h"
 
-namespace wifi_manager {
+namespace esp_platform {
 
 static logger::Logger log{"EspMdnsManager"};
 
@@ -59,4 +59,4 @@ void EspMdnsManager::stop() {
     log.info("mDNS stopped");
 }
 
-} // namespace wifi_manager
+} // namespace esp_platform

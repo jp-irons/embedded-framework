@@ -17,7 +17,7 @@
 
 namespace wifi_manager {
 
-static logger::Logger log{"EmbeddedServer"};
+static logger::Logger log{EmbeddedServer::TAG};
 
 EmbeddedServer::EmbeddedServer(WiFiContext &ctx,
                                http::HttpServer &server,

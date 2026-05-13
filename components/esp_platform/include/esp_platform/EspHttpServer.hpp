@@ -19,6 +19,7 @@ namespace esp_platform {
  */
 class EspHttpServer : public http::HttpServer {
   public:
+  	static constexpr const char* TAG = "EspHttpServer";
     EspHttpServer();
     ~EspHttpServer() override;
 

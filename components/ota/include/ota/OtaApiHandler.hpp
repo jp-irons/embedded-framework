@@ -8,6 +8,8 @@ namespace ota {
 
 class OtaApiHandler : public http::HttpHandler {
   public:
+    static constexpr const char* TAG = "OtaApiHandler";
+
     explicit OtaApiHandler(device::DeviceInterface& device);
 
     common::Result handle(http::HttpRequest& req, http::HttpResponse& res) override;

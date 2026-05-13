@@ -8,6 +8,8 @@ namespace wifi_manager {
 
 class WiFiManager {
   public:
+    static constexpr const char* TAG = "WiFiManager";
+
     explicit WiFiManager(WiFiContext &ctx);
 
     void start();

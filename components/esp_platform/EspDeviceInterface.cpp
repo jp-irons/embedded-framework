@@ -14,11 +14,12 @@
 #include "nvs_flash.h"
 #include "sdkconfig.h"
 
-namespace device {
+namespace esp_platform {
 
-static logger::Logger log{"DeviceInterface"};
+static logger::Logger log{EspDeviceInterface::TAG};
 
 using namespace common;
+using namespace device;
 
 // ---------------------------------------------------------------------------
 // Internal helpers (file-scope)
@@ -221,4 +222,4 @@ float EspDeviceInterface::readTemperature() {
     return readTemperatureInternal();
 }
 
-} // namespace device
+} // namespace esp_platform

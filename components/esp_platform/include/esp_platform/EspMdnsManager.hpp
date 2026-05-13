@@ -2,10 +2,10 @@
 
 #include "wifi_manager/MdnsInterface.hpp"
 
-namespace wifi_manager {
+namespace esp_platform {
 
 /**
- * ESP-IDF concrete implementation of MdnsInterface.
+ * ESP-IDF concrete implementation of wifi_manager::MdnsInterface.
  *
  * All ESP-IDF mDNS includes (mdns.h) are confined to EspMdnsManager.cpp.
  * Nothing outside the esp_platform component needs to include this file —
@@ -20,7 +20,7 @@ namespace wifi_manager {
  * disconnect/idle.  Calling start() again while already running is safe —
  * it restarts cleanly.
  */
-class EspMdnsManager : public MdnsInterface {
+class EspMdnsManager : public wifi_manager::MdnsInterface {
   public:
     EspMdnsManager() = default;
     ~EspMdnsManager() override;
@@ -36,4 +36,4 @@ class EspMdnsManager : public MdnsInterface {
     std::string hostname_;
 };
 
-} // namespace wifi_manager
+} // namespace esp_platform

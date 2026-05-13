@@ -34,6 +34,8 @@ namespace framework {
 
 class FrameworkContext {
   public:
+    static constexpr const char* TAG = "FrameworkContext";
+
     /**
      * Default constructor.  Uses built-in AP config, root URI, and a fixed
      * default password of "esp32admin" with restrictIfDefault() — non-GET API

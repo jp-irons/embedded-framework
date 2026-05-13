@@ -10,9 +10,7 @@
 
 namespace wifi_manager {
 
-static const char *TAG = "WiFiManager";
-
-static logger::Logger log{TAG};
+static logger::Logger log{WiFiManager::TAG};
 
 using namespace common;
 

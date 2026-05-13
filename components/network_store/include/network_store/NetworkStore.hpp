@@ -12,6 +12,8 @@ namespace network_store {
 
 class NetworkStore {
   public:
+    static constexpr const char* TAG = "NetworkStore";
+
     NetworkStore() = default;
 
     /**

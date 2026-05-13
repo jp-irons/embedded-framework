@@ -26,11 +26,12 @@
         }                                                                    \
     } while (0)
 
-namespace wifi_manager {
+namespace esp_platform {
 
 using namespace common;
+using namespace wifi_manager;
 
-static logger::Logger log{"WiFiInterface"};
+static logger::Logger log{EspWiFiInterface::TAG};
 
 EspWiFiInterface::EspWiFiInterface(WiFiContext& ctx)
     : ctx(ctx) {
@@ -83,7 +84,7 @@ Result EspWiFiInterface::stopDriver() {
 Result EspWiFiInterface::startAp(const ApConfig& config) {
     log.info("Starting SoftAP: %s", config.ssid.c_str());
 
-    wifi_config_t ap_cfg  = wifi_manager::makeApConfig(config);
+    wifi_config_t ap_cfg  = makeApConfig(config);
     bool          useOpen = false;
 
     if (config.password.empty()) {
@@ -130,7 +131,7 @@ Result EspWiFiInterface::stopAp() {
 WiFiStatus EspWiFiInterface::connectSta(const network_store::WiFiNetwork& cred) {
     log.info("Connecting STA to SSID: %s", cred.ssid.c_str());
 
-    wifi_config_t cfg = wifi_manager::makeStaConfig(cred);
+    wifi_config_t cfg = makeStaConfig(cred);
 
     // Ensure STA is in a clean idle state
     esp_wifi_disconnect();
@@ -354,4 +355,4 @@ Result EspWiFiInterface::setStaState(bool enable) {
     return Result::Ok;
 }
 
-} // namespace wifi_manager
+} // namespace esp_platform

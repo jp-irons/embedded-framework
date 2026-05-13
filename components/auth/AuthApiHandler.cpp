@@ -11,7 +11,7 @@ namespace auth {
 using namespace common;
 using namespace http;
 
-static logger::Logger log{"AuthApiHandler"};
+static logger::Logger log{AuthApiHandler::TAG};
 
 AuthApiHandler::AuthApiHandler(AuthStore    &store,
                                SessionStore &sessionStore,

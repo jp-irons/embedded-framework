@@ -20,7 +20,7 @@ namespace wifi_manager {
  */
 class WiFiInterface {
   public:
-    virtual ~WiFiInterface() = default;
+	virtual ~WiFiInterface() = default;
 
     virtual common::Result startDriver() = 0;
     virtual common::Result stopDriver()  = 0;

@@ -33,6 +33,8 @@ struct WiFiContext;
  */
 class EmbeddedServer : public http::HttpHandler {
   public:
+    static constexpr const char* TAG = "EmbeddedServer";
+
     explicit EmbeddedServer(WiFiContext &ctx,
                             http::HttpServer &server,
                             WiFiApiHandler &wifiApi,

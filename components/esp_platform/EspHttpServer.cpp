@@ -24,7 +24,7 @@ static httpd_method_t toEspIdfMethod(http::HttpMethod method) {
     return HTTP_GET;
 }
 
-static logger::Logger log{"EspHttpServer"};
+static logger::Logger log{EspHttpServer::TAG};
 
 // Embedded self-signed cert + key (see components/esp_platform/certs/ and CMakeLists.txt EMBED_TXTFILES)
 extern const uint8_t servercert_pem_start[] asm("_binary_servercert_pem_start");

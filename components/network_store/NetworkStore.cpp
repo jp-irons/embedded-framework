@@ -11,7 +11,7 @@ namespace network_store {
 
 using namespace common;
 
-static logger::Logger log{"NetworkStore"};
+static logger::Logger log{NetworkStore::TAG};
 
 void NetworkStore::init(KeyValueStore& kvs) {
     kvs_ = &kvs;

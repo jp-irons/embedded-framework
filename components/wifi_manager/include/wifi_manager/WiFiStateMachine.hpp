@@ -22,6 +22,8 @@ enum class WiFiEvent {
 
 class WiFiStateMachine {
 public:
+    static constexpr const char* TAG = "WiFiStateMachine";
+
     using Listener = std::function<void(WiFiState, WiFiState)>;
 
     WiFiStateMachine() = default;
