@@ -95,7 +95,7 @@ If OTA state queries return unexpected results, verify that `sdkconfig` has `CON
 
 ## Versioning
 
-Bump `version.txt` before building a release. The build system copies `build/esp32_app_framework.bin` to `build/esp32_app_framework-<version>.bin` after each successful build. 
+Bump `version.txt` before building a release. The build system copies `build/embedded_scaffold.bin` to `build/embedded_scaffold-<version>.bin` after each successful build. 
 This versioned binary is the file to distribute for OTA updates.
 
 ## Partition layout changes

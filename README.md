@@ -55,7 +55,7 @@ idf.py -p /dev/ttyUSB0 flash monitor
 The post-build step in `CMakeLists.txt` produces a versioned copy of the application binary alongside the normal build output:
 
 ```
-build/esp32_app_framework-<version>.bin
+build/embedded_scaffold-<version>.bin
 ```
 
 The version comes from `version.txt`. Upload this file via the firmware page in the web UI or via any HTTP client.
