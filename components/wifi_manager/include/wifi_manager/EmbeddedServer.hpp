@@ -34,6 +34,7 @@ struct WiFiContext;
 class EmbeddedServer : public http::HttpHandler {
   public:
     explicit EmbeddedServer(WiFiContext &ctx,
+                            http::HttpServer &server,
                             WiFiApiHandler &wifiApi,
                             network_store::NetworkApiHandler &networkApi,
                             device::DeviceApiHandler &deviceApi,
@@ -124,7 +125,7 @@ class EmbeddedServer : public http::HttpHandler {
     std::string  apiUri_;         // ctx.rootUri + "/api"
     std::string  entryPoint_ = "/framework/ui/";
 
-    http::HttpServer server;
+    http::HttpServer &server_;
 
     // Framework file table + handler (fallback for /framework/ui/*).
     // frameworkFileTable_ MUST be declared before frameworkFileHandler_ so it is

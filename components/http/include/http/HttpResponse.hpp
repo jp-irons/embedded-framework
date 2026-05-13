@@ -1,79 +1,52 @@
 #pragma once
+
 #include "common/Result.hpp"
-#include "esp_http_server.h"
 
 #include <string_view>
 
 namespace http {
 
+/**
+ * Abstract interface for an outgoing HTTP response.
+ *
+ * No ESP-IDF types appear here.  The concrete implementation (EspHttpResponse)
+ * lives in the esp_platform component and is constructed inside EspHttpServer.
+ *
+ * Status strings follow the ESP-IDF httpd convention, e.g.:
+ *   "200 Ok", "301 Moved Permanently", "302 Found",
+ *   "400 Bad Request", "403 Forbidden", "404 Not Found",
+ *   "405 Method Not Allowed", "500 Internal Server Error", "501 Not Implemented"
+ */
 class HttpResponse {
   public:
-    explicit HttpResponse(httpd_req *r);
+    virtual ~HttpResponse() = default;
 
-    /* 
-	 "200 Ok"
-	 "301 Moved Permanently"
-	 "302 Found"
-	 "400 Bad Request"
-	 "403 Forbidden"
-	 "404 Not Found"
-	 "405 Method Not allowed"
-	 "500 Internal Server Error"
-	 "501 Not Implemented"
-	*/
-    common::Result send(int code, std::string_view body, const char *type);
+    virtual common::Result send(int code, std::string_view body, const char *type) = 0;
 
-    common::Result send(std::string_view body, const char *type);
+    virtual common::Result send(std::string_view body, const char *type) = 0;
 
-    common::Result redirect(const char *target);
+    virtual common::Result redirect(const char *target) = 0;
 
-    common::Result send(const unsigned char *data, unsigned int size, const char *type);
+    virtual common::Result send(const unsigned char *data, unsigned int size, const char *type) = 0;
 
-    common::Result send(std::string_view body);
+    virtual common::Result send(std::string_view body) = 0;
 
-    common::Result sendText(std::string_view body);
+    virtual common::Result sendText(std::string_view body) = 0;
 
-    common::Result sendJson(std::string_view body);
+    virtual common::Result sendJson(std::string_view body) = 0;
 
-    /* 
-	 "200 Ok"
-	 "301 Moved Permanently"
-	 "302 Found"
-	 "400 Bad Request"
-	 "403 Forbidden"
-	 "404 Not Found"
-	 "405 Method Not allowed"
-	 "500 Internal Server Error"
-	 "501 Not Implemented"
-	*/
-    common::Result sendJson(int code, std::string_view body);
+    virtual common::Result sendJson(int code, std::string_view body) = 0;
 
-    /* 
- "200 Ok"
- "301 Moved Permanently"
- "302 Found"
- "400 Bad Request"
- "403 Forbidden"
- "404 Not Found"
- "405 Method Not allowed"
- "500 Internal Server Error"
- "501 Not Implemented"
-*/
-    common::Result sendJsonError(int code, std::string_view message);
+    virtual common::Result sendJsonError(int code, std::string_view message) = 0;
 
-    common::Result sendJsonStatus(std::string_view status);
+    virtual common::Result sendJsonStatus(std::string_view status) = 0;
 
     /**
-     * Sends HTTP 401 Unauthorized with a WWW-Authenticate Basic challenge.
-     * The browser will show its built-in login dialog in response.
+     * Sends HTTP 401 Unauthorized with a WWW-Authenticate Bearer challenge.
      *
-     * @param realm  Shown in the browser login dialog (e.g. "ESP32").
+     * @param realm  Challenge realm string (e.g. "ESP32").
      */
-    common::Result sendUnauthorized(const char *realm);
-
-  private:
-    httpd_req *req;
-    void warn_err(esp_err_t err);
+    virtual common::Result sendUnauthorized(const char *realm) = 0;
 };
 
 } // namespace http

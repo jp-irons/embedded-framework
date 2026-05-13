@@ -2,6 +2,9 @@ idf_component_register(
     SRCS
         EspClockInterface.cpp
         EspDeviceInterface.cpp
+        EspHttpRequest.cpp
+        EspHttpResponse.cpp
+        EspHttpServer.cpp
         EspMdnsManager.cpp
         EspNvsStore.cpp
         EspRandomInterface.cpp
@@ -14,6 +17,8 @@ idf_component_register(
         common
         logger
         device
+        http
+        http_types
         wifi_manager
         network_store
         esp_timer
@@ -24,5 +29,11 @@ idf_component_register(
         esp_driver_tsens
         esp_wifi
         esp_event
+        esp_http_server
+        esp_https_server
+        mbedtls
         espressif__mdns
+    EMBED_TXTFILES
+        certs/servercert.pem
+        certs/prvtkey.pem
 )

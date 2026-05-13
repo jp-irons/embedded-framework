@@ -15,6 +15,7 @@
 #include "device/TimerInterface.hpp"
 #include "device_cert/DeviceCert.hpp"
 #include "http/HttpHandler.hpp"
+#include "http/HttpServer.hpp"
 #include "http_types/HttpTypes.hpp"
 #include "ota/OtaApiHandler.hpp"
 #include "wifi_manager/WiFiContext.hpp"
@@ -127,6 +128,7 @@ class FrameworkContext {
     device::ClockInterface*               clockInterface_  = nullptr;
     wifi_manager::MdnsInterface*          mdnsInterface_   = nullptr;
     wifi_manager::WiFiInterface*          wifiInterface    = nullptr;
+    http::HttpServer*                     httpServer_      = nullptr;
     wifi_manager::EmbeddedServer*         embeddedServer   = nullptr;
     wifi_manager::WiFiManager*            wifiManager      = nullptr;
     wifi_manager::WiFiApiHandler*         wifiApi          = nullptr;

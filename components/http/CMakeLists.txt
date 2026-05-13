@@ -1,18 +1,7 @@
 idf_component_register(
-    SRCS
-        HttpRequest.cpp
-        HttpServer.cpp
-        HttpResponse.cpp
     INCLUDE_DIRS
         include
     REQUIRES
-        esp_http_server
-        esp_https_server
         common
         http_types
-        logger
-        mbedtls
-    EMBED_TXTFILES
-        certs/servercert.pem
-        certs/prvtkey.pem
 )

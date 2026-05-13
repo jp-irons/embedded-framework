@@ -1,52 +1,51 @@
-#include "http/HttpServer.hpp"
+#include "esp_platform/EspHttpServer.hpp"
 
+#include "esp_platform/EspHttpRequest.hpp"
+#include "esp_platform/EspHttpResponse.hpp"
 #include "http/HttpHandler.hpp"
-#include "http/HttpRequest.hpp"
 #include "logger/Logger.hpp"
 #include "esp_err.h"
 #include "esp_https_server.h"
 
 #include <cstring>
 
-namespace http {
+namespace esp_platform {
 
-static httpd_method_t toEspIdfMethod(HttpMethod method) {
+static httpd_method_t toEspIdfMethod(http::HttpMethod method) {
     switch (method) {
-        case HttpMethod::Get:     return HTTP_GET;
-        case HttpMethod::Post:    return HTTP_POST;
-        case HttpMethod::Put:     return HTTP_PUT;
-        case HttpMethod::Delete:  return HTTP_DELETE;
-        case HttpMethod::Patch:   return HTTP_PATCH;
-        case HttpMethod::Head:    return HTTP_HEAD;
-        case HttpMethod::Options: return HTTP_OPTIONS;
+        case http::HttpMethod::Get:     return HTTP_GET;
+        case http::HttpMethod::Post:    return HTTP_POST;
+        case http::HttpMethod::Put:     return HTTP_PUT;
+        case http::HttpMethod::Delete:  return HTTP_DELETE;
+        case http::HttpMethod::Patch:   return HTTP_PATCH;
+        case http::HttpMethod::Head:    return HTTP_HEAD;
+        case http::HttpMethod::Options: return HTTP_OPTIONS;
     }
     return HTTP_GET;
 }
 
-using namespace http;
+static logger::Logger log{"EspHttpServer"};
 
-static logger::Logger log{"HttpServer"};
-
-// Embedded self-signed cert + key (see components/http/certs/ and CMakeLists.txt EMBED_TXTFILES)
+// Embedded self-signed cert + key (see components/esp_platform/certs/ and CMakeLists.txt EMBED_TXTFILES)
 extern const uint8_t servercert_pem_start[] asm("_binary_servercert_pem_start");
 extern const uint8_t servercert_pem_end[]   asm("_binary_servercert_pem_end");
 extern const uint8_t prvtkey_pem_start[]    asm("_binary_prvtkey_pem_start");
 extern const uint8_t prvtkey_pem_end[]      asm("_binary_prvtkey_pem_end");
 
-HttpServer::HttpServer()
-    : server(nullptr), redirectServer(nullptr) {}
+EspHttpServer::EspHttpServer()
+    : server_(nullptr), redirectServer_(nullptr) {}
 
-HttpServer::~HttpServer() {
+EspHttpServer::~EspHttpServer() {
     stop();
 }
 
-void HttpServer::setCert(std::string certPem, std::string keyPem) {
+void EspHttpServer::setCert(std::string certPem, std::string keyPem) {
     runtimeCertPem_ = std::move(certPem);
     runtimeKeyPem_  = std::move(keyPem);
 }
 
-void HttpServer::start() {
-    if (server) {
+void EspHttpServer::start() {
+    if (server_) {
         return;
     }
 
@@ -75,10 +74,10 @@ void HttpServer::start() {
         log.warn("Using embedded fallback TLS cert — call setCert() for per-device certs");
     }
 
-    esp_err_t err = httpd_ssl_start(&server, &conf);
+    esp_err_t err = httpd_ssl_start(&server_, &conf);
     if (err != ESP_OK) {
         log.error("httpd_ssl_start failed: %s", esp_err_to_name(err));
-        server = nullptr;
+        server_ = nullptr;
         return;
     }
     log.info("HTTPS server started on port %d", conf.port_secure);
@@ -86,29 +85,29 @@ void HttpServer::start() {
     startRedirectServer();
 }
 
-void HttpServer::stop() {
-    if (server) {
-        httpd_ssl_stop(server);
-        server = nullptr;
+void EspHttpServer::stop() {
+    if (server_) {
+        httpd_ssl_stop(server_);
+        server_ = nullptr;
     }
     stopRedirectServer();
 }
 
-void HttpServer::startRedirectServer() {
-    if (redirectServer) {
+void EspHttpServer::startRedirectServer() {
+    if (redirectServer_) {
         return;
     }
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
-    cfg.server_port     = 80;
-    cfg.ctrl_port       = 32767;            // must differ from the HTTPS server's ctrl_port
-    cfg.uri_match_fn    = httpd_uri_match_wildcard;
+    cfg.server_port      = 80;
+    cfg.ctrl_port        = 32767;           // must differ from the HTTPS server's ctrl_port
+    cfg.uri_match_fn     = httpd_uri_match_wildcard;
     cfg.lru_purge_enable = true;
     cfg.max_uri_handlers = 8;
 
-    esp_err_t err = httpd_start(&redirectServer, &cfg);
+    esp_err_t err = httpd_start(&redirectServer_, &cfg);
     if (err != ESP_OK) {
         log.error("HTTP redirect httpd_start failed: %s", esp_err_to_name(err));
-        redirectServer = nullptr;
+        redirectServer_ = nullptr;
         return;
     }
 
@@ -119,22 +118,22 @@ void HttpServer::startRedirectServer() {
         httpd_uri_t uri = {
             .uri      = "/*",
             .method   = method,
-            .handler  = &HttpServer::redirectHandler,
+            .handler  = &EspHttpServer::redirectHandler,
             .user_ctx = nullptr,
         };
-        httpd_register_uri_handler(redirectServer, &uri);
+        httpd_register_uri_handler(redirectServer_, &uri);
     }
     log.info("HTTP->HTTPS redirector started on port %d", cfg.server_port);
 }
 
-void HttpServer::stopRedirectServer() {
-    if (redirectServer) {
-        httpd_stop(redirectServer);
-        redirectServer = nullptr;
+void EspHttpServer::stopRedirectServer() {
+    if (redirectServer_) {
+        httpd_stop(redirectServer_);
+        redirectServer_ = nullptr;
     }
 }
 
-esp_err_t HttpServer::redirectHandler(httpd_req_t *req) {
+esp_err_t EspHttpServer::redirectHandler(httpd_req_t *req) {
     char host[128] = {0};
     if (httpd_req_get_hdr_value_str(req, "Host", host, sizeof(host)) != ESP_OK) {
         host[0] = '\0';
@@ -159,42 +158,43 @@ esp_err_t HttpServer::redirectHandler(httpd_req_t *req) {
     return ESP_OK;
 }
 
-void HttpServer::addRoutes(const std::string &path, HttpHandler *handler) {
+void EspHttpServer::addRoutes(const std::string &path, http::HttpHandler *handler) {
     addGetRoute(path, handler);
     addPostRoute(path, handler);
     addDeleteRoute(path, handler);
 }
 
-void HttpServer::addGetRoute(const std::string &path, HttpHandler *handler) {
-    return addRoute(HttpMethod::Get, path, handler);
+void EspHttpServer::addGetRoute(const std::string &path, http::HttpHandler *handler) {
+    addRoute(http::HttpMethod::Get, path, handler);
 }
 
-void HttpServer::addPostRoute(const std::string &path, HttpHandler *handler) {
-    return addRoute(HttpMethod::Post, path, handler);
+void EspHttpServer::addPostRoute(const std::string &path, http::HttpHandler *handler) {
+    addRoute(http::HttpMethod::Post, path, handler);
 }
 
-void HttpServer::addDeleteRoute(const std::string &path, HttpHandler *handler) {
-    return addRoute(HttpMethod::Delete, path, handler);
+void EspHttpServer::addDeleteRoute(const std::string &path, http::HttpHandler *handler) {
+    addRoute(http::HttpMethod::Delete, path, handler);
 }
 
-void HttpServer::addRoute(HttpMethod method, const std::string &path, HttpHandler *handler) {
-    log.debug("addRoute %s '%s'", toString(method).c_str(), path.c_str());
+void EspHttpServer::addRoute(http::HttpMethod method, const std::string &path,
+                             http::HttpHandler *handler) {
+    log.debug("addRoute %s '%s'", http::toString(method).c_str(), path.c_str());
 
-    ownedPaths.push_back(path);
+    ownedPaths_.push_back(path);
     httpd_uri_t uri = {
-        .uri      = ownedPaths.back().c_str(),
+        .uri      = ownedPaths_.back().c_str(),
         .method   = toEspIdfMethod(method),
-        .handler  = &HttpServer::handlerAdapter,
+        .handler  = &EspHttpServer::handlerAdapter,
         .user_ctx = handler
     };
-    httpd_register_uri_handler(server, &uri);
+    httpd_register_uri_handler(server_, &uri);
 }
 
-esp_err_t HttpServer::handlerAdapter(httpd_req_t *req) {
+esp_err_t EspHttpServer::handlerAdapter(httpd_req_t *req) {
     log.debug("handlerAdapter '%s'", req->uri);
-    auto *handler = static_cast<HttpHandler *>(req->user_ctx);
-    HttpRequest request(req);
-    HttpResponse response(req);
+    auto *handler = static_cast<http::HttpHandler *>(req->user_ctx);
+    EspHttpRequest  request(req);
+    EspHttpResponse response(req);
     common::Result handlerResp = handler->handle(request, response);
     if (common::Result::Ok != handlerResp) {
         log.error("handlerAdapter fail '%s'", req->uri);
@@ -202,4 +202,4 @@ esp_err_t HttpServer::handlerAdapter(httpd_req_t *req) {
     return ESP_OK;
 }
 
-} // namespace http
+} // namespace esp_platform

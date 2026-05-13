@@ -20,13 +20,14 @@ namespace wifi_manager {
 static logger::Logger log{"EmbeddedServer"};
 
 EmbeddedServer::EmbeddedServer(WiFiContext &ctx,
+                               http::HttpServer &server,
                                WiFiApiHandler &wifiApi,
                                network_store::NetworkApiHandler &networkApi,
                                device::DeviceApiHandler &deviceApi,
                                ota::OtaApiHandler &otaApi)
     : ctx(ctx)
     , apiUri_(ctx.rootUri + "/api")
-    , server()
+    , server_(server)
     , frameworkFileTable_()
     , frameworkFileHandler_(ctx.rootUri + "/ui", "index.html", frameworkFileTable_)
     , wifiHandler(wifiApi)
@@ -47,7 +48,7 @@ EmbeddedServer::~EmbeddedServer() {
 
 bool EmbeddedServer::start() {
     log.debug("Starting EmbeddedServer");
-    server.start();
+    server_.start();
 
     if (!routesRegistered_) {
         log.debug("start() registering framework routes");
@@ -61,7 +62,7 @@ bool EmbeddedServer::start() {
             frameworkRoutes_.insert(frameworkRoutes_.begin(),
                 Route{apiUri_ + "/auth/", authApiHandler_});
         }
-        server.addRoutes("/*", this);
+        server_.addRoutes("/*", this);
         routesRegistered_ = true;
     }
 
@@ -77,12 +78,12 @@ bool EmbeddedServer::start() {
 }
 
 void EmbeddedServer::setCert(std::string certPem, std::string keyPem) {
-    server.setCert(std::move(certPem), std::move(keyPem));
+    server_.setCert(std::move(certPem), std::move(keyPem));
 }
 
 void EmbeddedServer::stop() {
     log.debug("Stopping EmbeddedServer");
-    server.stop();
+    server_.stop();
 }
 
 void EmbeddedServer::startRuntimeMode() {

@@ -5,6 +5,7 @@
 #include "esp_app_format.h"
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
+#include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "http/HttpHandler.hpp"
 #include "logger/Logger.hpp"

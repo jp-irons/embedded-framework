@@ -2,16 +2,18 @@
 
 #include "common/Result.hpp"
 #include "esp_platform/EspTypeAdapter.hpp"
+#include "esp_platform/WiFiHelper.hpp"
+#include "logger/Logger.hpp"
+#include "wifi_manager/EmbeddedServer.hpp"
+#include "wifi_manager/WiFiContext.hpp"
+#include "wifi_manager/WiFiManager.hpp"
+#include "wifi_manager/WiFiTypes.hpp"
+
 #include "esp_event.h"
 #include "esp_event_base.h"
 #include "esp_wifi.h"
 #include "esp_wifi_types_generic.h"
-#include "logger/Logger.hpp"
-#include "wifi_manager/EmbeddedServer.hpp"
-#include "wifi_manager/WiFiContext.hpp"
-#include "esp_platform/WiFiHelper.hpp"
-#include "wifi_manager/WiFiManager.hpp"
-#include "wifi_manager/WiFiTypes.hpp"
+#include <cstring>
 
 // Logs the failing call and returns Result::InternalError from the enclosing
 // function.  Must only be used in functions that return common::Result.

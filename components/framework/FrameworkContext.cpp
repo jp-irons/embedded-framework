@@ -3,6 +3,7 @@
 #include "network_store/NetworkApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "esp_platform/EspClockInterface.hpp"
+#include "esp_platform/EspHttpServer.hpp"
 #include "esp_platform/EspDeviceInterface.hpp"
 #include "esp_platform/EspMdnsManager.hpp"
 #include "esp_platform/EspNvsStore.hpp"
@@ -131,9 +132,10 @@ void FrameworkContext::initialize() {
     deviceApi  = new device::DeviceApiHandler(*deviceInterface_, *timerInterface_);
     otaApi     = new ota::OtaApiHandler(*deviceInterface_);
 
-    // Create server, inject the per-device cert, and wire in auth
+    // Create the HTTP server implementation, then EmbeddedServer which uses it
+    httpServer_ = new esp_platform::EspHttpServer();
     embeddedServer = new wifi_manager::EmbeddedServer(
-        wifiCtx, *wifiApi, *networkApi, *deviceApi, *otaApi);
+        wifiCtx, *httpServer_, *wifiApi, *networkApi, *deviceApi, *otaApi);
     if (deviceCert_.isLoaded()) {
         embeddedServer->setCert(deviceCert_.certPem(), deviceCert_.keyPem());
     }
@@ -154,6 +156,7 @@ FrameworkContext::~FrameworkContext() {
     log.info("destructor");
     stop();
     delete embeddedServer;
+    delete httpServer_;
     delete wifiInterface;
     delete wifiManager;
     delete wifiApi;

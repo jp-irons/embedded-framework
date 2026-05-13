@@ -1,6 +1,5 @@
 #pragma once
 
-#include "esp_http_server.h"
 #include "http_types/HttpTypes.hpp"
 
 #include <optional>
@@ -15,33 +14,32 @@ struct BasicAuth {
     std::string password;
 };
 
+/**
+ * Abstract interface for an incoming HTTP request.
+ *
+ * No ESP-IDF types appear here.  The concrete implementation (EspHttpRequest)
+ * lives in the esp_platform component and is constructed inside EspHttpServer.
+ */
 class HttpRequest {
   public:
-    explicit HttpRequest(httpd_req_t *r);
+    virtual ~HttpRequest() = default;
 
-    std::string_view body() const {
-        return std::string_view(bodyStorage_.data(), bodyStorage_.size());
-    }
+    /** The pre-read request body (empty for large/streaming bodies). */
+    virtual std::string_view body() const = 0;
 
-    std::string_view uri() const {
-        return req->uri;
-    }
+    /** Full request URI including any query string. */
+    virtual std::string_view uri() const = 0;
 
-    const char *path() const {
-        return req->uri;
-    }
+    /** URI as a null-terminated C string (same value as uri()). */
+    virtual const char *path() const = 0;
 
-    HttpMethod method() const { return method_; }
-
-    httpd_req_t *raw() const {
-        return req;
-    }
+    virtual HttpMethod method() const = 0;
 
     /**
      * Returns the Content-Length of the request body in bytes.
      * Zero if no body was sent.
      */
-    size_t contentLength() const { return req->content_len; }
+    virtual size_t contentLength() const = 0;
 
     /**
      * Read up to len bytes from the request body into buf.
@@ -51,7 +49,7 @@ class HttpRequest {
      * unrecoverable error.  Callers should treat any non-positive return as
      * a failure.
      */
-    int receiveChunk(char *buf, size_t len);
+    virtual int receiveChunk(char *buf, size_t len) = 0;
 
     /**
      * Extracts HTTP Basic Auth credentials from the Authorization header.
@@ -61,7 +59,7 @@ class HttpRequest {
      * Returns std::nullopt if the header is absent, not Basic scheme, or
      * cannot be decoded.
      */
-    std::optional<BasicAuth> extractBasicAuth() const;
+    virtual std::optional<BasicAuth> extractBasicAuth() const = 0;
 
     /**
      * Extracts a Bearer token from the Authorization header.
@@ -70,16 +68,7 @@ class HttpRequest {
      * "Bearer <token>".  Returns std::nullopt if the header is absent, uses a
      * different scheme, or the token portion is empty.
      */
-    std::optional<std::string> extractBearerToken() const;
-
-  private:
-    static constexpr size_t MAX_PRELOAD_BYTES = 65536; // 64 KB
-
-    httpd_req_t *req;
-    HttpMethod   method_;
-    std::string  bodyStorage_; // owns the memory; empty when skipped
-
-    void readBody();
+    virtual std::optional<std::string> extractBearerToken() const = 0;
 };
 
 } // namespace http
