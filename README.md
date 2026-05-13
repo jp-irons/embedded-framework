@@ -1,6 +1,6 @@
-# ESP32 Application Framework
+# Embedded Application Framework
 
-A clean, deterministic, commercial-grade application framework for ESP32 devices built on ESP-IDF 6.x.
+A clean, deterministic, commercial-grade embedded application framework built on ESP-IDF 6.x. The current hardware target is ESP32-S3; the architecture is designed to accommodate additional targets as the framework evolves.
 
 The framework is aimed at engineers who need predictable behaviour, maintainable architecture, and a reproducible build pipeline. Provisioning, AP/STA transitions, OTA firmware updates, and UI delivery are all driven by explicit state machines — no globals, no hidden behaviour, no monolithic codebase.
 
@@ -16,9 +16,11 @@ The framework is aimed at engineers who need predictable behaviour, maintainable
 - Versioned OTA binaries produced automatically at build time
 - Modern C++17 design with clear component boundaries and private internals
 
-## Hardware target
+## Hardware targets
 
-ESP32-S3. The framework uses `RTC_DATA_ATTR` for boot-attempt tracking and references ESP32-S3-specific partition offsets. Porting to other ESP32 variants requires adjusting `partitions.csv` and reviewing PSRAM usage in the `device` component.
+The current supported target is **ESP32-S3**. The framework uses `RTC_DATA_ATTR` for boot-attempt tracking and references ESP32-S3-specific partition offsets.
+
+Additional targets may be added in future. Porting to another ESP32 variant requires adjusting `partitions.csv` and reviewing PSRAM usage in the `device` component; porting to a different chipset family would additionally require replacing or abstracting the ESP-IDF HAL calls in the `wifi_manager`, `device_cert`, and `ota` components.
 
 ## Using this framework in your own project
 

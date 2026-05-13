@@ -11,7 +11,7 @@ The remainder of this document captures internal development conventions for use
 ## Development environment
 
 - ESP-IDF v6.0
-- Target: ESP32-S3
+- Current target: ESP32-S3 (the framework is structured to support additional targets)
 - C++17 (`-std=gnu++17`)
 - CMake 3.16+
 - Espressif Eclipse IDE or VS Code with the ESP-IDF extension

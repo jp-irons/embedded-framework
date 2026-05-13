@@ -1,6 +1,6 @@
 # Flash layout
 
-Partition table for the ESP32-S3 target. Defined in `partitions.csv` and selected via `sdkconfig.defaults`.
+Partition table for the current ESP32-S3 target. Defined in `partitions.csv` and selected via `sdkconfig.defaults`. If support for additional targets is added, each target will maintain its own partition layout.
 
 | Name       | Type | SubType  | Offset     | Size       | Notes                              |
 |------------|------|----------|------------|------------|------------------------------------|
