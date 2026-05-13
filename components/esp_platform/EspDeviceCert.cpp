@@ -1,4 +1,5 @@
 #include "esp_platform/EspDeviceCert.hpp"
+#include "esp_platform/EspTypeAdapter.hpp"
 
 #include "esp_err.h"
 #include "logger/Logger.hpp"
@@ -396,13 +397,13 @@ common::Result EspDeviceCert::ensure(const std::string &hostname) {
         log.info("Loaded cert from NVS (hostname in cert may differ if renamed)");
         return common::Result::Ok;
     }
-    return generateAndStore(hostname) == ESP_OK ? common::Result::Ok : common::Result::InternalError;
+    return toResult(generateAndStore(hostname));
 }
 
 common::Result EspDeviceCert::regenerate(const std::string &hostname) {
     cert_.clear();
     key_.clear();
-    return generateAndStore(hostname) == ESP_OK ? common::Result::Ok : common::Result::InternalError;
+    return toResult(generateAndStore(hostname));
 }
 
 } // namespace esp_platform
