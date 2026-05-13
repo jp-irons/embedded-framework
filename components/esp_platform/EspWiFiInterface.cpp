@@ -63,6 +63,7 @@ Result EspWiFiInterface::startDriver() {
 
     WIFI_CHECK(esp_wifi_set_mode(WIFI_MODE_NULL));
     WIFI_CHECK(esp_wifi_start());
+    WIFI_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));   // Disable modem sleep — prevents high-latency / dropped pings
 
     driverStarted = true;
     currentMode   = WIFI_MODE_NULL;
@@ -140,6 +141,7 @@ WiFiStatus EspWiFiInterface::connectSta(const network_store::WiFiNetwork& cred) 
     if (esp_wifi_start() != ESP_OK) {
         return WiFiStatus::DriverError;
     }
+    esp_wifi_set_ps(WIFI_PS_NONE);   // Re-apply after stop/start — PS mode can reset to default
     if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK) {
         return WiFiStatus::DriverError;
     }
