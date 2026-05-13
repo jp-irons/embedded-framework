@@ -4,7 +4,7 @@
 #include "ota/OtaManager.hpp"
 
 extern "C" {
-#include "freertos/FreeRTOS.h"
+#include "freertos/FreeRTOS.h"	// IWYU pragma: keep — must precede task.h
 #include "freertos/task.h"
 }
 
