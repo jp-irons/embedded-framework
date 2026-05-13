@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         EspClockInterface.cpp
+        EspDeviceCert.cpp
         EspDeviceInterface.cpp
         EspHttpRequest.cpp
         EspHttpResponse.cpp
@@ -17,6 +18,7 @@ idf_component_register(
         common
         logger
         device
+        device_cert
         http
         http_types
         wifi_manager
@@ -32,6 +34,7 @@ idf_component_register(
         esp_http_server
         esp_https_server
         mbedtls
+        nvs_flash
         espressif__mdns
     EMBED_TXTFILES
         certs/servercert.pem

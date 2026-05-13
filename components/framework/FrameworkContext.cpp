@@ -3,6 +3,7 @@
 #include "network_store/NetworkApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "esp_platform/EspClockInterface.hpp"
+#include "esp_platform/EspDeviceCert.hpp"
 #include "esp_platform/EspHttpServer.hpp"
 #include "esp_platform/EspDeviceInterface.hpp"
 #include "esp_platform/EspMdnsManager.hpp"
@@ -55,6 +56,9 @@ FrameworkContext::FrameworkContext(const wifi_manager::ApConfig& apConfig,
 // ---------------------------------------------------------------------------
 
 void FrameworkContext::initialize() {
+    // Create the per-device TLS cert manager
+    deviceCert_ = new esp_platform::EspDeviceCert();
+
     // Create the device implementation first — init() sets up NVS, event loop,
     // netif.  Everything else depends on those being ready.
     deviceInterface_ = new device::EspDeviceInterface();
@@ -93,10 +97,9 @@ void FrameworkContext::initialize() {
     log.info("Device hostname: %s.local", hostname.c_str());
 
     // Ensure a per-device TLS cert exists (generates + stores on first boot)
-    esp_err_t certErr = deviceCert_.ensure(hostname);
-    if (certErr != ESP_OK) {
-        log.warn("DeviceCert::ensure failed (%s) — falling back to embedded cert",
-                 esp_err_to_name(certErr));
+    common::Result certErr = deviceCert_->ensure(hostname);
+    if (certErr != common::Result::Ok) {
+        log.warn("DeviceCert::ensure failed — falling back to embedded cert");
     }
 
     // Initialise auth — derives/loads password according to AuthConfig policy
@@ -136,8 +139,8 @@ void FrameworkContext::initialize() {
     httpServer_ = new esp_platform::EspHttpServer();
     embeddedServer = new wifi_manager::EmbeddedServer(
         wifiCtx, *httpServer_, *wifiApi, *networkApi, *deviceApi, *otaApi);
-    if (deviceCert_.isLoaded()) {
-        embeddedServer->setCert(deviceCert_.certPem(), deviceCert_.keyPem());
+    if (deviceCert_->isLoaded()) {
+        embeddedServer->setCert(deviceCert_->certPem(), deviceCert_->keyPem());
     }
     embeddedServer->setAuth(authStore, authConfig_, authApi, sessionStore,
                             apiKeyStore);
@@ -170,6 +173,7 @@ FrameworkContext::~FrameworkContext() {
     delete nvsNetwork_;
     delete nvsAuth_;
     delete deviceInterface_;
+    delete deviceCert_;
 }
 
 // ---------------------------------------------------------------------------

@@ -13,7 +13,7 @@
 #include "device/DeviceInterface.hpp"
 #include "device/RandomInterface.hpp"
 #include "device/TimerInterface.hpp"
-#include "device_cert/DeviceCert.hpp"
+#include "device_cert/DeviceCertInterface.hpp"
 #include "http/HttpHandler.hpp"
 #include "http/HttpServer.hpp"
 #include "http_types/HttpTypes.hpp"
@@ -106,7 +106,7 @@ class FrameworkContext {
                                                     .restrictIfDefault();
 
     // Per-device TLS cert (generated on first boot, persisted in NVS)
-    device_cert::DeviceCert deviceCert_;
+    device_cert::DeviceCertInterface* deviceCert_ = nullptr;
 
     // Always-present value types
     // NOTE: SessionStore and ApiKeyStore must be declared before authApi so

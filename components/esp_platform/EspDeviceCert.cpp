@@ -1,4 +1,4 @@
-#include "device_cert/DeviceCert.hpp"
+#include "esp_platform/EspDeviceCert.hpp"
 
 #include "esp_err.h"
 #include "logger/Logger.hpp"
@@ -15,9 +15,9 @@
 #include <cstdio>
 #include <memory>
 
-namespace device_cert {
+namespace esp_platform {
 
-static logger::Logger log{"DeviceCert"};
+static logger::Logger log{"EspDeviceCert"};
 
 static constexpr const char *NVS_NAMESPACE = "device_cert";
 static constexpr const char *NVS_KEY_CERT  = "cert_pem";
@@ -146,7 +146,7 @@ static bool buildSec1Der(const uint8_t *privKey, size_t privLen,
 // NVS helpers
 // ---------------------------------------------------------------------------
 
-esp_err_t DeviceCert::loadFromNvs() {
+esp_err_t EspDeviceCert::loadFromNvs() {
     nvs_handle_t h;
     esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READONLY, &h);
     if (err != ESP_OK) {
@@ -176,7 +176,7 @@ esp_err_t DeviceCert::loadFromNvs() {
     return err;
 }
 
-esp_err_t DeviceCert::storeToNvs() const {
+esp_err_t EspDeviceCert::storeToNvs() const {
     nvs_handle_t h;
     esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &h);
     if (err != ESP_OK) return err;
@@ -198,7 +198,7 @@ esp_err_t DeviceCert::storeToNvs() const {
 //   - x509write_crt_pem: no RNG callback (PSA handles RNG internally)
 // ---------------------------------------------------------------------------
 
-esp_err_t DeviceCert::generateAndStore(const std::string &hostname) {
+esp_err_t EspDeviceCert::generateAndStore(const std::string &hostname) {
     log.info("Generating device cert for '%s' (first boot) ...", hostname.c_str());
 
     psa_key_id_t           keyId = PSA_KEY_ID_NULL;
@@ -391,18 +391,18 @@ cleanup:
 // Public API
 // ---------------------------------------------------------------------------
 
-esp_err_t DeviceCert::ensure(const std::string &hostname) {
+common::Result EspDeviceCert::ensure(const std::string &hostname) {
     if (loadFromNvs() == ESP_OK) {
         log.info("Loaded cert from NVS (hostname in cert may differ if renamed)");
-        return ESP_OK;
+        return common::Result::Ok;
     }
-    return generateAndStore(hostname);
+    return generateAndStore(hostname) == ESP_OK ? common::Result::Ok : common::Result::InternalError;
 }
 
-esp_err_t DeviceCert::regenerate(const std::string &hostname) {
+common::Result EspDeviceCert::regenerate(const std::string &hostname) {
     cert_.clear();
     key_.clear();
-    return generateAndStore(hostname);
+    return generateAndStore(hostname) == ESP_OK ? common::Result::Ok : common::Result::InternalError;
 }
 
-} // namespace device_cert
+} // namespace esp_platform
