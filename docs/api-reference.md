@@ -77,7 +77,7 @@ Handler: `ota::OtaApiHandler`
       "partitionSize": 2097152,
       "firmwareSize":  913408,
       "version":       "0.0.1",
-      "project":       "embedded_scaffold",
+      "project":       "embedded_framework",
       "buildDate":     "May  3 2026 10:00:00",
       "idfVersion":    "v6.0-..."
     },
@@ -90,7 +90,7 @@ Handler: `ota::OtaApiHandler`
       "partitionSize": 2097152,
       "firmwareSize":  921600,
       "version":       "0.0.2",
-      "project":       "embedded_scaffold",
+      "project":       "embedded_framework",
       "buildDate":     "May  3 2026 12:00:00",
       "idfVersion":    "v6.0-..."
     },

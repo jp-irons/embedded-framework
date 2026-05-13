@@ -46,7 +46,7 @@ idf.py create-project my_app
 cd my_app
 git init
 git add .
-git commit -m "Initial project scaffold"
+git commit -m "Initial project framework"
 ```
 
 ## Step 2 — Add the framework as a git submodule
