@@ -30,25 +30,9 @@ The remainder of this document covers building and running the **demo applicatio
 
 ---
 
-## Prerequisites
-
-- ESP-IDF v6.0 installed and on `PATH` (`idf.py` must be accessible)
-- Python 3.8+
-- CMake 3.16+
-- Espressif Eclipse IDE or VS Code with the ESP-IDF extension (optional but recommended)
-
 ## Getting started
 
-Clone the repository then build and flash:
-
-```bash
-idf.py build
-idf.py -p /dev/ttyUSB0 flash monitor
-```
-
-`sdkconfig` is committed and is the source of truth for the build configuration. There is no need to delete it before building.
-
-`sdkconfig.defaults` exists as a baseline for regeneration. Only delete `sdkconfig` and rebuild if you deliberately want to regenerate from `sdkconfig.defaults` — and only after verifying that `sdkconfig.defaults` reflects all current settings, since any settings present in `sdkconfig` but absent from `sdkconfig.defaults` will be lost.
+See [docs/new-machine-setup.md](docs/new-machine-setup.md) for a complete step-by-step guide to cloning, importing into the Espressif IDE, building, and flashing on a new machine.
 
 ### Building a flashable OTA binary
 
