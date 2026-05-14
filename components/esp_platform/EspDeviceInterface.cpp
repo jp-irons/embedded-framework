@@ -4,6 +4,7 @@
 #include "driver/temperature_sensor.h"
 #include "esp_chip_info.h"
 #include "esp_event.h"
+#include "esp_psram.h"
 #include "esp_idf_version.h"
 #include "esp_mac.h"
 #include "esp_netif.h"
