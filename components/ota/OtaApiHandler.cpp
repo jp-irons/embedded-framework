@@ -1,4 +1,5 @@
 #include "ota/OtaApiHandler.hpp"
+#include "ota/OtaPuller.hpp"
 #include "ota/OtaWriter.hpp"
 
 #include "esp_app_desc.h"
@@ -41,7 +42,8 @@ common::Result OtaApiHandler::handle(HttpRequest &req, HttpResponse &res) {
 
 common::Result OtaApiHandler::handleGet(HttpRequest &req, HttpResponse &res) {
     const std::string target = HttpHandler::extractTarget(req.path());
-    if (target == "status") return handleStatus(req, res);
+    if (target == "status")     return handleStatus    (req, res);
+    if (target == "pullStatus") return handlePullStatus(req, res);
 
     res.sendJson(404, "target '" + target + "' not found");
     return Result::Ok;
@@ -52,6 +54,8 @@ common::Result OtaApiHandler::handlePost(HttpRequest &req, HttpResponse &res) {
     if (target == "upload")       return handleUpload      (req, res);
     if (target == "rollback")     return handleRollback    (req, res);
     if (target == "factoryReset") return handleFactoryReset(req, res);
+    if (target == "checkUpdate")  return handleCheckUpdate (req, res);
+    if (target == "pullConfig")   return handlePullConfig  (req, res);
 
     res.sendJson(404, "target '" + target + "' not found");
     return Result::Ok;
@@ -299,6 +303,63 @@ common::Result OtaApiHandler::handleFactoryReset(HttpRequest & /*req*/, HttpResp
     device_.reboot();
 
     return Result::Ok; // unreachable
+}
+
+// ---------------------------------------------------------------------------
+// GET /framework/api/firmware/pullStatus
+// ---------------------------------------------------------------------------
+
+common::Result OtaApiHandler::handlePullStatus(HttpRequest& /*req*/, HttpResponse& res) {
+    log.debug("handlePullStatus()");
+    const std::string url  = OtaPuller::getBaseUrl();
+    const std::string json = "{\"url\":\"" + url + "\"}";
+    res.sendJson(json);
+    return Result::Ok;
+}
+
+// ---------------------------------------------------------------------------
+// POST /framework/api/firmware/checkUpdate
+// ---------------------------------------------------------------------------
+
+static void checkUpdateTask(void* /*arg*/) {
+    OtaPuller::checkNow();
+    vTaskDelete(nullptr);
+}
+
+common::Result OtaApiHandler::handleCheckUpdate(HttpRequest& /*req*/, HttpResponse& res) {
+    log.info("handleCheckUpdate(): spawning OTA pull check");
+    res.sendJson("{\"status\":\"ok\",\"message\":\"OTA check initiated\"}");
+    xTaskCreate(checkUpdateTask, "ota_check", 8192, nullptr,
+                tskIDLE_PRIORITY + 1, nullptr);
+    return Result::Ok;
+}
+
+// ---------------------------------------------------------------------------
+// POST /framework/api/firmware/pullConfig
+// ---------------------------------------------------------------------------
+
+common::Result OtaApiHandler::handlePullConfig(HttpRequest& req, HttpResponse& res) {
+    log.debug("handlePullConfig()");
+
+    const std::string_view raw = req.body();
+
+    // Trim whitespace / newlines from the plain-text URL body
+    static constexpr std::string_view WS = " \t\r\n";
+    const size_t start = raw.find_first_not_of(WS);
+    if (start == std::string_view::npos) {
+        res.sendJson(400, "Request body must contain the URL");
+        return Result::Ok;
+    }
+    const size_t end = raw.find_last_not_of(WS);
+    const std::string url{raw.substr(start, end - start + 1)};
+
+    if (!OtaPuller::setBaseUrl(url)) {
+        res.sendJson(500, "Failed to save URL to NVS");
+        return Result::Ok;
+    }
+
+    res.sendJson("{\"status\":\"ok\",\"url\":\"" + url + "\"}");
+    return Result::Ok;
 }
 
 } // namespace ota

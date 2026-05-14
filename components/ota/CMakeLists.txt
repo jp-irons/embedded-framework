@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         OtaApiHandler.cpp
         OtaManager.cpp
+        OtaPuller.cpp
         OtaWriter.cpp
     INCLUDE_DIRS
         include
@@ -12,4 +13,8 @@ idf_component_register(
         logger
         app_update
         esp_partition
+        esp_https_ota
+        esp_http_client
+        esp-tls
+        nvs_flash
 )

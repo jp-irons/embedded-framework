@@ -2,6 +2,7 @@
 
 #include "http_types/HttpTypes.hpp"
 #include "logger/Logger.hpp"
+#include "ota/OtaPuller.hpp"
 
 static logger::Logger log{ApplicationContext::TAG};
 
@@ -34,6 +35,12 @@ void ApplicationContext::start() {
 
     // ── Register app API routes ────────────────────────────────────────────
     fw_.addRoute(http::HttpMethod::Get, "/app/api/temperature", &temperatureHandler_);
+
+    // ── Configure pull-based OTA ──────────────────────────────────────────
+    fw_.setOtaPullConfig({
+        .baseUrl        = "https://github.com/jp-irons/embedded-framework/releases/latest/download",
+        .checkIntervalS = 3600,
+    });
 
     // ── Start the framework (WiFi, server, OTA, …) ────────────────────────
     fw_.start();

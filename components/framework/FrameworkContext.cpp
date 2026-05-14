@@ -14,6 +14,7 @@
 #include "http_types/HttpTypes.hpp"
 #include "logger/Logger.hpp"
 #include "ota/OtaApiHandler.hpp"
+#include "ota/OtaPuller.hpp"
 #include "wifi_manager/EmbeddedServer.hpp"
 #include "esp_platform/EspWiFiInterface.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
@@ -196,12 +197,18 @@ void FrameworkContext::addRoute(http::HttpMethod method, std::string prefix,
     embeddedServer->addAppRoute(method, std::move(prefix), handler);
 }
 
+void FrameworkContext::setOtaPullConfig(ota::OtaPullConfig config) {
+    otaPullConfig_ = std::move(config);
+}
+
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
 
 void FrameworkContext::start() {
     log.debug("start");
+    ota::OtaPuller::init(otaPullConfig_);
+    ota::OtaPuller::start();
     wifiManager->start();
 }
 

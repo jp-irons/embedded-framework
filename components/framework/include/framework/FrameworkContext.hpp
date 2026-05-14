@@ -18,6 +18,7 @@
 #include "http/HttpServer.hpp"
 #include "http_types/HttpTypes.hpp"
 #include "ota/OtaApiHandler.hpp"
+#include "ota/OtaPuller.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 
 namespace network_store {
@@ -95,6 +96,16 @@ class FrameworkContext {
     void addRoute(http::HttpMethod method, std::string prefix,
                   http::HttpHandler* handler);
 
+    /**
+     * Configure pull-based OTA updates.  The framework calls OtaPuller::init()
+     * and OtaPuller::start() during start().  Call this before fw_.start().
+     *
+     * @param config  baseUrl — GitHub Releases download directory, e.g.
+     *                  "https://github.com/user/repo/releases/latest/download"
+     *                checkIntervalS — seconds between background checks (0 = disabled).
+     */
+    void setOtaPullConfig(ota::OtaPullConfig config);
+
     void start();
     void stop();
 
@@ -137,6 +148,7 @@ class FrameworkContext {
     network_store::NetworkApiHandler*     networkApi       = nullptr;
     device::DeviceApiHandler*             deviceApi        = nullptr;
     ota::OtaApiHandler*                   otaApi           = nullptr;
+    ota::OtaPullConfig                    otaPullConfig_;
     common::KeyValueStore*                nvsAuth_         = nullptr;
     common::KeyValueStore*                nvsNetwork_      = nullptr;
 
