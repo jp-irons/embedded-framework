@@ -32,7 +32,7 @@ jobs:
       - name: Build firmware
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: v6.0.0
+          esp_idf_version: release-v6.0
           target: esp32s3
           command: idf.py build
 
@@ -43,9 +43,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: Release ${{ github.ref_name }}
-          body: |
-            Firmware release ${{ github.ref_name }}
-            Built from commit ${{ github.sha }}
+          generate_release_notes: true
           files: |
             build/firmware.bin
             version.txt
