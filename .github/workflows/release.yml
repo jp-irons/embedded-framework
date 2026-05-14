@@ -1,0 +1,53 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # required to create GitHub Releases
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Validate tag matches version.txt
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          FILE_VERSION=$(cat version.txt | tr -d '[:space:]')
+          if [ "$TAG_VERSION" != "$FILE_VERSION" ]; then
+            echo "ERROR: tag (v${TAG_VERSION}) does not match version.txt (${FILE_VERSION})"
+            echo "Bump version.txt to match the tag before releasing."
+            exit 1
+          fi
+          echo "Version check passed: ${FILE_VERSION}"
+
+      - name: Build firmware
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v6.0.0
+          target: esp32s3
+          command: idf.py build
+
+      - name: Prepare release assets
+        run: cp build/embedded_framework.bin build/firmware.bin
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          body: |
+            Firmware release ${{ github.ref_name }}
+            Built from commit ${{ github.sha }}
+          files: |
+            build/firmware.bin
+            version.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -95,8 +95,24 @@ If OTA state queries return unexpected results, verify that `sdkconfig` has `CON
 
 ## Versioning
 
-Bump `version.txt` before building a release. The build system copies `build/embedded_framework.bin` to `build/embedded_framework-<version>.bin` after each successful build. 
-This versioned binary is the file to distribute for OTA updates.
+Bump `version.txt` before building a release. The build system copies `build/embedded_framework.bin` to `build/embedded_framework-<version>.bin` after each successful build.
+The version string is embedded in the firmware binary and accessible at runtime via `esp_app_get_description()->version`.
+
+## Release process
+
+Releases are built and published automatically by GitHub Actions when a version tag is pushed. The workflow (`.github/workflows/release.yml`) triggers on tags matching `v*`, builds the firmware, and uploads `firmware.bin` and `version.txt` as release assets.
+
+From the development branch:
+
+```bash
+git push origin development:main    # bring main up to date without switching branches
+git tag v0.0.2                      # tag must match version.txt exactly (without the v prefix)
+git push origin v0.0.2              # triggers the Actions build and release
+```
+
+The workflow validates that the tag version matches `version.txt` before building — if they are out of sync it fails immediately. Once the release is published, devices polling GitHub will pick up the update on their next OTA check.
+
+**Note:** do not push a tag until `version.txt` has been committed and pushed.
 
 ## Partition layout changes
 
@@ -110,10 +126,21 @@ After any partition change, fullclean, build and re-flash the bootloader via USB
 
 ## Static assets (embedded UI)
 
-The web UI source files live in `components/framework_files/files/`. They are bundled into the `assets_fs` LittleFS partition at flash time. The JavaScript stack is vanilla ES2020 — no build step, no bundler. The three main files are:
+The web UI source files live in `components/framework_files/files/`. They are embedded directly into the firmware binary at build time via `EMBED_FILES` in the component's `CMakeLists.txt` — not stored in LittleFS. This ensures assets and firmware are always in sync across OTA updates.
 
-- `_framework_api.js` — fetch wrappers for every API endpoint
-- `_framework_app.js` — route definitions and HTML templates
-- `_framework_ui.js` — DOM wiring, state, event handlers
+The JavaScript stack is vanilla ES2020 — no build step, no bundler. Current files:
 
-When adding a new API endpoint, add the corresponding fetch wrapper to `_framework_api.js` first, then wire up any UI in `_framework_app.js` / `_framework_ui.js`.
+- `framework_index.html` — application shell
+- `framework_api.js` — fetch wrappers for every API endpoint
+- `framework_app.js` — route definitions and HTML templates
+- `framework_router.js` — client-side routing
+- `framework_modal.js` — modal component
+- `framework_common_ui.js` — shared UI utilities
+- `framework_ui_device.js` — device info page
+- `framework_ui_firmware.js` — firmware/OTA page
+- `framework_ui_security.js` — security settings page
+- `framework_ui_wifi.js` — Wi-Fi configuration page
+
+New files added to `components/framework_files/files/` are picked up automatically by the `file(GLOB_RECURSE)` in CMakeLists.txt — no manual registration needed.
+
+When adding a new API endpoint, add the corresponding fetch wrapper to `framework_api.js` first, then wire up any UI in the relevant `framework_ui_*.js` file.
