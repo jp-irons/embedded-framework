@@ -195,6 +195,8 @@ bool OtaPuller::checkNow() {
     http_cfg.url               = firmwareUrl.c_str();
     http_cfg.crt_bundle_attach = esp_crt_bundle_attach;
     http_cfg.timeout_ms        = 60000;  // firmware downloads can be slow
+    http_cfg.buffer_size       = 8192;   // GitHub CDN presigned S3 URLs + headers can be large
+    http_cfg.buffer_size_tx    = 2048;
 
     esp_https_ota_config_t ota_cfg = {};
     ota_cfg.http_config = &http_cfg;
