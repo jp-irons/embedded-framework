@@ -7,6 +7,7 @@
 #include "wifi_manager/MdnsInterface.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiInterface.hpp"
+#include "esp_ota_ops.h"
 
 namespace wifi_manager {
 
@@ -247,6 +248,22 @@ void WiFiManager::onStaGotIp(const StaIpInfo &info) {
     // Advertise via mDNS so the device is reachable by hostname regardless of IP
     if (ctx.mdnsInterface) ctx.mdnsInterface->start(ctx.mdnsHostname);
     log.info("Device reachable at https://%s.local", ctx.mdnsHostname.c_str());
+
+    // Mark the running OTA image as valid on first successful STA connection.
+    // After esp_https_ota() flashes and reboots, the new image boots in
+    // PENDING_VERIFY state.  Without this call the bootloader treats the
+    // next reboot as a failed update and rolls back.  The call is a no-op
+    // when the partition is already VALID (e.g. normal reboots).
+    static bool otaMarkedValid = false;
+    if (!otaMarkedValid) {
+        esp_err_t err = esp_ota_mark_app_valid_cancel_rollback();
+        if (err == ESP_OK) {
+            log.info("OTA partition marked valid");
+        } else {
+            log.warn("esp_ota_mark_app_valid_cancel_rollback: %s", esp_err_to_name(err));
+        }
+        otaMarkedValid = true;
+    }
 
     // Feed the state machine
     sm.onEvent(WiFiEvent::ConnectSuccess);

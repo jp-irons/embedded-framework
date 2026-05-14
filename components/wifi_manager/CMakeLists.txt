@@ -9,6 +9,7 @@ idf_component_register(
         include
     REQUIRES
         auth
+        app_update
         cjson
         common
         http_types
