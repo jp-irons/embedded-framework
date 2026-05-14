@@ -100,6 +100,28 @@ async function get(url) {
     return res.json();
 }
 
+async function postText(url, body) {
+    const tokenSnapshot = _token;
+    let res;
+    try {
+        res = await fetch(url, {
+            method: "POST",
+            headers: authHeaders({ "Content-Type": "text/plain" }),
+            body
+        });
+    } catch { throw new Error("network"); }
+    if (res.status === 401) {
+        if (_token === tokenSnapshot) handle401();
+        throw new Error("unauthorized");
+    }
+    if (!res.ok) {
+        let msg = `HTTP ${res.status}`;
+        try { const d = await res.json(); if (d.error) msg = d.error; } catch {}
+        throw new Error(msg);
+    }
+    return res.json().catch(() => ({}));
+}
+
 async function post(url, body = null) {
     const tokenSnapshot = _token;
     let res;
@@ -241,6 +263,18 @@ export function uploadFirmware(file, onProgress) {
         // Send the raw binary — no multipart wrapper needed
         xhr.send(file);
     });
+}
+
+export function loadPullStatus() {
+    return get(`/framework/api/firmware/pullStatus?ts=${Date.now()}`);
+}
+
+export function checkUpdate() {
+    return post("/framework/api/firmware/checkUpdate");
+}
+
+export function savePullConfig(url) {
+    return postText("/framework/api/firmware/pullConfig", url);
 }
 
 export function rollbackFirmware() {

@@ -465,6 +465,31 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div id="firmware-partitions" class="fw-partition-grid">
                         <div class="text-gray-500 text-sm">Loading…</div>
                     </div>
+
+                    <!-- Pull-based OTA -->
+                    <div class="fw-section-title" style="margin-top:1.5rem;">Auto-Update</div>
+                    <div class="border rounded p-4 bg-gray-50 text-sm">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="text-gray-500 whitespace-nowrap" style="min-width:4rem;">URL</span>
+                            <span id="fw-pull-url"
+                                  class="flex-grow text-gray-800 truncate"
+                                  style="font-family:monospace; font-size:0.75rem;">Loading…</span>
+                            <button id="btn-fw-check-update"
+                                    class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap">
+                                Check Now
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-gray-500 whitespace-nowrap" style="min-width:4rem;">New URL</span>
+                            <input id="fw-pull-url-input" type="url"
+                                   class="flex-grow px-3 py-1.5 border rounded text-sm"
+                                   placeholder="https://github.com/user/repo/releases/latest/download" />
+                            <button id="btn-fw-save-url"
+                                    class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 whitespace-nowrap">
+                                Save URL
+                            </button>
+                        </div>
+                    </div>
                 `;
                 initFirmwareView();
             },

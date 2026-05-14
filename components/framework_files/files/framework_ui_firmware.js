@@ -9,10 +9,13 @@
 //
 
 import {
-    loadFirmwareStatus as apiLoadFirmwareStatus,
-    uploadFirmware     as apiUploadFirmware,
-    rollbackFirmware   as apiRollbackFirmware,
+    loadFirmwareStatus   as apiLoadFirmwareStatus,
+    uploadFirmware       as apiUploadFirmware,
+    rollbackFirmware     as apiRollbackFirmware,
     factoryResetFirmware as apiFactoryResetFirmware,
+    loadPullStatus       as apiLoadPullStatus,
+    checkUpdate          as apiCheckUpdate,
+    savePullConfig       as apiSavePullConfig,
     isAuthenticated,
     forceReauth
 } from "./api.js";
@@ -57,7 +60,16 @@ export function initFirmwareView() {
     const btnFactory = document.getElementById("btn-fw-factory");
     if (btnFactory) btnFactory.onclick = requestFactoryReset;
 
+    // Pull OTA — Check Now button
+    const btnCheck = document.getElementById("btn-fw-check-update");
+    if (btnCheck) btnCheck.onclick = requestCheckUpdate;
+
+    // Pull OTA — Save URL button
+    const btnSaveUrl = document.getElementById("btn-fw-save-url");
+    if (btnSaveUrl) btnSaveUrl.onclick = requestSavePullUrl;
+
     loadFirmwareStatus();
+    loadPullStatus();
 }
 
 /** Called by the router when navigating away — nothing to clean up for now. */
@@ -408,5 +420,65 @@ async function handleFactoryReset() {
         console.error("Factory reset failed:", err);
         showMessage("error", "Factory Reset Failed",
                     err.message || "Could not perform factory reset.");
+    }
+}
+
+
+// ============================================================
+// Pull-based OTA
+// ============================================================
+
+async function loadPullStatus() {
+    const urlDisplay = document.getElementById("fw-pull-url");
+    const urlInput   = document.getElementById("fw-pull-url-input");
+    try {
+        const data = await apiLoadPullStatus();
+        const url  = data.url || "";
+        if (urlDisplay) urlDisplay.textContent = url || "Not configured";
+        if (urlInput && !urlInput.value) urlInput.value = url;
+    } catch (err) {
+        if (!isAuthenticated() || err.message === "network") return;
+        console.warn("Pull status load failed:", err);
+        if (urlDisplay) urlDisplay.textContent = "Unavailable";
+    }
+}
+
+async function requestCheckUpdate() {
+    const btn = document.getElementById("btn-fw-check-update");
+    if (btn) { btn.disabled = true; btn.textContent = "Checking…"; }
+    try {
+        await apiCheckUpdate();
+        showMessage("success", "Update Check Initiated",
+                    "The device is checking for a firmware update in the background. " +
+                    "Watch the serial log — the device will reboot automatically if an update is found.");
+    } catch (err) {
+        if (!isAuthenticated() || err.message === "network") return;
+        console.error("Check update failed:", err);
+        showMessage("error", "Check Failed", err.message || "Could not trigger update check.");
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "Check Now"; }
+    }
+}
+
+async function requestSavePullUrl() {
+    const urlInput = document.getElementById("fw-pull-url-input");
+    const url = urlInput ? urlInput.value.trim() : "";
+    if (!url) {
+        showMessage("error", "Invalid URL", "Please enter a URL before saving.");
+        return;
+    }
+    const btn = document.getElementById("btn-fw-save-url");
+    if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+    try {
+        await apiSavePullConfig(url);
+        const urlDisplay = document.getElementById("fw-pull-url");
+        if (urlDisplay) urlDisplay.textContent = url;
+        showMessage("success", "URL Saved", "Auto-update URL saved successfully.");
+    } catch (err) {
+        if (!isAuthenticated() || err.message === "network") return;
+        console.error("Save pull URL failed:", err);
+        showMessage("error", "Save Failed", err.message || "Could not save URL.");
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "Save URL"; }
     }
 }
