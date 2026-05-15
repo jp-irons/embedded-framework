@@ -5,6 +5,7 @@
 #include "esp_http_client.h"
 #include "esp_https_ota.h"
 #include "esp_system.h"
+#include "ota/OtaManager.hpp"
 #include "freertos/FreeRTOS.h"  // IWYU pragma: keep — must precede task.h
 #include "freertos/task.h"
 #include "logger/Logger.hpp"
@@ -130,8 +131,25 @@ static bool loadNvsUrl() {
     return true;
 }
 
-/** FreeRTOS task: periodic pull check. */
+/**
+ * FreeRTOS task: initial check shortly after boot, then periodic checks.
+ *
+ * The initial check is what marks a freshly-flashed partition as valid —
+ * it retries every 30 s (up to 5 attempts) to give Wi-Fi time to connect
+ * before falling through to the normal hourly cadence.
+ */
 static void pullTask(void* /*arg*/) {
+    // ── Initial check ────────────────────────────────────────────────────
+    // Retry a few times in case Wi-Fi hasn't finished connecting yet.
+    static constexpr int     INITIAL_RETRIES    = 5;
+    static constexpr uint32_t INITIAL_DELAY_MS  = 30000;  // 30 s between attempts
+
+    for (int attempt = 0; attempt < INITIAL_RETRIES; ++attempt) {
+        vTaskDelay(pdMS_TO_TICKS(INITIAL_DELAY_MS));
+        if (OtaPuller::checkNow()) break;  // success — stop retrying early
+    }
+
+    // ── Periodic checks ───────────────────────────────────────────────────
     while (true) {
         vTaskDelay(pdMS_TO_TICKS((uint32_t)s_config.checkIntervalS * 1000UL));
         OtaPuller::checkNow();
@@ -179,6 +197,12 @@ bool OtaPuller::checkNow() {
         log.error("checkNow: failed to fetch version.txt");
         return false;
     }
+
+    // Successful outbound HTTPS fetch — the full network + TLS stack is healthy.
+    // For pull OTA there may never be an inbound HTTP request to trigger the
+    // EmbeddedServer's markValid(), so we call it here as the equivalent proof
+    // of health.  OtaManager::markValid() is a no-op if already VALID.
+    OtaManager::markValid();
 
     const std::string local = esp_app_get_description()->version;
     log.info("checkNow: local=%s  remote=%s", local.c_str(), remote.c_str());
