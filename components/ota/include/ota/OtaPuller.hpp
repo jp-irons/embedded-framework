@@ -22,6 +22,19 @@ struct OtaPullConfig {
 };
 
 /**
+ * Observable states of the OTA pull check state machine.
+ * Written by the OTA task; read by the HTTP API handler.
+ * Values are sequential so they can be indexed into a string table.
+ */
+enum class PullCheckState : int {
+    Idle        = 0,  // no check in progress
+    Checking    = 1,  // fetching version.txt
+    UpToDate    = 2,  // version matched, nothing to do
+    Downloading = 3,  // new version found, esp_https_ota() in progress
+    Error       = 4,  // any failure
+};
+
+/**
  * Pull-based OTA updater.
  *
  * Typical usage
@@ -74,6 +87,32 @@ class OtaPuller {
 
     /** Return the currently active base URL (NVS override or compiled default). */
     static std::string getBaseUrl();
+
+    // ── Pull-check status (safe to call from any task) ────────────────────
+
+    /**
+     * Set state to Checking before spawning the check task, so that the very
+     * first status poll after a manual checkUpdate request sees the right state
+     * rather than Idle.
+     */
+    static void markCheckStarted();
+
+    /** Return the current check state. */
+    static PullCheckState checkState();
+
+    /**
+     * Return the current check message.
+     * Meaningful when state is UpToDate (contains the remote version string)
+     * or Error (contains a short description of the failure).
+     * Empty for all other states.
+     */
+    static const char* checkMessage();
+
+    /**
+     * Return bytes of firmware written so far.
+     * Meaningful when state is Downloading; zero otherwise.
+     */
+    static size_t downloadedBytes();
 };
 
 } // namespace ota

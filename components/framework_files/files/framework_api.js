@@ -269,6 +269,10 @@ export function loadPullStatus() {
     return get(`/framework/api/firmware/pullStatus?ts=${Date.now()}`);
 }
 
+export function getPullCheckStatus() {
+    return get(`/framework/api/firmware/pullCheckStatus?ts=${Date.now()}`);
+}
+
 export function checkUpdate() {
     return post("/framework/api/firmware/checkUpdate");
 }

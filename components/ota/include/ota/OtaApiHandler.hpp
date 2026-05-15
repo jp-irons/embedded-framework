@@ -26,8 +26,11 @@ class OtaApiHandler : public http::HttpHandler {
     /// GET /firmware/status     -- partition table JSON
     common::Result handleStatus    (http::HttpRequest& req, http::HttpResponse& res);
 
-    /// GET /firmware/pullStatus -- active pull URL
-    common::Result handlePullStatus(http::HttpRequest& req, http::HttpResponse& res);
+    /// GET /firmware/pullStatus      -- active pull URL
+    common::Result handlePullStatus     (http::HttpRequest& req, http::HttpResponse& res);
+
+    /// GET /firmware/pullCheckStatus -- current state of the pull-check state machine
+    common::Result handlePullCheckStatus(http::HttpRequest& req, http::HttpResponse& res);
 
     // ── POST targets ──────────────────────────────────────────────────────
 

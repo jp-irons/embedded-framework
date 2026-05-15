@@ -14,10 +14,12 @@ import {
     rollbackFirmware     as apiRollbackFirmware,
     factoryResetFirmware as apiFactoryResetFirmware,
     loadPullStatus       as apiLoadPullStatus,
+    getPullCheckStatus   as apiGetPullCheckStatus,
     checkUpdate          as apiCheckUpdate,
     savePullConfig       as apiSavePullConfig,
     isAuthenticated,
-    forceReauth
+    forceReauth,
+    startReconnectPolling
 } from "./api.js";
 
 import {
@@ -27,8 +29,10 @@ import {
 
 // ── Module state ─────────────────────────────────────────────────────────────
 
-let _lastPartitions = [];   // cache for rollback availability check
-let fwUploadBusy    = false; // prevents double-submit during upload
+let _lastPartitions   = [];   // cache for rollback availability check
+let fwUploadBusy      = false; // prevents double-submit during upload
+let _checkPollTimer   = null;  // setInterval handle for pull-check status polling
+let _fwViewGeneration = 0;     // incremented on each view mount; stale async callbacks check this
 
 
 // ============================================================
@@ -40,6 +44,7 @@ let fwUploadBusy    = false; // prevents double-submit during upload
  */
 export function initFirmwareView() {
     fwUploadBusy = false;
+    _fwViewGeneration++;
 
     // Upload button → open hidden file picker
     const btnUpload = document.getElementById("btn-fw-upload");
@@ -70,11 +75,13 @@ export function initFirmwareView() {
 
     loadFirmwareStatus();
     loadPullStatus();
+    syncCheckStatus();  // reflect any in-progress pull check (e.g. triggered by periodic task)
 }
 
-/** Called by the router when navigating away — nothing to clean up for now. */
+/** Called by the router when navigating away. */
 export function teardownFirmwareView() {
     fwUploadBusy = false;
+    stopCheckPolling();
 }
 
 
@@ -444,19 +451,137 @@ async function loadPullStatus() {
     }
 }
 
+// ── Pull-check status polling ─────────────────────────────────────────────
+
+/**
+ * Update the inline status strip to reflect a given pull-check state.
+ *
+ * States and their meaning:
+ *   idle        — hide the strip (no check running)
+ *   checking    — fetching version.txt from GitHub
+ *   up_to_date  — remote version matched local; message = remote version string
+ *   downloading — update found, esp_https_ota() in progress; message = remote version
+ *   rebooting   — device dropped connection after download (inferred from network error)
+ *   error       — any failure; message = short description
+ *
+ * Terminal states (up_to_date, error) re-enable the button and auto-hide after 6 s.
+ * The downloading/rebooting states leave the button disabled until the view remounts
+ * after reconnect.
+ */
+function applyCheckStatus(state, message, downloaded = 0) {
+    const strip = document.getElementById("fw-pull-status");
+    const text  = document.getElementById("fw-pull-status-text");
+    if (!strip || !text) return;
+
+    const kb = downloaded > 0 ? ` · ${Math.round(downloaded / 1024)} KB` : "";
+
+    const map = {
+        idle:        null,
+        checking:    { bg: "#eff6ff", color: "#1e40af", txt: "Checking for updates…" },
+        up_to_date:  { bg: "#f0fdf4", color: "#166534",
+                       txt: message ? `Already up to date (${message})` : "Already up to date" },
+        downloading: { bg: "#fffbeb", color: "#92400e",
+                       txt: (message ? `Update found (${message}) — downloading` : "Update found — downloading") + kb + "…" },
+        rebooting:   { bg: "#fffbeb", color: "#92400e",
+                       txt: "Update downloaded — device is rebooting…" },
+        error:       { bg: "#fef2f2", color: "#991b1b", txt: message || "Check failed" },
+    };
+
+    const cfg = map[state];
+    if (!cfg) {
+        strip.classList.add("hidden");
+        return;
+    }
+
+    strip.style.background = cfg.bg;
+    strip.style.color      = cfg.color;
+    text.textContent       = cfg.txt;
+    strip.classList.remove("hidden");
+
+    // Terminal states: re-enable the button and auto-hide the strip after a delay
+    if (state === "up_to_date" || state === "error") {
+        stopCheckPolling();
+        const btn = document.getElementById("btn-fw-check-update");
+        if (btn) { btn.disabled = false; btn.textContent = "Check Now"; }
+        setTimeout(() => strip.classList.add("hidden"), 6000);
+    }
+}
+
+function startCheckPolling() {
+    stopCheckPolling();
+    _checkPollTimer = setInterval(pollCheckStatus, 2000);
+}
+
+function stopCheckPolling() {
+    if (_checkPollTimer) { clearInterval(_checkPollTimer); _checkPollTimer = null; }
+}
+
+async function pollCheckStatus() {
+    const gen = _fwViewGeneration;
+    try {
+        const data = await apiGetPullCheckStatus();
+        if (_fwViewGeneration !== gen) return; // view remounted while fetch was in flight
+        applyCheckStatus(data.state, data.message || "", data.downloaded || 0);
+    } catch (err) {
+        if (_fwViewGeneration !== gen) return; // stale — discard silently
+        if (err.message === "network") {
+            // Device dropped — a downloaded update is being flashed
+            applyCheckStatus("rebooting", "");
+            stopCheckPolling();
+            startReconnectPolling();
+        } else if (err.message === "unauthorized") {
+            // Auth overlay will handle this; just stop polling
+            stopCheckPolling();
+        } else {
+            // HTTP 404 means the endpoint isn't present (older firmware); anything
+            // else is a genuine but non-fatal comms error — show the code, not a
+            // generic "lost contact" message that implies a network failure.
+            const msg = err.message?.startsWith("HTTP 404")
+                ? "Status unavailable"
+                : (err.message || "Check failed");
+            applyCheckStatus("error", msg);
+            stopCheckPolling();
+        }
+    }
+}
+
+/**
+ * On view mount, check whether a pull check is already in progress
+ * (e.g. triggered by the periodic background task) and show the strip if so.
+ * Starts polling if the check is still running.
+ */
+async function syncCheckStatus() {
+    const gen = _fwViewGeneration;
+    try {
+        const data = await apiGetPullCheckStatus();
+        if (_fwViewGeneration !== gen) return; // stale
+        if (data.state && data.state !== "idle") {
+            applyCheckStatus(data.state, data.message || "", data.downloaded || 0);
+            if (data.state === "checking" || data.state === "downloading") {
+                const btn = document.getElementById("btn-fw-check-update");
+                if (btn) { btn.disabled = true; btn.textContent = "Checking…"; }
+                startCheckPolling();
+            }
+        }
+    } catch {
+        // Best-effort — silently ignore if the endpoint isn't reachable on mount
+    }
+}
+
 async function requestCheckUpdate() {
+    const gen = _fwViewGeneration;
     const btn = document.getElementById("btn-fw-check-update");
     if (btn) { btn.disabled = true; btn.textContent = "Checking…"; }
+    applyCheckStatus("checking", "");
     try {
         await apiCheckUpdate();
-        showMessage("success", "Update Check Initiated",
-                    "The device is checking for a firmware update in the background. " +
-                    "Watch the serial log — the device will reboot automatically if an update is found.");
+        if (_fwViewGeneration !== gen) return; // stale
+        startCheckPolling();
     } catch (err) {
+        if (_fwViewGeneration !== gen) return; // stale
         if (!isAuthenticated() || err.message === "network") return;
         console.error("Check update failed:", err);
-        showMessage("error", "Check Failed", err.message || "Could not trigger update check.");
-    } finally {
+        applyCheckStatus("error", err.message || "Could not trigger update check");
         if (btn) { btn.disabled = false; btn.textContent = "Check Now"; }
     }
 }

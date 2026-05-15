@@ -39,7 +39,7 @@ void ApplicationContext::start() {
     // ── Configure pull-based OTA ──────────────────────────────────────────
     fw_.setOtaPullConfig({
         .baseUrl        = "https://github.com/jp-irons/embedded-framework/releases/latest/download",
-        .checkIntervalS = 300,
+        .checkIntervalS = 3600,
     });
 
     // ── Start the framework (WiFi, server, OTA, …) ────────────────────────

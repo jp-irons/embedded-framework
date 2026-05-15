@@ -12,6 +12,7 @@
 #include "nvs.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -35,6 +36,45 @@ static logger::Logger log{"OtaPuller"};
 
 static OtaPullConfig s_config;
 static std::string   s_activeUrl;
+
+// ── Pull-check state machine ──────────────────────────────────────────────
+//
+// Written by the OTA task (checkNow / markCheckStarted); read by the HTTP
+// handler (handlePullCheckStatus).  s_checkMessage is written *before*
+// s_checkState is updated (release store), so the HTTP task always sees a
+// consistent pair when it reads state (acquire load) then message.
+
+static std::atomic<int>    s_checkState     {static_cast<int>(PullCheckState::Idle)};
+static char                s_checkMessage   [64] = {};
+static std::atomic<bool>   s_checkRunning   {false};
+static std::atomic<size_t> s_downloadedBytes{0};
+
+static void setCheckState(PullCheckState state, const char* msg = "") {
+    strncpy(s_checkMessage, msg, sizeof(s_checkMessage) - 1);
+    s_checkMessage[sizeof(s_checkMessage) - 1] = '\0';
+    s_checkState.store(static_cast<int>(state), std::memory_order_release);
+}
+
+// RAII guard that claims s_checkRunning on construction and releases it on
+// destruction, covering all early-return paths inside checkNow() without
+// requiring a manual clear before every return statement.
+struct CheckGuard {
+    const bool acquired;
+    CheckGuard()
+        : acquired([]() {
+              bool expected = false;
+              return s_checkRunning.compare_exchange_strong(
+                  expected, true,
+                  std::memory_order_acq_rel,
+                  std::memory_order_relaxed);
+          }()) {}
+    ~CheckGuard() {
+        if (acquired) s_checkRunning.store(false, std::memory_order_release);
+    }
+    // Non-copyable
+    CheckGuard(const CheckGuard&)            = delete;
+    CheckGuard& operator=(const CheckGuard&) = delete;
+};
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -222,10 +262,19 @@ void OtaPuller::start() {
 }
 
 bool OtaPuller::checkNow() {
-    if (s_activeUrl.empty()) {
-        log.error("checkNow: no base URL configured");
+    const CheckGuard guard;
+    if (!guard.acquired) {
+        log.warn("checkNow: check already in progress — skipping");
         return false;
     }
+
+    if (s_activeUrl.empty()) {
+        log.error("checkNow: no base URL configured");
+        setCheckState(PullCheckState::Error, "No URL configured");
+        return false;
+    }
+
+    setCheckState(PullCheckState::Checking);
 
     const std::string versionUrl  = s_activeUrl + "/version.txt";
     const std::string firmwareUrl = s_activeUrl + "/firmware.bin";
@@ -235,6 +284,7 @@ bool OtaPuller::checkNow() {
     const std::string remote = trim(fetchSmall(versionUrl));
     if (remote.empty()) {
         log.error("checkNow: failed to fetch version.txt");
+        setCheckState(PullCheckState::Error, "Failed to fetch version info");
         return false;
     }
 
@@ -252,17 +302,21 @@ bool OtaPuller::checkNow() {
 
     if (!localVer.valid || !remoteVer.valid) {
         log.warn("checkNow: cannot parse version strings — skipping update");
+        setCheckState(PullCheckState::Error, "Cannot parse version strings");
         return true;
     }
 
     if (!isRemoteNewer(remoteVer, localVer)) {
         log.info("checkNow: remote %s is not newer than local %s — skipping",
                  remote.c_str(), local.c_str());
+        setCheckState(PullCheckState::UpToDate, remote.c_str());
         return true;
     }
 
     // ── Step 2: download and flash ────────────────────────────────────────
     log.info("checkNow: update available — downloading %s", firmwareUrl.c_str());
+    setCheckState(PullCheckState::Downloading, remote.c_str());
+    s_downloadedBytes.store(0, std::memory_order_release);
 
     esp_http_client_config_t http_cfg = {};
     http_cfg.url               = firmwareUrl.c_str();
@@ -274,9 +328,41 @@ bool OtaPuller::checkNow() {
     esp_https_ota_config_t ota_cfg = {};
     ota_cfg.http_config = &http_cfg;
 
-    esp_err_t err = esp_https_ota(&ota_cfg);
+    // Use the advanced API so we can report download progress via s_downloadedBytes.
+    esp_https_ota_handle_t ota_handle = nullptr;
+    esp_err_t err = esp_https_ota_begin(&ota_cfg, &ota_handle);
     if (err != ESP_OK) {
-        log.error("checkNow: esp_https_ota failed: %s", esp_err_to_name(err));
+        log.error("checkNow: esp_https_ota_begin failed: %s", esp_err_to_name(err));
+        setCheckState(PullCheckState::Error, "Download failed");
+        return false;
+    }
+
+    while (true) {
+        err = esp_https_ota_perform(ota_handle);
+        if (err != ESP_ERR_HTTPS_OTA_IN_PROGRESS) break;
+        s_downloadedBytes.store(
+            static_cast<size_t>(esp_https_ota_get_image_len_read(ota_handle)),
+            std::memory_order_release);
+    }
+
+    if (err != ESP_OK) {
+        log.error("checkNow: esp_https_ota_perform failed: %s", esp_err_to_name(err));
+        esp_https_ota_abort(ota_handle);
+        setCheckState(PullCheckState::Error, "Download failed");
+        return false;
+    }
+
+    if (!esp_https_ota_is_complete_data_received(ota_handle)) {
+        log.error("checkNow: incomplete OTA data received");
+        esp_https_ota_abort(ota_handle);
+        setCheckState(PullCheckState::Error, "Incomplete download");
+        return false;
+    }
+
+    err = esp_https_ota_finish(ota_handle);
+    if (err != ESP_OK) {
+        log.error("checkNow: esp_https_ota_finish failed: %s", esp_err_to_name(err));
+        setCheckState(PullCheckState::Error, "Flash failed");
         return false;
     }
 
@@ -311,6 +397,30 @@ bool OtaPuller::setBaseUrl(const std::string& url) {
 
 std::string OtaPuller::getBaseUrl() {
     return s_activeUrl;
+}
+
+// ---------------------------------------------------------------------------
+// Pull-check status
+// ---------------------------------------------------------------------------
+
+void OtaPuller::markCheckStarted() {
+    // Called by the API handler before spawning the check task so that the
+    // very first poll after a manual request sees Checking, not Idle.
+    setCheckState(PullCheckState::Checking);
+}
+
+PullCheckState OtaPuller::checkState() {
+    return static_cast<PullCheckState>(
+        s_checkState.load(std::memory_order_acquire));
+}
+
+const char* OtaPuller::checkMessage() {
+    // Safe to read after checkState() due to acquire/release ordering.
+    return s_checkMessage;
+}
+
+size_t OtaPuller::downloadedBytes() {
+    return s_downloadedBytes.load(std::memory_order_acquire);
 }
 
 } // namespace ota

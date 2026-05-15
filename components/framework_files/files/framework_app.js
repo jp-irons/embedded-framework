@@ -467,6 +467,13 @@ document.addEventListener("DOMContentLoaded", () => {
                                 Check Now
                             </button>
                         </div>
+
+                        <!-- Pull-check status strip — shown while a check is in progress -->
+                        <div id="fw-pull-status" class="hidden mb-3"
+                             style="border-radius:0.25rem; padding:0.375rem 0.75rem; font-size:0.8rem;">
+                            <span id="fw-pull-status-text"></span>
+                        </div>
+
                         <div class="flex items-center gap-3">
                             <span class="text-gray-500 whitespace-nowrap" style="min-width:4rem;">New URL</span>
                             <input id="fw-pull-url-input" type="url"

@@ -42,8 +42,9 @@ common::Result OtaApiHandler::handle(HttpRequest &req, HttpResponse &res) {
 
 common::Result OtaApiHandler::handleGet(HttpRequest &req, HttpResponse &res) {
     const std::string target = HttpHandler::extractTarget(req.path());
-    if (target == "status")     return handleStatus    (req, res);
-    if (target == "pullStatus") return handlePullStatus(req, res);
+    if (target == "status")          return handleStatus         (req, res);
+    if (target == "pullStatus")      return handlePullStatus     (req, res);
+    if (target == "pullCheckStatus") return handlePullCheckStatus(req, res);
 
     res.sendJson(404, "target '" + target + "' not found");
     return Result::Ok;
@@ -318,6 +319,41 @@ common::Result OtaApiHandler::handlePullStatus(HttpRequest& /*req*/, HttpRespons
 }
 
 // ---------------------------------------------------------------------------
+// GET /framework/api/firmware/pullCheckStatus
+// ---------------------------------------------------------------------------
+
+static const char* pullCheckStateStr(PullCheckState s) {
+    switch (s) {
+        case PullCheckState::Idle:        return "idle";
+        case PullCheckState::Checking:    return "checking";
+        case PullCheckState::UpToDate:    return "up_to_date";
+        case PullCheckState::Downloading: return "downloading";
+        case PullCheckState::Error:       return "error";
+        default:                          return "idle";
+    }
+}
+
+common::Result OtaApiHandler::handlePullCheckStatus(HttpRequest& /*req*/, HttpResponse& res) {
+    log.debug("handlePullCheckStatus()");
+
+    const PullCheckState state     = OtaPuller::checkState();
+    const char*          msg       = OtaPuller::checkMessage();
+    const size_t         downloaded = OtaPuller::downloadedBytes();
+
+    // Messages are our own hardcoded ASCII strings — no JSON escaping needed.
+    std::string json = "{\"state\":\"";
+    json += pullCheckStateStr(state);
+    json += "\",\"message\":\"";
+    json += msg;
+    json += "\",\"downloaded\":";
+    json += std::to_string(downloaded);
+    json += "}";
+
+    res.sendJson(json);
+    return Result::Ok;
+}
+
+// ---------------------------------------------------------------------------
 // POST /framework/api/firmware/checkUpdate
 // ---------------------------------------------------------------------------
 
@@ -328,6 +364,9 @@ static void checkUpdateTask(void* /*arg*/) {
 
 common::Result OtaApiHandler::handleCheckUpdate(HttpRequest& /*req*/, HttpResponse& res) {
     log.info("handleCheckUpdate(): spawning OTA pull check");
+    // Mark state as Checking before the task starts so that the first client
+    // poll after this response sees Checking rather than Idle.
+    OtaPuller::markCheckStarted();
     res.sendJson("{\"status\":\"ok\",\"message\":\"OTA check initiated\"}");
     xTaskCreate(checkUpdateTask, "ota_check", 8192, nullptr,
                 tskIDLE_PRIORITY + 1, nullptr);
