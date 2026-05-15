@@ -206,14 +206,14 @@ function renderCredList(creds) {
         if (c.priority !== 0) {
             const btnFirst = document.createElement("button");
             btnFirst.textContent = "^1st";
-            btnFirst.className = "px-4 py-2 bg-gray-300 rounded hover:bg-gray-400";
+            btnFirst.className = "px-3 py-1 bg-gray-300 rounded hover:bg-gray-400";
             btnFirst.onclick = () => handleMakeFirst(c.ssid);
             btnGroup.appendChild(btnFirst);
         }
 
         const btnDelete = document.createElement("button");
         btnDelete.textContent = "Delete";
-        btnDelete.className = "px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700";
+        btnDelete.className = "px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700";
         btnDelete.onclick = () => requestDeleteNetwork(c.ssid);
         btnGroup.appendChild(btnDelete);
 

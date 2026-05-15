@@ -367,11 +367,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         <div class="flex justify-end gap-3 mt-4 pt-4">
                             <button id="btn-clear-creds"
-                                    class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                                    class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
                                 Clear networks
                             </button>
                             <button id="btn-reboot"
-                                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                                 Reboot
                             </button>
                         </div>
@@ -384,7 +384,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                    class="flex-grow px-3 py-2 border rounded"
                                    placeholder="Network password" />
                             <button id="btn-save"
-                                    class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                                    class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
                                 Save
                             </button>
                         </div>
@@ -394,7 +394,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div class="flex justify-between items-center mb-2">
                             <label class="block font-medium mb-1">Available Networks</label>
                             <button id="btn-refresh"
-                                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                                 Refresh
                             </button>
                         </div>
@@ -524,16 +524,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-300">
                         <button id="btn-refresh-device-info"
-                                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                             Refresh
                         </button>
                         <div class="flex gap-3">
                             <button id="btn-clear-nvs"
-                                    class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                                    class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
                                 Clear NVS
                             </button>
                             <button id="btn-reboot"
-                                    class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                                    class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
                                 Reboot
                             </button>
                         </div>
@@ -573,7 +573,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                             <div class="flex justify-end">
                                 <button type="submit"
-                                        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                        class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                                     Change Password
                                 </button>
                             </div>
