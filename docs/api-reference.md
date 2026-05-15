@@ -1,67 +1,120 @@
-# URL Plan
+# API Reference
 
 All API routes share a configurable root URI. The default is `/framework/api`.
 This is set in `FrameworkContext` and passed through `WiFiContext.rootUri` to `EmbeddedServer`.
 
 ## Static assets
 
-Requests that do not match any API prefix are handled by `EmbeddedServer`, which serves files
-from the `assets_fs` LittleFS flash partition via `StaticFileHandler`.
+Web assets (HTML, JS, CSS) are embedded directly in the firmware binary via `EMBED_FILES`.
+Requests that do not match any API prefix are served by `EmbeddedServer`:
 
 ```
-/                   → redirect to /runtime/index.html
-/index.html         → redirect to /runtime/index.html
-/runtime/*          → static files from assets_fs
+/                        → redirect to /framework/ui/index.html
+/framework/ui/*          → framework assets (embedded in firmware)
+/app/ui/*                → application assets (embedded in firmware)
 ```
+
+## Authentication
+
+All `/framework/api/` endpoints require authentication.
+
+**Session tokens** — obtain a token via `POST /framework/api/auth/login`, then include it as
+`Authorization: Bearer <token>` on all subsequent requests. Tokens are invalidated on logout or
+device reboot. They are stored in `sessionStorage` by the browser client (tab-scoped, cleared on
+tab close).
+
+**API keys** — machine-to-machine clients use a persistent API key generated on the Security page,
+presented identically as a `Bearer` token. The server accepts both session tokens and API keys on
+every framework endpoint.
+
+A `401` response means the token is invalid or absent. The browser client clears the token and
+re-shows the login overlay on any `401`.
 
 ## API routes
 
-The `EmbeddedServer` dispatches requests by longest-prefix match against the following table.
-Trailing slashes in the registered prefixes are significant.
+### Auth  —  `/framework/api/auth/`
+
+Handler: `auth::AuthApiHandler`
+
+| Method | Sub-target  | Description                                                         |
+|--------|-------------|---------------------------------------------------------------------|
+| POST   | `login`     | Exchange `Authorization: Basic admin:<password>` for a session token |
+| POST   | `logout`    | Invalidate the current session token                                |
+| GET    | `status`    | Return `{"authenticated":true}` if the token is valid; 401 otherwise |
+| POST   | `password`  | Change the admin password                                           |
+| GET    | `apikey`    | Return API key status (`{"exists":true/false}`)                     |
+| POST   | `apikey`    | Generate (or rotate) the device API key                             |
+| DELETE | `apikey`    | Revoke the current API key                                          |
+
+#### `POST /framework/api/auth/login` request / response
+
+Request header: `Authorization: Basic <base64(admin:password)>`
+
+```json
+{ "token": "<64-hex-chars>" }
+```
+
+#### `POST /framework/api/auth/apikey` response
+
+```json
+{ "key": "<64-hex-chars>" }
+```
+
+---
 
 ### Networks  —  `/framework/api/networks/`
 
 Handler: `network_store::NetworkApiHandler`
 
-| Method | Sub-target    | Description                                      |
-|--------|--------------|--------------------------------------------------|
-| GET    | `list`       | Return all saved Wi-Fi networks                  |
-| POST   | `submit`     | Add or update a network (SSID + password)        |
-| DELETE | `delete`     | Remove a network by SSID                         |
-| POST   | `clear`      | Remove all saved networks                        |
-| POST   | `makeFirst`  | Move a named network to position 0               |
+| Method | Sub-target   | Description                                       |
+|--------|--------------|---------------------------------------------------|
+| GET    | `list`       | Return all saved Wi-Fi networks                   |
+| POST   | `submit`     | Add or update a network (SSID + password)         |
+| DELETE | `<ssid>`     | Remove a network by SSID                          |
+| POST   | `clear`      | Remove all saved networks                         |
+| POST   | `makeFirst`  | Move a named network to position 0                |
+
+---
 
 ### Device  —  `/framework/api/device/`
 
 Handler: `device::DeviceApiHandler`
 
-| Method | Sub-target   | Description                                               |
-|--------|-------------|-----------------------------------------------------------|
-| GET    | `info`      | Chip model, IDF version, uptime, STA IP, free heap, temperature |
-| POST   | `reboot`    | Restart the device immediately                            |
-| POST   | `clearNvs`  | Erase all NVS namespaces and reboot                       |
+| Method | Sub-target  | Description                                                              |
+|--------|-------------|--------------------------------------------------------------------------|
+| GET    | `info`      | Chip model, IDF version, uptime, STA IP, free heap, temperature          |
+| POST   | `reboot`    | Restart the device immediately                                           |
+| POST   | `clearNvs`  | Erase all NVS namespaces and reboot                                      |
+
+---
 
 ### Wi-Fi  —  `/framework/api/wifi/`
 
 Handler: `wifi_manager::WiFiApiHandler`
 
-| Method | Sub-target     | Description                              |
-|--------|---------------|------------------------------------------|
-| GET    | `status`      | Current Wi-Fi mode, SSID, RSSI, IP       |
-| GET    | `scan`        | Scan for nearby access points            |
-| POST   | `connect`     | Connect to a specified SSID              |
-| POST   | `disconnect`  | Disconnect from the current AP           |
+| Method | Sub-target    | Description                               |
+|--------|---------------|-------------------------------------------|
+| GET    | `status`      | Current Wi-Fi mode, SSID, RSSI, IP        |
+| GET    | `scan`        | Scan for nearby access points             |
+
+---
 
 ### Firmware (OTA)  —  `/framework/api/firmware/`
 
 Handler: `ota::OtaApiHandler`
 
-| Method | Sub-target       | Description                                                                 |
-|--------|-----------------|-----------------------------------------------------------------------------|
-| GET    | `status`        | Partition table with label, state, OTA state, version, project, build date  |
-| POST   | `upload`        | Stream a firmware binary (application/octet-stream) to the inactive OTA slot and reboot |
-| POST   | `rollback`      | Set the previous VALID OTA slot as next-boot and reboot; 409 if none available |
-| POST   | `factoryReset`  | Erase the otadata partition and reboot to the factory image                 |
+| Method | Sub-target        | Description                                                                          |
+|--------|-------------------|--------------------------------------------------------------------------------------|
+| GET    | `status`          | Partition table: label, state, OTA state, version, project, build date, sizes        |
+| POST   | `upload`          | Stream a firmware binary (`application/octet-stream`) to the inactive OTA slot and reboot |
+| POST   | `rollback`        | Set the previous `VALID` OTA slot as next-boot and reboot; `409` if none available   |
+| POST   | `factoryReset`    | Erase the otadata partition and reboot to the factory image                          |
+| GET    | `pullStatus`      | Return the currently configured pull-OTA base URL                                    |
+| POST   | `pullConfig`      | Save a new pull-OTA base URL to NVS (plain-text body)                                |
+| POST   | `checkUpdate`     | Trigger an immediate pull-OTA version check (spawns background task)                 |
+| GET    | `pullCheckStatus` | Return the current state of an in-progress (or recently completed) pull-OTA check    |
+
+---
 
 #### `GET /framework/api/firmware/status` response shape
 
@@ -74,11 +127,11 @@ Handler: `ota::OtaApiHandler`
       "otaState":      "empty",
       "isRunning":     true,
       "isNextBoot":    true,
-      "partitionSize": 2097152,
-      "firmwareSize":  913408,
-      "version":       "0.0.1",
+      "partitionSize": 4194304,
+      "firmwareSize":  1130496,
+      "version":       "0.1.0",
       "project":       "embedded_framework",
-      "buildDate":     "May  3 2026 10:00:00",
+      "buildDate":     "May 15 2026 11:01:00",
       "idfVersion":    "v6.0-..."
     },
     {
@@ -87,11 +140,11 @@ Handler: `ota::OtaApiHandler`
       "otaState":      "valid",
       "isRunning":     false,
       "isNextBoot":    false,
-      "partitionSize": 2097152,
-      "firmwareSize":  921600,
-      "version":       "0.0.2",
+      "partitionSize": 4194304,
+      "firmwareSize":  1134592,
+      "version":       "0.0.5",
       "project":       "embedded_framework",
-      "buildDate":     "May  3 2026 12:00:00",
+      "buildDate":     "May 14 2026 09:00:00",
       "idfVersion":    "v6.0-..."
     },
     {
@@ -100,7 +153,7 @@ Handler: `ota::OtaApiHandler`
       "otaState":      "empty",
       "isRunning":     false,
       "isNextBoot":    false,
-      "partitionSize": 2097152,
+      "partitionSize": 4194304,
       "firmwareSize":  0,
       "version":       "",
       "project":       "",
@@ -111,19 +164,96 @@ Handler: `ota::OtaApiHandler`
 }
 ```
 
-State values:
-- `"running"` — this partition is currently executing
-- `"factory"` — factory partition (always `ESP_OTA_IMG_UNDEFINED` from the bootloader's perspective; this is normal)
-- `"valid"` — OTA slot confirmed healthy by a previous `markValid()` call
-- `"pending"` — new image waiting for application to call `markValid()`
-- `"new"` — written but not yet booted
-- `"invalid"` / `"aborted"` — failed verification or update was aborted
-- `"empty"` — slot has never been written or otadata was erased
+`state` values:
 
-Version fields (`version`, `project`, `buildDate`, `idfVersion`) are omitted (empty strings) for OTA slots with state `"empty"` to avoid showing stale flash content after a factory reset.
+| Value       | Meaning                                                                              |
+|-------------|--------------------------------------------------------------------------------------|
+| `running`   | This partition is currently executing                                                |
+| `factory`   | Factory partition (always `ESP_OTA_IMG_UNDEFINED` from the bootloader; this is normal) |
+| `valid`     | OTA slot confirmed healthy by a previous `markValid()` call                          |
+| `pending`   | New image waiting for the application to call `markValid()`                          |
+| `new`       | Written but not yet booted                                                           |
+| `invalid`   | Failed verification                                                                  |
+| `aborted`   | Update was aborted                                                                   |
+| `empty`     | Slot has never been written, or otadata was erased                                   |
+
+`otaState` reflects the raw ESP-IDF OTA state of the partition. For the running partition, `state`
+is always `"running"` while `otaState` shows the underlying ESP-IDF state (e.g. `"valid"`,
+`"pending"`). Version fields are empty strings for slots with `state == "empty"` to avoid showing
+stale flash content after a factory reset.
+
+---
+
+#### `GET /framework/api/firmware/pullStatus` response shape
+
+```json
+{ "url": "https://github.com/user/repo/releases/latest/download" }
+```
+
+Returns an empty string for `url` if no URL has been configured.
+
+---
+
+#### `POST /framework/api/firmware/pullConfig` request
+
+Body: plain text (`Content-Type: text/plain`), containing the base URL. Trailing whitespace is
+stripped. The URL is persisted to NVS and survives reboots.
+
+```
+https://github.com/user/repo/releases/latest/download
+```
+
+Response:
+
+```json
+{ "status": "ok", "url": "https://github.com/user/repo/releases/latest/download" }
+```
+
+---
+
+#### `POST /framework/api/firmware/checkUpdate` response
+
+Marks state as `checking` and spawns a background task. The client should begin polling
+`pullCheckStatus` after receiving this response.
+
+```json
+{ "status": "ok", "message": "OTA check initiated" }
+```
+
+---
+
+#### `GET /framework/api/firmware/pullCheckStatus` response shape
+
+```json
+{
+  "state":      "downloading",
+  "message":    "0.1.0",
+  "downloaded": 458752,
+  "total":      1130496
+}
+```
+
+`state` values:
+
+| Value         | Meaning                                                                         |
+|---------------|---------------------------------------------------------------------------------|
+| `idle`        | No check in progress                                                            |
+| `checking`    | Fetching `version.txt` from the configured URL                                  |
+| `up_to_date`  | Remote version matches local; `message` contains the remote version string      |
+| `downloading` | Newer version found; `esp_https_ota` in progress; `downloaded`/`total` in bytes |
+| `error`       | Any failure; `message` contains a short description                             |
+
+`downloaded` and `total` are meaningful only when `state == "downloading"`. `total` is zero if the
+server did not provide a `Content-Length` header. The device reboots automatically on a successful
+download; the client detects this as a network error on the next poll.
+
+---
 
 ## Notes
 
-- Routes are matched by prefix. The `EmbeddedServer` tries each prefix in registration order and uses the first handler that does not return `Result::NotFound`.
-- The root URI prefix is configurable at construction time. All example paths above assume the default `/framework/api`.
-- The `POST /firmware/upload` endpoint bypasses the normal body pre-read. The request body is streamed directly from the socket in 4 KB chunks. Do not attempt to pre-read the body before calling this endpoint from client code.
+- Routes are matched by prefix. `EmbeddedServer` tries each prefix in registration order and uses
+  the first handler whose `handle()` call does not return `Result::NotFound`.
+- The root URI prefix (`/framework/api`) is configurable at construction time via `FrameworkContext`.
+- `POST /firmware/upload` bypasses normal body pre-reading. The request body is streamed directly
+  from the socket in chunks. Do not pre-read the body before calling this endpoint.
+- All endpoints return errors as `{"error": "<message>"}` with an appropriate HTTP status code.
