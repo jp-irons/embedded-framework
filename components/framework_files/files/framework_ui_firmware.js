@@ -193,21 +193,22 @@ function renderSummary(partitions) {
             Next boot: <strong>${nextBoot.label}</strong>${nextBoot.version ? ` · ${nextBoot.version}` : ""} — reboot to apply
         </div>` : "";
 
+    // Date without time — strip the HH:MM that formatBuildDate leaves
+    const dateOnly = formatBuildDate(running.buildDate || "").replace(/\s+\d{2}:\d{2}$/, "");
+
     el.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:baseline; gap:0.5rem;">
                 <span style="font-weight:600; font-size:1rem;">${running.label}</span>
                 ${running.version
-                    ? `<span style="margin-left:0.5rem; color:#6b7280;">${running.version}</span>`
+                    ? `<span style="color:#6b7280;">${running.version}</span>`
+                    : ""}
+                ${dateOnly
+                    ? `<span style="color:#9ca3af; font-size:0.8rem;">${dateOnly}</span>`
                     : ""}
             </div>
-            <div style="display:flex; gap:0.375rem;">${badges.join("")}</div>
+            <div style="display:flex; gap:0.375rem; flex-wrap:wrap;">${badges.join("")}</div>
         </div>
-        ${running.buildDate
-            ? `<div style="margin-top:0.25rem; font-size:0.75rem; color:#6b7280;">
-                   Built ${formatBuildDate(running.buildDate)}
-               </div>`
-            : ""}
         ${nextBootHtml}
     `;
 }
