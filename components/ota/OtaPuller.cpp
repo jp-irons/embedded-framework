@@ -48,6 +48,17 @@ static std::atomic<int>    s_checkState     {static_cast<int>(PullCheckState::Id
 static char                s_checkMessage   [64] = {};
 static std::atomic<bool>   s_checkRunning   {false};
 static std::atomic<size_t> s_downloadedBytes{0};
+static std::atomic<size_t> s_totalBytes     {0};
+
+// Captured via http_client_init_cb so we can read Content-Length from the
+// response headers after esp_https_ota_begin() completes the HTTP exchange.
+// Only written/read from within checkNow(), which is single-instance (guard).
+static esp_http_client_handle_t s_otaHttpClient = nullptr;
+
+static esp_err_t otaHttpInitCb(esp_http_client_handle_t client) {
+    s_otaHttpClient = client;
+    return ESP_OK;
+}
 
 static void setCheckState(PullCheckState state, const char* msg = "") {
     strncpy(s_checkMessage, msg, sizeof(s_checkMessage) - 1);
@@ -317,6 +328,8 @@ bool OtaPuller::checkNow() {
     log.info("checkNow: update available — downloading %s", firmwareUrl.c_str());
     setCheckState(PullCheckState::Downloading, remote.c_str());
     s_downloadedBytes.store(0, std::memory_order_release);
+    s_totalBytes.store(0, std::memory_order_release);
+    s_otaHttpClient = nullptr;
 
     esp_http_client_config_t http_cfg = {};
     http_cfg.url               = firmwareUrl.c_str();
@@ -326,7 +339,8 @@ bool OtaPuller::checkNow() {
     http_cfg.buffer_size_tx    = 2048;
 
     esp_https_ota_config_t ota_cfg = {};
-    ota_cfg.http_config = &http_cfg;
+    ota_cfg.http_config          = &http_cfg;
+    ota_cfg.http_client_init_cb  = otaHttpInitCb;  // saves handle so we can read Content-Length
 
     // Use the advanced API so we can report download progress via s_downloadedBytes.
     esp_https_ota_handle_t ota_handle = nullptr;
@@ -335,6 +349,16 @@ bool OtaPuller::checkNow() {
         log.error("checkNow: esp_https_ota_begin failed: %s", esp_err_to_name(err));
         setCheckState(PullCheckState::Error, "Download failed");
         return false;
+    }
+
+    // begin() has completed the HTTP exchange including redirect to CDN —
+    // Content-Length is now available from the response headers.
+    if (s_otaHttpClient) {
+        const int64_t cl = esp_http_client_get_content_length(s_otaHttpClient);
+        if (cl > 0) {
+            s_totalBytes.store(static_cast<size_t>(cl), std::memory_order_release);
+            log.info("checkNow: firmware content-length: %lld bytes", cl);
+        }
     }
 
     while (true) {
@@ -421,6 +445,10 @@ const char* OtaPuller::checkMessage() {
 
 size_t OtaPuller::downloadedBytes() {
     return s_downloadedBytes.load(std::memory_order_acquire);
+}
+
+size_t OtaPuller::totalBytes() {
+    return s_totalBytes.load(std::memory_order_acquire);
 }
 
 } // namespace ota

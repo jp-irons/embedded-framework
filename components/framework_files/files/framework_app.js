@@ -419,45 +419,32 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div class="text-gray-500">Loading…</div>
                     </div>
 
-                    <!-- Upload progress — sits between summary and buttons so it's always visible -->
-                    <div id="fw-upload-progress"
-                         class="hidden border rounded p-4 bg-gray-100 text-sm mb-4">
-                        <div class="flex items-center gap-3">
-                            <span class="text-gray-700 whitespace-nowrap">Uploading…</span>
-                            <div class="flex-grow bg-gray-300 rounded-full h-3">
-                                <div id="fw-progress-bar" class="bg-blue-600 rounded-full h-3" style="width:0%"></div>
-                            </div>
-                            <span id="fw-progress-pct" class="w-10 text-right">0%</span>
-                        </div>
-                    </div>
-
-                    <!-- Action buttons -->
-                    <div class="pt-4 mb-6">
-                        <div class="flex justify-end gap-3">
-                            <button id="btn-fw-upload"
-                                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                Upload Firmware
-                            </button>
-                            <button id="btn-fw-rollback"
-                                    class="px-4 py-2 bg-blue-600 text-white rounded
-                                           opacity-50 cursor-default"
-                                    disabled>
-                                Rollback
-                            </button>
-                            <button id="btn-fw-factory"
-                                    class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                                Factory Reset
-                            </button>
-                        </div>
-                    </div>
-
                     <!-- Hidden file input — triggered by the Upload button -->
                     <input id="fw-file-input" type="file" accept=".bin" class="hidden" />
 
-                    <!-- Pull-based OTA -->
-                    <div class="fw-section-title" style="margin-top:1.5rem;">Auto-Update</div>
+                    <!-- Update card: Upload + Auto-Update in one outline -->
+                    <div class="fw-section-title" style="margin-top:1.5rem;">Update</div>
                     <div class="border rounded p-4 bg-gray-50 text-sm">
-                        <div class="flex items-center gap-3 mb-3">
+
+                        <!-- Upload row -->
+                        <div class="flex justify-end">
+                            <button id="btn-fw-upload"
+                                    class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                Upload Firmware
+                            </button>
+                        </div>
+                        <!-- Upload progress strip -->
+                        <div id="fw-upload-progress" class="hidden mt-2"
+                             style="border-radius:0.25rem; padding:0.375rem 0.75rem;
+                                    font-size:0.8rem; background:#fffbeb; color:#92400e;">
+                            <span id="fw-progress-bytes"></span>
+                        </div>
+
+                        <!-- Divider -->
+                        <hr class="my-3 border-gray-200" />
+
+                        <!-- Auto-Update: current URL + Check Now -->
+                        <div class="flex items-center gap-3 mb-2">
                             <span class="text-gray-500 whitespace-nowrap" style="min-width:4rem;">URL</span>
                             <span id="fw-pull-url"
                                   class="flex-grow text-gray-800 truncate"
@@ -468,12 +455,13 @@ document.addEventListener("DOMContentLoaded", () => {
                             </button>
                         </div>
 
-                        <!-- Pull-check status strip — shown while a check is in progress -->
-                        <div id="fw-pull-status" class="hidden mb-3"
+                        <!-- Pull-check status strip -->
+                        <div id="fw-pull-status" class="hidden mb-2"
                              style="border-radius:0.25rem; padding:0.375rem 0.75rem; font-size:0.8rem;">
                             <span id="fw-pull-status-text"></span>
                         </div>
 
+                        <!-- Auto-Update: new URL input + Save -->
                         <div class="flex items-center gap-3">
                             <span class="text-gray-500 whitespace-nowrap" style="min-width:4rem;">New URL</span>
                             <input id="fw-pull-url-input" type="url"
@@ -486,10 +474,34 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                     </div>
 
-                    <!-- Partition detail grid -->
-                    <div class="fw-section-title" style="margin-top:1.5rem;">Partitions</div>
-                    <div id="firmware-partitions" class="fw-partition-grid">
-                        <div class="text-gray-500 text-sm">Loading…</div>
+                    <!-- Recovery card: buttons + partition grid -->
+                    <div class="fw-section-title" style="margin-top:1.5rem;">Recovery</div>
+                    <div class="border rounded p-4 bg-gray-50 text-sm">
+
+                        <!-- Recovery action buttons + inline note on the same row -->
+                        <div class="flex items-center gap-3">
+                            <p id="fw-rollback-note" class="hidden text-gray-400"
+                               style="font-size:0.75rem; margin:0; flex:1;">
+                                Rollback is unavailable — no valid previous firmware found.
+                            </p>
+                            <div class="flex gap-3" style="margin-left:auto;">
+                                <button id="btn-fw-rollback"
+                                        class="px-3 py-1 bg-blue-600 text-white rounded
+                                               opacity-50 cursor-default"
+                                        disabled>
+                                    Rollback
+                                </button>
+                                <button id="btn-fw-factory"
+                                        class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+                                    Factory Reset
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Partition grid — context for the recovery actions -->
+                        <div id="firmware-partitions" class="fw-partition-grid mt-3">
+                            <div class="text-gray-500 text-sm">Loading…</div>
+                        </div>
                     </div>
                 `;
                 initFirmwareView();

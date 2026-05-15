@@ -336,9 +336,10 @@ static const char* pullCheckStateStr(PullCheckState s) {
 common::Result OtaApiHandler::handlePullCheckStatus(HttpRequest& /*req*/, HttpResponse& res) {
     log.debug("handlePullCheckStatus()");
 
-    const PullCheckState state     = OtaPuller::checkState();
-    const char*          msg       = OtaPuller::checkMessage();
+    const PullCheckState state      = OtaPuller::checkState();
+    const char*          msg        = OtaPuller::checkMessage();
     const size_t         downloaded = OtaPuller::downloadedBytes();
+    const size_t         total      = OtaPuller::totalBytes();
 
     // Messages are our own hardcoded ASCII strings — no JSON escaping needed.
     std::string json = "{\"state\":\"";
@@ -347,6 +348,8 @@ common::Result OtaApiHandler::handlePullCheckStatus(HttpRequest& /*req*/, HttpRe
     json += msg;
     json += "\",\"downloaded\":";
     json += std::to_string(downloaded);
+    json += ",\"total\":";
+    json += std::to_string(total);
     json += "}";
 
     res.sendJson(json);

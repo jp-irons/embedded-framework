@@ -113,6 +113,13 @@ class OtaPuller {
      * Meaningful when state is Downloading; zero otherwise.
      */
     static size_t downloadedBytes();
+
+    /**
+     * Return total firmware size in bytes from the HTTP Content-Length header.
+     * Available after the first status poll once downloading has begun.
+     * Zero if the server did not provide Content-Length.
+     */
+    static size_t totalBytes();
 };
 
 } // namespace ota

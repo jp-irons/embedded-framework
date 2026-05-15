@@ -311,7 +311,7 @@ function requestFirmwareUpload(file) {
     showConfirm(
         "warning",
         "Upload Firmware",
-        `Upload "${file.name}" (${(file.size / 1024).toFixed(0)} KB) and reboot?`,
+        `Upload "${file.name}" (${Math.round(file.size / 1024)} kB) and reboot?`,
         () => handleFirmwareUpload(file)
     );
     // Clear the file input so the same file can be re-selected if needed
@@ -329,16 +329,18 @@ async function handleFirmwareUpload(file) {
         if (b) { b.disabled = true; b.classList.add("opacity-50", "cursor-default"); }
     });
 
-    // Show progress bar
+    // Show upload progress strip
     const progressWrapper = document.getElementById("fw-upload-progress");
-    const progressBar     = document.getElementById("fw-progress-bar");
-    const progressPct     = document.getElementById("fw-progress-pct");
+    const progressBytes   = document.getElementById("fw-progress-bytes");
     if (progressWrapper) progressWrapper.classList.remove("hidden");
 
+    const fmtKB = n => `${Math.round(n / 1024)} kB`;
+
     try {
-        await apiUploadFirmware(file, (pct) => {
-            if (progressBar) progressBar.style.width = pct + "%";
-            if (progressPct) progressPct.textContent = pct + "%";
+        await apiUploadFirmware(file, (loaded, total) => {
+            if (progressBytes) progressBytes.textContent = total > 0
+                ? `Uploading… ${fmtKB(loaded)} of ${fmtKB(total)}`
+                : `Uploading… ${fmtKB(loaded)}`;
         });
         // Device reboots after a successful upload.  Show the success message
         // and trigger the login overlay only once the user clicks OK —
@@ -468,12 +470,15 @@ async function loadPullStatus() {
  * The downloading/rebooting states leave the button disabled until the view remounts
  * after reconnect.
  */
-function applyCheckStatus(state, message, downloaded = 0) {
+function applyCheckStatus(state, message, downloaded = 0, total = 0) {
     const strip = document.getElementById("fw-pull-status");
     const text  = document.getElementById("fw-pull-status-text");
     if (!strip || !text) return;
 
-    const kb = downloaded > 0 ? ` · ${Math.round(downloaded / 1024)} KB` : "";
+    const fmtKB = n => `${Math.round(n / 1024)} kB`;
+    const progress = downloaded > 0
+        ? ` · ${total > 0 ? `${fmtKB(downloaded)} of ${fmtKB(total)}` : fmtKB(downloaded)}`
+        : "";
 
     const map = {
         idle:        null,
@@ -481,7 +486,7 @@ function applyCheckStatus(state, message, downloaded = 0) {
         up_to_date:  { bg: "#f0fdf4", color: "#166534",
                        txt: message ? `Already up to date (${message})` : "Already up to date" },
         downloading: { bg: "#fffbeb", color: "#92400e",
-                       txt: (message ? `Update found (${message}) — downloading` : "Update found — downloading") + kb + "…" },
+                       txt: (message ? `Update found (${message}) — downloading` : "Update found — downloading") + progress + "…" },
         rebooting:   { bg: "#fffbeb", color: "#92400e",
                        txt: "Update downloaded — device is rebooting…" },
         error:       { bg: "#fef2f2", color: "#991b1b", txt: message || "Check failed" },
@@ -521,7 +526,17 @@ async function pollCheckStatus() {
     try {
         const data = await apiGetPullCheckStatus();
         if (_fwViewGeneration !== gen) return; // view remounted while fetch was in flight
-        applyCheckStatus(data.state, data.message || "", data.downloaded || 0);
+        // If the server reports "idle" while we're actively polling, the check finished
+        // and the device cleared its state (e.g. after a reboot mid-check).  Treat it
+        // as a terminal state so the button is re-enabled rather than left disabled.
+        if (data.state === "idle") {
+            stopCheckPolling();
+            const btn = document.getElementById("btn-fw-check-update");
+            if (btn) { btn.disabled = false; btn.textContent = "Check Now"; }
+            applyCheckStatus("idle", ""); // hides the strip
+            return;
+        }
+        applyCheckStatus(data.state, data.message || "", data.downloaded || 0, data.total || 0);
     } catch (err) {
         if (_fwViewGeneration !== gen) return; // stale — discard silently
         if (err.message === "network") {
@@ -556,7 +571,7 @@ async function syncCheckStatus() {
         const data = await apiGetPullCheckStatus();
         if (_fwViewGeneration !== gen) return; // stale
         if (data.state && data.state !== "idle") {
-            applyCheckStatus(data.state, data.message || "", data.downloaded || 0);
+            applyCheckStatus(data.state, data.message || "", data.downloaded || 0, data.total || 0);
             if (data.state === "checking" || data.state === "downloading") {
                 const btn = document.getElementById("btn-fw-check-update");
                 if (btn) { btn.disabled = true; btn.textContent = "Checking…"; }
@@ -579,10 +594,20 @@ async function requestCheckUpdate() {
         startCheckPolling();
     } catch (err) {
         if (_fwViewGeneration !== gen) return; // stale
-        if (!isAuthenticated() || err.message === "network") return;
+        if (!isAuthenticated()) {
+            // Login overlay will appear — just reset the strip silently
+            applyCheckStatus("idle", "");
+            if (btn) { btn.disabled = false; btn.textContent = "Check Now"; }
+            return;
+        }
+        if (err.message === "network") {
+            // Momentary connectivity loss — show a brief error so the user knows
+            // what happened, then auto-hide and re-enable via applyCheckStatus
+            applyCheckStatus("error", "Connection lost — try again");
+            return;
+        }
         console.error("Check update failed:", err);
         applyCheckStatus("error", err.message || "Could not trigger update check");
-        if (btn) { btn.disabled = false; btn.textContent = "Check Now"; }
     }
 }
 
