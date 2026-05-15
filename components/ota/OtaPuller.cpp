@@ -12,6 +12,7 @@
 #include "nvs.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <string>
 
@@ -37,6 +38,45 @@ static std::string   s_activeUrl;
 
 // ---------------------------------------------------------------------------
 // Internal helpers
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Semantic version helpers
+// ---------------------------------------------------------------------------
+
+struct SemVer {
+    int  major = 0;
+    int  minor = 0;
+    int  patch = 0;
+    bool valid = false;
+};
+
+/**
+ * Parse a version string of the form "X.Y.Z" or "vX.Y.Z".
+ * Returns an invalid SemVer if the string cannot be parsed.
+ */
+static SemVer parseSemVer(const std::string& s) {
+    SemVer v;
+    const char* p = s.c_str();
+    if (*p == 'v' || *p == 'V') ++p;   // strip optional leading 'v'
+    if (std::sscanf(p, "%d.%d.%d", &v.major, &v.minor, &v.patch) == 3) {
+        v.valid = true;
+    }
+    return v;
+}
+
+/**
+ * Returns true only if @p remote is strictly newer than @p local.
+ * Both must be valid SemVers; if either is unparseable returns false
+ * (safe default — do not update when version format is unknown).
+ */
+static bool isRemoteNewer(const SemVer& remote, const SemVer& local) {
+    if (!remote.valid || !local.valid) return false;
+    if (remote.major != local.major) return remote.major > local.major;
+    if (remote.minor != local.minor) return remote.minor > local.minor;
+    return remote.patch > local.patch;
+}
+
 // ---------------------------------------------------------------------------
 
 /** Strip leading/trailing whitespace (including CR/LF) from a string. */
@@ -207,8 +247,17 @@ bool OtaPuller::checkNow() {
     const std::string local = esp_app_get_description()->version;
     log.info("checkNow: local=%s  remote=%s", local.c_str(), remote.c_str());
 
-    if (remote == local) {
-        log.info("checkNow: firmware is up to date");
+    const SemVer localVer  = parseSemVer(local);
+    const SemVer remoteVer = parseSemVer(remote);
+
+    if (!localVer.valid || !remoteVer.valid) {
+        log.warn("checkNow: cannot parse version strings — skipping update");
+        return true;
+    }
+
+    if (!isRemoteNewer(remoteVer, localVer)) {
+        log.info("checkNow: remote %s is not newer than local %s — skipping",
+                 remote.c_str(), local.c_str());
         return true;
     }
 

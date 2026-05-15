@@ -433,12 +433,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     <!-- Action buttons -->
                     <div class="pt-4 mb-6">
-                        <p id="fw-rollback-note"
-                           class="hidden text-xs text-gray-500 mb-3 text-right">
-                            Rollback is available after a second OTA upgrade, when a
-                            previous valid OTA image exists. To return to factory firmware
-                            now, use Factory Reset.
-                        </p>
                         <div class="flex justify-end gap-3">
                             <button id="btn-fw-upload"
                                     class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
@@ -459,12 +453,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     <!-- Hidden file input — triggered by the Upload button -->
                     <input id="fw-file-input" type="file" accept=".bin" class="hidden" />
-
-                    <!-- Partition detail grid -->
-                    <div class="fw-section-title">Partitions</div>
-                    <div id="firmware-partitions" class="fw-partition-grid">
-                        <div class="text-gray-500 text-sm">Loading…</div>
-                    </div>
 
                     <!-- Pull-based OTA -->
                     <div class="fw-section-title" style="margin-top:1.5rem;">Auto-Update</div>
@@ -489,6 +477,12 @@ document.addEventListener("DOMContentLoaded", () => {
                                 Save URL
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Partition detail grid -->
+                    <div class="fw-section-title" style="margin-top:1.5rem;">Partitions</div>
+                    <div id="firmware-partitions" class="fw-partition-grid">
+                        <div class="text-gray-500 text-sm">Loading…</div>
                     </div>
                 `;
                 initFirmwareView();
