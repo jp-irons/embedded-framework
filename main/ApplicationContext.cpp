@@ -2,7 +2,6 @@
 
 #include "http_types/HttpTypes.hpp"
 #include "logger/Logger.hpp"
-#include "ota/OtaPuller.hpp"
 
 static logger::Logger log{ApplicationContext::TAG};
 
