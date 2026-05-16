@@ -23,7 +23,7 @@ my_app/                          ← your git repository
       network_store/
       device/
       device_cert/
-      _framework_files/
+      framework_files/
       framework/
       http/
       logger/
@@ -96,14 +96,17 @@ Run the component manager to download them:
 idf.py update-dependencies
 ```
 
-## Step 5 — Copy sdkconfig.defaults and partitions.csv
+## Step 5 — Copy build configuration files and create version.txt
 
-The framework requires specific bootloader and partition settings. Copy the files from the framework repository as a starting point:
+The framework requires specific bootloader and partition settings. Copy all three config files from the framework repository as a starting point:
 
 ```bash
+cp framework/sdkconfig .
 cp framework/sdkconfig.defaults .
 cp framework/partitions.csv .
 ```
+
+`sdkconfig` is the live build configuration and the source of truth for your project — it should be committed to your repository and not gitignored. `sdkconfig.defaults` serves as a regeneration baseline if `sdkconfig` is ever recreated from scratch. The framework's copies give you a proven working starting point; use `idf.py menuconfig` to adjust settings for your application.
 
 At minimum, `sdkconfig.defaults` must contain:
 
@@ -111,6 +114,19 @@ At minimum, `sdkconfig.defaults` must contain:
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+```
+
+Create a `version.txt` at the repository root with your initial version string. The OTA update system reads this file at build time and embeds the version in the firmware binary:
+
+```bash
+echo "0.1.0" > version.txt
+```
+
+Commit all four files:
+
+```bash
+git add sdkconfig sdkconfig.defaults partitions.csv version.txt
+git commit -m "Add build configuration"
 ```
 
 ## Step 6 — Implement ApplicationContext
@@ -188,18 +204,26 @@ The device will advertise itself as `mydevice-<last3MacBytes>.local`.
 ## Step 8 — Configure main/CMakeLists.txt
 
 ```cmake
+file(GLOB_RECURSE APP_EMBED_FILES "app_files/files/*")
+
 idf_component_register(
     SRCS
         "app_main.cpp"
         "ApplicationContext.cpp"
-    INCLUDE_DIRS "."
+        "app_files/AppFileTable.cpp"
+    INCLUDE_DIRS
+        "."
+        "app_files"
+    EMBED_FILES
+        ${APP_EMBED_FILES}
 )
 ```
+
+The `GLOB_RECURSE` collects every file under `main/app_files/files/` and embeds them directly in the firmware binary. See [Serving static files](#serving-static-files) below for how to register embedded files at their URL paths.
 
 ## Step 9 — Build and flash
 
 ```bash
-rm -f sdkconfig          # ensure sdkconfig is generated fresh from sdkconfig.defaults
 idf.py build
 idf.py -p /dev/ttyUSB0 flash monitor
 ```
@@ -261,17 +285,96 @@ Refer to `CONTRIBUTING.md` in the framework repository for the full handler conv
 
 ## Serving static files
 
-The framework serves embedded static files through `AppFileTable`. Any file placed under `main/app_files/files/` is picked up automatically by the `GLOB_RECURSE` in `main/CMakeLists.txt`, embedded into the firmware image, and registered in the file table with its URL path.
+Static files are embedded directly in the firmware binary at build time. There are two parts to wiring this up: the CMake side (which handles embedding) and `AppFileTable` (which maps embedded symbols to URL paths).
+
+### File layout
 
 ```
 main/
   app_files/
+    AppFileTable.hpp       ← class declaration
+    AppFileTable.cpp       ← URL-to-symbol mapping (update for each new file)
     files/
       favicon.ico          → served at /favicon.ico
       app/ui/index.html    → served at /app/ui/index.html
       app/ui/styles.css    → served at /app/ui/styles.css
       app/ui/app.js        → served at /app/ui/app.js
 ```
+
+The `GLOB_RECURSE` in `main/CMakeLists.txt` picks up every file under `app_files/files/` and embeds it in the binary. ESP-IDF generates a pair of linker symbols for each file — `_binary_<mangled_name>_start` and `_binary_<mangled_name>_end` — where the file path is flattened and non-alphanumeric characters become underscores.
+
+`AppFileTable` maps those symbols to their URL paths. **This registration is not automatic** — you must add an `extern` declaration and a table entry for each file.
+
+### AppFileTable.hpp
+
+```cpp
+#pragma once
+#include "framework_files/EmbeddedFileTable.hpp"
+
+class AppFileTable : public framework_files::EmbeddedFileTable {
+public:
+    static constexpr const char* TAG = "AppFileTable";
+
+    const framework_files::EmbeddedFile* find(std::string_view path) const override;
+    const uint8_t* find(const char* path, size_t& outSize) const override;
+};
+```
+
+### AppFileTable.cpp
+
+```cpp
+#include "AppFileTable.hpp"
+#include <cstring>
+
+// Declare one pair of linker symbols per embedded file.
+// Symbol name rule: flatten the file path relative to the component directory,
+// replacing '/', '.', and '-' with '_', then wrap with _binary_ ... _start/_end.
+// e.g. app_files/files/app/ui/index.html → _binary_app_ui_index_html_start
+
+extern const uint8_t _binary_favicon_ico_start[]        asm("_binary_favicon_ico_start");
+extern const uint8_t _binary_favicon_ico_end[]          asm("_binary_favicon_ico_end");
+extern const uint8_t _binary_app_ui_index_html_start[]  asm("_binary_app_ui_index_html_start");
+extern const uint8_t _binary_app_ui_index_html_end[]    asm("_binary_app_ui_index_html_end");
+extern const uint8_t _binary_app_ui_styles_css_start[]  asm("_binary_app_ui_styles_css_start");
+extern const uint8_t _binary_app_ui_styles_css_end[]    asm("_binary_app_ui_styles_css_end");
+extern const uint8_t _binary_app_ui_app_js_start[]      asm("_binary_app_ui_app_js_start");
+extern const uint8_t _binary_app_ui_app_js_end[]        asm("_binary_app_ui_app_js_end");
+
+namespace {
+struct FileEntry { const char *path; const uint8_t *start; const uint8_t *end; };
+
+static const FileEntry files[] = {
+    {"/favicon.ico",       _binary_favicon_ico_start,       _binary_favicon_ico_end},
+    {"/app/ui/index.html", _binary_app_ui_index_html_start, _binary_app_ui_index_html_end},
+    {"/app/ui/styles.css", _binary_app_ui_styles_css_start, _binary_app_ui_styles_css_end},
+    {"/app/ui/app.js",     _binary_app_ui_app_js_start,     _binary_app_ui_app_js_end},
+};
+} // anonymous namespace
+
+const framework_files::EmbeddedFile* AppFileTable::find(std::string_view path) const {
+    for (const auto &e : files) {
+        if (path == e.path) {
+            static framework_files::EmbeddedFile result;
+            result.data = e.start;
+            result.size = e.end - e.start;
+            return &result;
+        }
+    }
+    return nullptr;
+}
+
+const uint8_t* AppFileTable::find(const char* path, size_t &outSize) const {
+    for (const auto &e : files) {
+        if (std::strcmp(e.path, path) == 0) {
+            outSize = e.end - e.start;
+            return e.start;
+        }
+    }
+    return nullptr;
+}
+```
+
+When you add a new file, add it to `app_files/files/`, then add the two `extern` lines and a table entry to `AppFileTable.cpp`. The symbol name mangling is straightforward — if you are unsure of a generated symbol name, run `nm build/main/libmain.a | grep _binary_` after building.
 
 The app file handler is tried before the framework's own file handler, so app-provided files always take precedence over framework assets at the same path.
 
