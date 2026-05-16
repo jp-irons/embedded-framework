@@ -32,6 +32,23 @@ Edit `version.txt`, `main/ApplicationContext.cpp`, and `main/app_files/` to star
 
 ---
 
+## Release automation
+
+The framework includes an example GitHub Actions workflow that builds firmware and publishes it as a GitHub Release on every version tag push. Devices using the framework's OTA pull mechanism will pick up the update on their next check automatically.
+
+This workflow is **not included in the template by default** — whether to use GitHub Actions, a different CI provider, or a manual release process is your choice. If it suits your needs, opt in by copying it:
+
+```bash
+mkdir -p .github/workflows
+cp framework/docs/examples/release.yml .github/workflows/release.yml
+```
+
+Then open `.github/workflows/release.yml` and update the binary name in the "Prepare release assets" step if you have renamed your CMake project from `my_app`.
+
+The release process follows the same pattern as the framework itself — see [`docs/maintainer-guide.md`](maintainer-guide.md) in the framework for the full tagging and versioning procedure.
+
+---
+
 ## Overview
 
 The framework's `components/` directory contains all reusable modules. Your application provides its own `main/` and wires in the framework components via ESP-IDF's `EXTRA_COMPONENT_DIRS` mechanism. The framework repository's own `main/` (the demo application) is ignored by your build.
@@ -325,6 +342,23 @@ diff framework/partitions.csv partitions.csv
 git add framework sdkconfig sdkconfig.defaults partitions.csv main/idf_component.yml
 git commit -m "Update framework to v0.2.0"
 ```
+
+---
+
+## Release automation
+
+The framework includes an example GitHub Actions workflow that builds firmware and publishes it as a GitHub Release on every version tag push. Devices using the framework's OTA pull mechanism will pick up the update on their next check automatically.
+
+This workflow is **not included in the template by default** — whether to use GitHub Actions, a different CI provider, or a manual release process is your choice. If it suits your needs, opt in by copying it:
+
+```bash
+mkdir -p .github/workflows
+cp framework/docs/examples/release.yml .github/workflows/release.yml
+```
+
+Then open `.github/workflows/release.yml` and update the binary name in the "Prepare release assets" step if you have renamed your CMake project from `my_app`.
+
+The release process follows the same pattern as the framework itself — see [`docs/maintainer-guide.md`](maintainer-guide.md) in the framework for the full tagging and versioning procedure.
 
 ---
 

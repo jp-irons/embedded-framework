@@ -1,0 +1,74 @@
+name: Build and Release
+
+# Copy this file to .github/workflows/release.yml in your app repository
+# if you want automated GitHub Releases on every version tag push.
+#
+# This workflow:
+#   - triggers on tags matching v* (e.g. v0.2.0)
+#   - validates that the tag matches version.txt
+#   - builds firmware using ESP-IDF
+#   - uploads firmware.bin and version.txt as release assets
+#
+# Devices using the framework's OTA pull mechanism will pick up the update
+# on their next check once the release is published.
+#
+# Prerequisites:
+#   - No additional GitHub secrets are required — the workflow uses the
+#     built-in GITHUB_TOKEN.
+#   - version.txt must be committed and pushed before pushing the tag.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # required to create GitHub Releases
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Validate tag matches version.txt
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          FILE_VERSION=$(cat version.txt | tr -d '[:space:]')
+          if [ "$TAG_VERSION" != "$FILE_VERSION" ]; then
+            echo "ERROR: tag (v${TAG_VERSION}) does not match version.txt (${FILE_VERSION})"
+            echo "Bump version.txt to match the tag before releasing."
+            exit 1
+          fi
+          echo "Version check passed: ${FILE_VERSION}"
+
+      - name: Build firmware
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: release-v6.0
+          target: esp32s3
+          command: idf.py build
+
+      - name: Fix build directory permissions
+        run: sudo chown -R $(id -u):$(id -g) build/
+
+      - name: Prepare release assets
+        run: |
+          # The binary is named after your CMake project() name in CMakeLists.txt.
+          # If you rename your project (IN CMAKE) from 'my_app', update the filename below to match.
+          cp build/my_app.bin build/firmware.bin
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            build/firmware.bin
+            version.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
