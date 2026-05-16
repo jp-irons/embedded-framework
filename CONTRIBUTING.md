@@ -6,7 +6,7 @@ Once the framework stabilises, contribution guidelines and a public roadmap will
 
 ---
 
-The remainder of this document captures internal development conventions for use by the project maintainers.
+The remainder of this document captures internal development conventions for use by the project maintainers. For release procedures, versioning, and partition table changes see [`docs/maintainer-guide.md`](docs/maintainer-guide.md).
 
 ## Development environment
 
@@ -92,37 +92,6 @@ The OTA system has three classes with distinct responsibilities:
 
 When `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y` is not compiled in, `esp_ota_get_state_partition()` always returns `ESP_OTA_IMG_UNDEFINED` for all partitions. 
 If OTA state queries return unexpected results, verify that `sdkconfig` has `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y`, run a fullclean and rebuild.
-
-## Versioning
-
-Bump `version.txt` before building a release. The build system copies `build/embedded_framework.bin` to `build/embedded_framework-<version>.bin` after each successful build.
-The version string is embedded in the firmware binary and accessible at runtime via `esp_app_get_description()->version`.
-
-## Release process
-
-Releases are built and published automatically by GitHub Actions when a version tag is pushed. The workflow (`.github/workflows/release.yml`) triggers on tags matching `v*`, builds the firmware, and uploads `firmware.bin` and `version.txt` as release assets.
-
-From the development branch:
-
-```bash
-git push origin development:main    # bring main up to date without switching branches
-git tag v0.0.2                      # tag must match version.txt exactly (without the v prefix)
-git push origin v0.0.2              # triggers the Actions build and release
-```
-
-The workflow validates that the tag version matches `version.txt` before building — if they are out of sync it fails immediately. Once the release is published, devices polling GitHub will pick up the update on their next OTA check.
-
-**Note:** do not push a tag until `version.txt` has been committed and pushed.
-
-## Partition layout changes
-
-If you modify `partitions.csv`, you must also update:
-
-1. `sdkconfig` if the custom partition file path changes.
-2. The partition offsets table in `README.md`.
-3. Any hardcoded size assumptions in `OtaWriter` (currently none — it reads `OTA_WITH_SEQUENTIAL_WRITES`).
-
-After any partition change, fullclean, build and re-flash the bootloader via USB (`idf.py flash`). OTA updates do not update the bootloader or partition table.
 
 ## Static assets (embedded UI)
 

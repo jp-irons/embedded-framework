@@ -24,4 +24,6 @@ If you modify `partitions.csv`:
 
 1. Update this file to match.
 2. Update the partition table in `README.md`.
-3. Delete `sdkconfig`, then do a full clean build and re-flash via USB (`idf.py fullclean && idf.py flash`). OTA updates do not update the bootloader or partition table.
+3. Run `idf.py fullclean && idf.py flash` to apply the new table via USB. OTA updates do not update the bootloader or partition table.
+
+For the full checklist (sdkconfig, OtaWriter checks, and release implications) see [`maintainer-guide.md`](maintainer-guide.md).

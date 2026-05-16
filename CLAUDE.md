@@ -26,7 +26,8 @@ The bash sandbox can show stale cached content for files that have been modified
 - `docs/creating-an-app.md` — guide for consuming the framework as a submodule
 - `docs/flash_layout.md` — partition table reference (source of truth is `partitions.csv`)
 - `docs/api-reference.md` — full HTTP API route table with response shapes
-- `CONTRIBUTING.md` — internal development conventions
+- `docs/maintainer-guide.md` — versioning, release tagging, and partition layout change checklist
+- `CONTRIBUTING.md` — internal development conventions (component structure, naming, HTTP handlers, logging)
 
 ## Target hardware
 
