@@ -50,12 +50,13 @@ void EspHttpServer::start() {
     }
 
     httpd_ssl_config_t conf = HTTPD_SSL_CONFIG_DEFAULT();
-    conf.httpd.uri_match_fn    = httpd_uri_match_wildcard;
+    conf.httpd.uri_match_fn     = httpd_uri_match_wildcard;
     conf.httpd.lru_purge_enable = true;
-    // The framework UI loads ~10 files as parallel ES-module fetches.
-    // HTTPD_SSL_CONFIG_DEFAULT gives max_open_sockets=9 which is too tight
-    // once the redirect server also holds a few slots.  Set 13 here and keep
-    // CONFIG_LWIP_MAX_SOCKETS >= 16 in sdkconfig so lwIP has headroom.
+    // Socket budget (must satisfy: HTTPS + redirect < CONFIG_LWIP_MAX_SOCKETS):
+    //   HTTPS server:    13  (parallel ES-module fetches at page load)
+    //   Redirect server:  4  (instantaneous redirects, low concurrency)
+    //   OTA client/mDNS:  7  (reserve)
+    //   Total:           24  == CONFIG_LWIP_MAX_SOCKETS
     conf.httpd.max_open_sockets = 13;
 
     if (!runtimeCertPem_.empty()) {
@@ -97,12 +98,13 @@ void EspHttpServer::startRedirectServer() {
     if (redirectServer_) {
         return;
     }
-    httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
-    cfg.server_port      = 80;
-    cfg.ctrl_port        = 32767;           // must differ from the HTTPS server's ctrl_port
-    cfg.uri_match_fn     = httpd_uri_match_wildcard;
-    cfg.lru_purge_enable = true;
-    cfg.max_uri_handlers = 8;
+    httpd_config_t cfg    = HTTPD_DEFAULT_CONFIG();
+    cfg.server_port       = 80;
+    cfg.ctrl_port         = 32767;          // must differ from the HTTPS server's ctrl_port
+    cfg.uri_match_fn      = httpd_uri_match_wildcard;
+    cfg.lru_purge_enable  = true;
+    cfg.max_uri_handlers  = 8;
+    cfg.max_open_sockets  = 4;              // redirects are instantaneous; see socket budget above
 
     esp_err_t err = httpd_start(&redirectServer_, &cfg);
     if (err != ESP_OK) {

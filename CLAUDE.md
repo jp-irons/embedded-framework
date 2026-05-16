@@ -109,14 +109,24 @@ https://github.com/<user>/<repo>/releases/latest/download/firmware.bin
 
 ## Power management
 
-Target: stay Wi-Fi associated at all times using `WIFI_PS_MIN_MODEM` (DTIM-based
-modem sleep). Persistent MQTT connection to Venus broker requires periodic keepalive
-anyway, so duty-cycling Wi-Fi off is not appropriate once Venus integration is active.
+`CONFIG_PM_ENABLE=y` is active. `esp_pm_configure()` is called in
+`EspDeviceInterface::init()` with `max_freq_mhz=160, min_freq_mhz=80`
+as step 4 of device init, after NVS, event loop, and netif. The CPU scales
+between 80 and 160 MHz based on load. `light_sleep_enable` is `false` —
+automatic light sleep is reserved for the idle-mode hook below.
+
+Wi-Fi uses `WIFI_PS_MIN_MODEM` (DTIM-based modem sleep). This is set in
+`EspWiFiInterface::startDriver()` and re-applied after every stop/start cycle
+in `connectSta()`. Persistent MQTT requires periodic keepalive; duty-cycling
+Wi-Fi off is not appropriate once Venus integration is active.
 
 Two operating modes:
 - **Active:** display on, fast sensor polling, Wi-Fi awake
 - **Idle:** triggered by display timeout after last touch event; display off/dim,
-  CPU in light sleep, sensor polling stretched
+  CPU in light sleep, sensor polling stretched. The app calls
+  `esp_light_sleep_start()` directly — no framework hook required. PM
+  infrastructure is already in place (`CONFIG_PM_ENABLE`, light-sleep power-down
+  configs in sdkconfig).
 
 LVGL frame buffers should be allocated in PSRAM. DMA transfer buffers must remain
 in internal SRAM.

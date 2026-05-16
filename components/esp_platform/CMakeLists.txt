@@ -23,6 +23,7 @@ idf_component_register(
         http_types
         wifi_manager
         network_store
+        esp_pm
         esp_timer
         esp_netif
         nvs_flash

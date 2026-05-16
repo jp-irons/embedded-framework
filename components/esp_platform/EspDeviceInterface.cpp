@@ -4,6 +4,7 @@
 #include "driver/temperature_sensor.h"
 #include "esp_chip_info.h"
 #include "esp_event.h"
+#include "esp_pm.h"
 #include "esp_psram.h"
 #include "esp_idf_version.h"
 #include "esp_mac.h"
@@ -154,6 +155,21 @@ Result EspDeviceInterface::init() {
     if (r != Result::Ok) {
         log.error("Failed to initialise netif: %s", toString(r));
         return r;
+    }
+
+    // 4. Configure power management / DFS: CPU scales between 80–160 MHz based
+    //    on load.  Must be done before WiFi starts so the driver registers its
+    //    PM lock at the correct APB floor frequency.  CONFIG_PM_ENABLE=y in
+    //    sdkconfig is the compile-time prerequisite.  light_sleep_enable is
+    //    false — automatic light sleep is reserved for the app idle-mode hook.
+    esp_pm_config_t pmCfg = {
+        .max_freq_mhz       = 160,
+        .min_freq_mhz       = 80,
+        .light_sleep_enable = false,
+    };
+    esp_err_t pmErr = esp_pm_configure(&pmCfg);
+    if (pmErr != ESP_OK) {
+        log.warn("esp_pm_configure failed: %s", esp_err_to_name(pmErr));
     }
 
     return Result::Ok;
