@@ -30,6 +30,51 @@ The workflow validates that the tag version matches `version.txt` before buildin
 
 > **Do not push a tag until `version.txt` has been committed and pushed.**
 
+## Template repository
+
+The [embedded-app-template](https://github.com/jp-irons/embedded-app-template) repository is a GitHub template that gives app developers a ready-to-build starting point. Its submodule is pinned to a specific framework release, so new apps always start from a known-good baseline.
+
+**The template is not updated automatically** — it must be kept in sync manually each time a framework release is cut. Add this to the release checklist.
+
+### Updating the template after a release
+
+Once the framework release is published and verified:
+
+```bash
+cd embedded-app-template
+git -C framework fetch --tags
+git -C framework checkout v0.2.0     # the new release tag
+
+# Copy updated config baselines from the framework
+cp framework/sdkconfig sdkconfig
+cp framework/sdkconfig.defaults sdkconfig.defaults
+cp framework/partitions.csv partitions.csv
+
+# Update the version placeholder
+echo "0.1.0" > version.txt           # reset to a generic app starting point — not the framework version
+```
+
+Review and commit:
+
+```bash
+git add framework sdkconfig sdkconfig.defaults partitions.csv
+git commit -m "Update framework submodule to v0.2.0"
+git push
+```
+
+Do not update `version.txt` in the template to match the framework version — it is an app version placeholder and should stay at a generic starting value (e.g. `0.1.0`).
+
+### What the template must always contain
+
+- `framework/` — submodule pinned to the latest release
+- `sdkconfig`, `sdkconfig.defaults`, `partitions.csv` — copied from that release
+- `version.txt` — generic starting version (`0.1.0`)
+- `main/CMakeLists.txt` — with `GLOB_RECURSE` / `EMBED_FILES` wired up
+- `main/idf_component.yml` — managed dependencies matching the framework
+- `main/app_main.cpp`, `main/ApplicationContext.h/.cpp` — minimal working stubs
+- `main/app_files/AppFileTable.hpp/.cpp` — empty file table ready to extend
+- `main/app_files/files/favicon.ico` — placeholder favicon
+
 ## Partition layout changes
 
 The source of truth is `partitions.csv`. When you modify it, work through this checklist before pushing:

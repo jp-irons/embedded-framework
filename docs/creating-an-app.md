@@ -2,6 +2,30 @@
 
 This guide walks through setting up a new ESP-IDF project that consumes the framework as a git submodule. Your application lives in its own repository and pulls in framework updates on demand, with full control over when to take them.
 
+## Quick start — GitHub template
+
+The fastest way to begin is the [embedded-app-template](https://github.com/jp-irons/embedded-app-template) repository. It contains all the boilerplate wired up and ready, with the embedded-framework already added as a submodule pinned to the latest release.
+
+1. Open the template on GitHub and click **Use this template → Create a new repository**.
+2. Clone your new repository with submodules:
+
+```bash
+git clone --recurse-submodules https://github.com/your-org/my_app.git
+cd my_app
+```
+
+3. Install managed dependencies and build:
+
+```bash
+idf.py update-dependencies
+idf.py build
+idf.py -p /dev/ttyUSB0 flash monitor
+```
+
+Edit `version.txt`, `main/ApplicationContext.cpp`, and `main/app_files/` to start building your application. The manual steps below describe what the template contains and why, and are useful when you need to understand or customise the setup.
+
+---
+
 ## Overview
 
 The framework's `components/` directory contains all reusable modules. Your application provides its own `main/` and wires in the framework components via ESP-IDF's `EXTRA_COMPONENT_DIRS` mechanism. The framework repository's own `main/` (the demo application) is ignored by your build.
@@ -32,6 +56,10 @@ my_app/                          ← your git repository
     ...
 ```
 
+## Manual setup
+
+The steps below walk through creating the project structure by hand. This is useful if the template doesn't fit your situation, or if you want to understand what each piece does.
+
 ## Prerequisites
 
 - ESP-IDF v6.0 installed and on `PATH`
@@ -52,8 +80,8 @@ git commit -m "Initial project framework"
 ## Step 2 — Add the framework as a git submodule
 
 ```bash
-git submodule add https://github.com/jp-irons/esp32-app-framework.git framework
-git commit -m "Add esp32-app-framework as submodule"
+git submodule add https://github.com/jp-irons/embedded-framework.git framework
+git commit -m "Add embedded-framework as submodule"
 ```
 
 When cloning your repository on a new machine, the submodule must be initialised:
@@ -232,32 +260,64 @@ idf.py -p /dev/ttyUSB0 flash monitor
 
 ## Keeping the framework up to date
 
-### Updating to the latest commit
+The submodule in your app repo is a pointer to a specific commit SHA. Nothing changes in your build until you explicitly move that pointer and commit the result. You are always in control of when to take a framework update.
+
+### Checking your current version and available releases
 
 ```bash
-git submodule update --remote framework
-git add framework
-git commit -m "Update framework to latest"
+# What your app is currently on
+cat framework/version.txt
+git -C framework describe --tags
+
+# Fetch new tags without changing anything
+git -C framework fetch --tags
+
+# List available releases
+git -C framework tag --sort=-version:refname | head -10
 ```
 
-### Pinning to a specific release
+### Updating to a new release
 
 ```bash
 cd framework
-git checkout v1.0.0
+git fetch --tags
+git checkout v0.2.0          # the target release
 cd ..
-git add framework
-git commit -m "Pin framework to v1.0.0"
 ```
 
-Pinning is recommended for production projects. You control exactly when to take framework changes and can review the changelog before updating.
+Before committing, work through the checklist below — the submodule move may need accompanying changes in your app.
 
-### Checking what version you are on
+### Update checklist
+
+**1. sdkconfig.defaults** — diff the framework's copy against yours and pull in any new required settings:
 
 ```bash
-git -C framework describe --tags
-# or
-cat framework/version.txt
+diff framework/sdkconfig.defaults sdkconfig.defaults
+```
+
+**2. sdkconfig** — run `idf.py menuconfig` to absorb any new Kconfig symbols introduced by new or changed components. ESP-IDF will use Kconfig defaults for any symbol not already in `sdkconfig`; review new entries before saving. Commit the updated `sdkconfig`.
+
+**3. idf_component.yml** — check whether the framework has added new managed component dependencies:
+
+```bash
+diff framework/main/idf_component.yml main/idf_component.yml
+```
+
+Add any new entries to your `main/idf_component.yml` and run `idf.py update-dependencies`.
+
+**4. partitions.csv** — if `framework/partitions.csv` has changed, copy it across and treat this as a partition layout change: fullclean, rebuild, and USB-reflash. OTA cannot apply partition or bootloader changes.
+
+```bash
+diff framework/partitions.csv partitions.csv
+```
+
+**5. API changes** — build and fix any compile errors. Patch releases (`v0.1.1 → v0.1.2`) should not break the `ApplicationContext` or handler interfaces; minor version bumps (`v0.1.x → v0.2.0`) may do so and will be noted in the release changelog.
+
+**6. Commit atomically** — record the submodule move and all accompanying changes together so your app history stays coherent:
+
+```bash
+git add framework sdkconfig sdkconfig.defaults partitions.csv main/idf_component.yml
+git commit -m "Update framework to v0.2.0"
 ```
 
 ---
