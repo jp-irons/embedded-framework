@@ -13,7 +13,13 @@ The fastest way to begin is the [embedded-app-template](https://github.com/jp-ir
 git clone --recurse-submodules https://github.com/your-org/my_app.git
 cd my_app
 ```
+3. Espressif IDE (Eclipse)
+From Espressif IDE: File -> Import... -> Espressif -> Existing IDF Project
+Existing project Location -> Browse (to cloned directory) -> Finish
+Open a terminal
+idf.py build or idf.py build flash monitor
 
+OR
 3. Install managed dependencies and build:
 
 ```bash
