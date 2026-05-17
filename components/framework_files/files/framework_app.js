@@ -461,6 +461,15 @@ document.addEventListener("DOMContentLoaded", () => {
                             <span id="fw-pull-status-text"></span>
                         </div>
 
+                        <!-- Auto-Update toggle — only rendered when uiSettable=true -->
+                        <div id="fw-auto-update-row" class="hidden flex items-center gap-3 mb-2">
+                            <span class="text-gray-500 whitespace-nowrap" style="min-width:4rem;">Auto</span>
+                            <span id="fw-auto-update-label" class="flex-grow text-gray-700"></span>
+                            <button id="btn-fw-auto-update"
+                                    class="px-3 py-1 rounded whitespace-nowrap text-white">
+                            </button>
+                        </div>
+
                         <!-- Auto-Update: new URL input + Save -->
                         <div class="flex items-center gap-3">
                             <span class="text-gray-500 whitespace-nowrap" style="min-width:4rem;">New URL</span>
@@ -468,7 +477,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                    class="flex-grow px-3 py-1.5 border rounded text-sm"
                                    placeholder="https://github.com/user/repo/releases/latest/download" />
                             <button id="btn-fw-save-url"
-                                    class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 whitespace-nowrap">
+                                    class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap">
                                 Save URL
                             </button>
                         </div>

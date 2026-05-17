@@ -281,6 +281,10 @@ export function savePullConfig(url) {
     return postText("/framework/api/firmware/pullConfig", url);
 }
 
+export function setAutoUpdateEnabled(enabled) {
+    return post("/framework/api/firmware/autoUpdate", { enabled });
+}
+
 export function rollbackFirmware() {
     return post("/framework/api/firmware/rollback");
 }

@@ -8,17 +8,29 @@ namespace ota {
 /**
  * Configuration supplied by the app at startup.
  *
- * baseUrl        — Base URL of the GitHub release asset directory, e.g.
- *                  "https://github.com/user/repo/releases/latest/download"
- *                  OtaPuller appends "/version.txt" and "/firmware.bin".
+ * baseUrl            — Base URL of the GitHub release asset directory, e.g.
+ *                      "https://github.com/user/repo/releases/latest/download"
+ *                      OtaPuller appends "/version.txt" and "/firmware.bin".
  *
- * checkIntervalS — Seconds between automatic background checks.
- *                  Set to 0 to disable the periodic task (manual / MQTT
- *                  triggered checks via checkNow() still work).
+ * checkIntervalS     — Seconds between automatic background checks.
+ *                      Set to 0 to disable the periodic task (manual / MQTT
+ *                      triggered checks via checkNow() still work).
+ *
+ * autoUpdateEnabled  — Default auto-update state on first boot (or when
+ *                      uiSettable is false).  When uiSettable is true, a
+ *                      persisted NVS value takes precedence over this default
+ *                      after the first time the user toggles the setting.
+ *
+ * uiSettable         — When true, the firmware UI exposes a toggle and the
+ *                      POST /firmware/autoUpdate API is accepted.  When false,
+ *                      autoUpdateEnabled is always authoritative and the toggle
+ *                      is hidden; POST /firmware/autoUpdate returns 403.
  */
 struct OtaPullConfig {
     std::string baseUrl;
-    uint32_t    checkIntervalS = 0;
+    uint32_t    checkIntervalS    = 0;
+    bool        autoUpdateEnabled = true;
+    bool        uiSettable        = true;
 };
 
 /**
@@ -87,6 +99,27 @@ class OtaPuller {
 
     /** Return the currently active base URL (NVS override or compiled default). */
     static std::string getBaseUrl();
+
+    // ── Auto-update enable/disable ────────────────────────────────────────
+
+    /** Return whether automatic update checks are currently enabled. */
+    static bool isAutoUpdateEnabled();
+
+    /**
+     * Return whether the auto-update setting is UI-settable.
+     * Reflects the value of OtaPullConfig::uiSettable supplied to init().
+     * When false, setAutoUpdateEnabled() is a no-op and the POST
+     * /firmware/autoUpdate route returns 403.
+     */
+    static bool isUiSettable();
+
+    /**
+     * Enable or disable automatic update checks and persist the choice to NVS.
+     * No-op (returns false) when isUiSettable() is false.
+     * Takes effect immediately — the next scheduled or manual check honours
+     * the new value without requiring a reboot.
+     */
+    static bool setAutoUpdateEnabled(bool enabled);
 
     // ── Pull-check status (safe to call from any task) ────────────────────
 

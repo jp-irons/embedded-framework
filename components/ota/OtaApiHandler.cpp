@@ -57,6 +57,7 @@ common::Result OtaApiHandler::handlePost(HttpRequest &req, HttpResponse &res) {
     if (target == "factoryReset") return handleFactoryReset(req, res);
     if (target == "checkUpdate")  return handleCheckUpdate (req, res);
     if (target == "pullConfig")   return handlePullConfig  (req, res);
+    if (target == "autoUpdate")   return handleAutoUpdate  (req, res);
 
     res.sendJson(404, "target '" + target + "' not found");
     return Result::Ok;
@@ -312,8 +313,16 @@ common::Result OtaApiHandler::handleFactoryReset(HttpRequest & /*req*/, HttpResp
 
 common::Result OtaApiHandler::handlePullStatus(HttpRequest& /*req*/, HttpResponse& res) {
     log.debug("handlePullStatus()");
-    const std::string url  = OtaPuller::getBaseUrl();
-    const std::string json = "{\"url\":\"" + url + "\"}";
+    const std::string url        = OtaPuller::getBaseUrl();
+    const bool        autoUpdate = OtaPuller::isAutoUpdateEnabled();
+    const bool        uiSettable = OtaPuller::isUiSettable();
+
+    std::string json = "{";
+    json += "\"url\":\""              + url + "\",";
+    json += "\"autoUpdateEnabled\":"; json += autoUpdate ? "true" : "false"; json += ",";
+    json += "\"uiSettable\":";        json += uiSettable ? "true" : "false";
+    json += "}";
+
     res.sendJson(json);
     return Result::Ok;
 }
@@ -401,6 +410,44 @@ common::Result OtaApiHandler::handlePullConfig(HttpRequest& req, HttpResponse& r
     }
 
     res.sendJson("{\"status\":\"ok\",\"url\":\"" + url + "\"}");
+    return Result::Ok;
+}
+
+// ---------------------------------------------------------------------------
+// POST /framework/api/firmware/autoUpdate
+// ---------------------------------------------------------------------------
+
+common::Result OtaApiHandler::handleAutoUpdate(HttpRequest& req, HttpResponse& res) {
+    log.debug("handleAutoUpdate()");
+
+    if (!OtaPuller::isUiSettable()) {
+        res.sendJson(403, "Auto-update setting is not configurable on this device");
+        return Result::Ok;
+    }
+
+    // Body: {"enabled": true} or {"enabled": false}
+    // Simple substring match — avoids a JSON library dependency for a single boolean.
+    const std::string_view body = req.body();
+    const bool hasTrue  = body.find("\"enabled\":true")  != std::string_view::npos ||
+                          body.find("\"enabled\": true") != std::string_view::npos;
+    const bool hasFalse = body.find("\"enabled\":false") != std::string_view::npos ||
+                          body.find("\"enabled\": false") != std::string_view::npos;
+
+    if (!hasTrue && !hasFalse) {
+        res.sendJson(400, "Body must be {\"enabled\": true} or {\"enabled\": false}");
+        return Result::Ok;
+    }
+    const bool enabled = hasTrue;
+
+    if (!OtaPuller::setAutoUpdateEnabled(enabled)) {
+        res.sendJson(500, "Failed to save auto-update setting");
+        return Result::Ok;
+    }
+
+    std::string json = "{\"status\":\"ok\",\"autoUpdateEnabled\":";
+    json += enabled ? "true" : "false";
+    json += "}";
+    res.sendJson(json);
     return Result::Ok;
 }
 
