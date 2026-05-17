@@ -17,6 +17,7 @@ import {
     getPullCheckStatus   as apiGetPullCheckStatus,
     checkUpdate          as apiCheckUpdate,
     savePullConfig       as apiSavePullConfig,
+    setAutoUpdateEnabled as apiSetAutoUpdateEnabled,
     isAuthenticated,
     forceReauth,
     startReconnectPolling
@@ -72,6 +73,9 @@ export function initFirmwareView() {
     // Pull OTA — Save URL button
     const btnSaveUrl = document.getElementById("btn-fw-save-url");
     if (btnSaveUrl) btnSaveUrl.onclick = requestSavePullUrl;
+
+    // Pull OTA — Auto-update toggle (handler is attached inside loadPullStatus
+    // once we know the current state and whether it's UI-settable)
 
     loadFirmwareStatus();
     loadPullStatus();
@@ -446,10 +450,66 @@ async function loadPullStatus() {
         const url  = data.url || "";
         if (urlDisplay) urlDisplay.textContent = url || "Not configured";
         if (urlInput && !urlInput.value) urlInput.value = url;
+        applyAutoUpdateState(data.autoUpdateEnabled !== false, data.uiSettable !== false);
     } catch (err) {
         if (!isAuthenticated() || err.message === "network") return;
         console.warn("Pull status load failed:", err);
         if (urlDisplay) urlDisplay.textContent = "Unavailable";
+    }
+}
+
+/**
+ * Show or hide the auto-update toggle row and wire its button.
+ * Called once after loadPullStatus() resolves so we know both the current
+ * state and whether the setting is UI-settable.
+ *
+ * @param {boolean} enabled     - Current auto-update state
+ * @param {boolean} uiSettable  - Whether the user can change it
+ */
+function applyAutoUpdateState(enabled, uiSettable) {
+    const row   = document.getElementById("fw-auto-update-row");
+    const label = document.getElementById("fw-auto-update-label");
+    const btn   = document.getElementById("btn-fw-auto-update");
+    if (!row || !label || !btn) return;
+
+    if (!uiSettable) {
+        row.classList.add("hidden");
+        return;
+    }
+
+    // Show the row and set current state
+    row.classList.remove("hidden");
+    updateAutoUpdateButton(enabled, label, btn);
+
+    // Re-attach onclick each time (avoids stale closures across view remounts)
+    btn.onclick = () => requestToggleAutoUpdate(label, btn);
+}
+
+/** Render the toggle button to reflect the current enabled state. */
+function updateAutoUpdateButton(enabled, label, btn) {
+    label.textContent = enabled ? "Automatic updates are enabled" : "Automatic updates are disabled";
+    btn.textContent   = enabled ? "Disable" : "Enable";
+    btn.className     = "px-3 py-1 rounded whitespace-nowrap text-white bg-blue-600 hover:bg-blue-700";
+}
+
+async function requestToggleAutoUpdate(label, btn) {
+    const currentlyEnabled = btn.textContent === "Disable";
+    const newEnabled       = !currentlyEnabled;
+
+    btn.disabled    = true;
+    btn.textContent = "Saving…";
+
+    try {
+        await apiSetAutoUpdateEnabled(newEnabled);
+        updateAutoUpdateButton(newEnabled, label, btn);
+    } catch (err) {
+        if (!isAuthenticated() || err.message === "network") return;
+        console.error("Auto-update toggle failed:", err);
+        showMessage("error", "Save Failed", err.message || "Could not update auto-update setting.");
+        // Restore previous button state
+        updateAutoUpdateButton(currentlyEnabled, label, btn);
+    } finally {
+        btn.disabled = false;
     }
 }
 

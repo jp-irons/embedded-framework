@@ -52,6 +52,11 @@ class OtaApiHandler : public http::HttpHandler {
     /// POST /firmware/pullConfig   -- update the pull base URL (plain-text body).
     ///                                Persists to NVS.
     common::Result handlePullConfig  (http::HttpRequest& req, http::HttpResponse& res);
+
+    /// POST /firmware/autoUpdate   -- enable or disable automatic update checks.
+    ///                                Body: {"enabled": true|false}
+    ///                                Returns 403 if the setting is not UI-settable.
+    common::Result handleAutoUpdate  (http::HttpRequest& req, http::HttpResponse& res);
 };
 
 } // namespace ota

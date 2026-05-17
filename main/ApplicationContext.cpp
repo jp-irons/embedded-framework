@@ -36,10 +36,44 @@ void ApplicationContext::start() {
     fw_.addRoute(http::HttpMethod::Get, "/app/api/temperature", &temperatureHandler_);
 
     // ── Configure pull-based OTA ──────────────────────────────────────────
+    // baseUrl            — GitHub Releases download directory for this repo.
+    //                      OtaPuller appends "/version.txt" (checked first)
+    //                      and "/firmware.bin" (downloaded only if newer).
+    // checkIntervalS     — Seconds between background checks; 0 disables the
+    //                      periodic task (manual / MQTT-triggered checks still
+    //                      work via the firmware UI or checkNow()).
+    // autoUpdateEnabled  — Default auto-update state.  true = checks run
+    //                      automatically; false = disabled until toggled on.
+    //                      When uiSettable=true, a user-persisted NVS value
+    //                      overrides this default after the first toggle.
+    // uiSettable         — When true, the firmware UI exposes an enable/disable
+    //                      toggle and the POST /firmware/autoUpdate API is
+    //                      accepted; the user's choice survives reboots via NVS.
+    //                      When false, autoUpdateEnabled is always authoritative
+    //                      and the toggle is hidden.
     fw_.setOtaPullConfig({
-        .baseUrl        = "https://github.com/jp-irons/embedded-framework/releases/latest/download",
-        .checkIntervalS = 3600,
+        .baseUrl           = "https://github.com/jp-irons/embedded-framework/releases/latest/download",
+        .checkIntervalS    = 3600,
+        .autoUpdateEnabled = false,
+        .uiSettable        = true,
     });
+
+    // TODO: FrameworkContext should expose configuration for:
+    //
+    //   Hostname (mDNS / device identity)
+    //     - Fixed string               e.g. setHostname("my-van")
+    //     - String + MAC suffix        e.g. setHostname("van", HostnameSuffix::Mac)
+    //     - Runtime-configurable       persisted to NVS; changeable via UI / API
+    //       (follows the same pattern as auto-update: app sets default + uiSettable)
+    //
+    //   Wi-Fi AP name
+    //     - Fixed string               e.g. apConfig.ssid = "VanMonitor"
+    //     - String + MAC suffix        e.g. setApSsid("VanMonitor", SsidSuffix::Mac)
+    //       (useful when deploying multiple units — avoids SSID collisions)
+    //
+    //   Both hostname and AP SSID suffix options should share a common
+    //   SuffixPolicy enum (None | MacFull | MacShort) to keep the API
+    //   consistent across settings.
 
     // ── Start the framework (WiFi, server, OTA, …) ────────────────────────
     fw_.start();

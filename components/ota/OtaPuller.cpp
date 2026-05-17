@@ -1,5 +1,16 @@
 #include "ota/OtaPuller.hpp"
 
+// TODO: OtaPuller currently calls ESP-IDF APIs directly (esp_http_client,
+// esp_https_ota, esp_crt_bundle, esp_app_desc, nvs, FreeRTOS tasks).
+// These should be abstracted behind interfaces in esp_platform (following the
+// pattern of EspNvsStore, EspTimerInterface, EspWiFiInterface, etc.) so that
+// OtaPuller depends only on portable interfaces and can be tested without
+// hardware.  Candidate interfaces:
+//   - OtaTransport  (fetch version.txt, stream firmware.bin)
+//   - OtaFlashWriter (wrap esp_https_ota_begin/perform/finish)
+//   - A KeyValueStore injection (already exists) replacing raw nvs_open calls
+//   - Task scheduling via TimerInterface or a new TaskInterface
+
 #include "esp_app_desc.h"
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
@@ -23,10 +34,11 @@ namespace ota {
 // Constants
 // ---------------------------------------------------------------------------
 
-static constexpr const char* NVS_NS      = "ota_pull";
-static constexpr const char* NVS_KEY_URL = "base_url";
-static constexpr size_t      VER_BUF_LEN = 32;   // version strings are tiny
-static constexpr size_t      TASK_STACK  = 8192;  // TLS needs headroom
+static constexpr const char* NVS_NS              = "ota_pull";
+static constexpr const char* NVS_KEY_URL         = "base_url";
+static constexpr const char* NVS_KEY_AUTO_UPD    = "auto_upd_en";
+static constexpr size_t      VER_BUF_LEN         = 32;   // version strings are tiny
+static constexpr size_t      TASK_STACK          = 8192;  // TLS needs headroom
 
 static logger::Logger log{"OtaPuller"};
 
@@ -34,8 +46,10 @@ static logger::Logger log{"OtaPuller"};
 // Module state
 // ---------------------------------------------------------------------------
 
-static OtaPullConfig s_config;
-static std::string   s_activeUrl;
+static OtaPullConfig     s_config;
+static std::string       s_activeUrl;
+static std::atomic<bool> s_autoUpdateEnabled{true};
+static bool              s_uiSettable = true;
 
 // ── Pull-check state machine ──────────────────────────────────────────────
 //
@@ -237,13 +251,21 @@ static void pullTask(void* /*arg*/) {
 
     for (int attempt = 0; attempt < INITIAL_RETRIES; ++attempt) {
         vTaskDelay(pdMS_TO_TICKS(INITIAL_DELAY_MS));
+        if (!s_autoUpdateEnabled.load(std::memory_order_acquire)) {
+            log.info("pullTask: auto-update disabled — skipping initial check");
+            break;
+        }
         if (OtaPuller::checkNow()) break;  // success — stop retrying early
     }
 
     // ── Periodic checks ───────────────────────────────────────────────────
     while (true) {
         vTaskDelay(pdMS_TO_TICKS((uint32_t)s_config.checkIntervalS * 1000UL));
-        OtaPuller::checkNow();
+        if (s_autoUpdateEnabled.load(std::memory_order_acquire)) {
+            OtaPuller::checkNow();
+        } else {
+            log.info("pullTask: auto-update disabled — skipping periodic check");
+        }
     }
 }
 
@@ -252,14 +274,50 @@ static void pullTask(void* /*arg*/) {
 // ---------------------------------------------------------------------------
 
 void OtaPuller::init(const OtaPullConfig& config) {
-    s_config    = config;
-    s_activeUrl = config.baseUrl;
+    s_config     = config;
+    s_activeUrl  = config.baseUrl;
+    s_uiSettable = config.uiSettable;
 
     if (loadNvsUrl()) {
         log.info("init: NVS URL override active: %s", s_activeUrl.c_str());
     } else {
         log.info("init: using default URL: %s", s_activeUrl.c_str());
     }
+
+    // Auto-update: start from the app-supplied default, then reconcile with NVS.
+    //
+    // uiSettable=true  — the user may have changed the setting at runtime; load
+    //                    any persisted NVS value and let it override the default.
+    //
+    // uiSettable=false — the config value is authoritative.  Write it to NVS so
+    //                    that any stale user preference from a previous deployment
+    //                    (when uiSettable was true) is overwritten.  If uiSettable
+    //                    is later set back to true, NVS will reflect the developer's
+    //                    intended default rather than a stale toggle state.
+    s_autoUpdateEnabled.store(config.autoUpdateEnabled, std::memory_order_release);
+    if (config.uiSettable) {
+        nvs_handle_t h;
+        if (nvs_open(NVS_NS, NVS_READONLY, &h) == ESP_OK) {
+            uint8_t val = 0;
+            if (nvs_get_u8(h, NVS_KEY_AUTO_UPD, &val) == ESP_OK) {
+                s_autoUpdateEnabled.store(val != 0, std::memory_order_release);
+                log.info("init: auto-update NVS override: %s", val ? "enabled" : "disabled");
+            }
+            nvs_close(h);
+        }
+    } else {
+        nvs_handle_t h;
+        if (nvs_open(NVS_NS, NVS_READWRITE, &h) == ESP_OK) {
+            nvs_set_u8(h, NVS_KEY_AUTO_UPD, config.autoUpdateEnabled ? 1 : 0);
+            nvs_commit(h);
+            nvs_close(h);
+            log.info("init: auto-update locked by config (%s) — NVS updated",
+                     config.autoUpdateEnabled ? "enabled" : "disabled");
+        }
+    }
+    log.info("init: auto-update=%s uiSettable=%s",
+             s_autoUpdateEnabled.load() ? "on" : "off",
+             s_uiSettable ? "yes" : "no");
 }
 
 void OtaPuller::start() {
@@ -449,6 +507,44 @@ size_t OtaPuller::downloadedBytes() {
 
 size_t OtaPuller::totalBytes() {
     return s_totalBytes.load(std::memory_order_acquire);
+}
+
+// ---------------------------------------------------------------------------
+// Auto-update enable / disable
+// ---------------------------------------------------------------------------
+
+bool OtaPuller::isAutoUpdateEnabled() {
+    return s_autoUpdateEnabled.load(std::memory_order_acquire);
+}
+
+bool OtaPuller::isUiSettable() {
+    return s_uiSettable;
+}
+
+bool OtaPuller::setAutoUpdateEnabled(bool enabled) {
+    if (!s_uiSettable) {
+        log.warn("setAutoUpdateEnabled: setting is not UI-settable — ignoring");
+        return false;
+    }
+
+    nvs_handle_t h;
+    esp_err_t err = nvs_open(NVS_NS, NVS_READWRITE, &h);
+    if (err != ESP_OK) {
+        log.error("setAutoUpdateEnabled: nvs_open failed: %s", esp_err_to_name(err));
+        return false;
+    }
+    err = nvs_set_u8(h, NVS_KEY_AUTO_UPD, enabled ? 1 : 0);
+    if (err == ESP_OK) err = nvs_commit(h);
+    nvs_close(h);
+
+    if (err != ESP_OK) {
+        log.error("setAutoUpdateEnabled: NVS write failed: %s", esp_err_to_name(err));
+        return false;
+    }
+
+    s_autoUpdateEnabled.store(enabled, std::memory_order_release);
+    log.info("setAutoUpdateEnabled: %s", enabled ? "enabled" : "disabled");
+    return true;
 }
 
 } // namespace ota
