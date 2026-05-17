@@ -62,6 +62,22 @@ git commit -m "Update framework submodule to v0.2.0"
 git push
 ```
 
+Update template to new framework release:
+```bash
+C:\path\to\embedded-app-template
+
+# Move the submodule to the new tag
+cd framework
+git fetch --tags
+git checkout v0.1.1
+cd ..
+
+# Stage the updated submodule pointer
+git add framework
+git commit -m "chore: bump framework submodule to v0.1.1"
+git push
+```
+
 Do not update `version.txt` in the template to match the framework version — it is an app version placeholder and should stay at a generic starting value (e.g. `0.1.0`).
 
 ### What the template must always contain
