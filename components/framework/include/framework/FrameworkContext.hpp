@@ -46,15 +46,17 @@ class FrameworkContext {
     explicit FrameworkContext();
 
     /**
-     * @param apConfig      AP-mode configuration (SSID, password, etc.)
+     * @param apConfig      AP-mode configuration (SSID, password, etc.).
+     *                      Set apConfig.ssidSuffix to control whether MAC bytes
+     *                      are appended to the SSID (default: SuffixPolicy::None).
      * @param authConfig    Authentication policy.  See AuthConfig for options.
      * @param rootUri       Framework root path.  API endpoints are mounted at
      *                      rootUri/api/..., UI assets at rootUri/ui/...
      *                      e.g. "/framework" → "/framework/api/wifi",
      *                                          "/framework/ui/index.html"
-     * @param mdnsPrefix    Prefix for the mDNS hostname; last 3 MAC bytes are
-     *                      appended automatically, e.g. "esp32" → "esp32-a1b2c3".
-     *                      Defaults to "esp32".
+     * @param mdnsPrefix    Prefix for the mDNS hostname.  The suffix applied at
+     *                      start() is controlled by setHostnameConfig(); the
+     *                      default is SuffixPolicy::MacShort, e.g. "esp32-a1b2c3".
      */
     FrameworkContext(const wifi_manager::ApConfig& apConfig,
                      auth::AuthConfig authConfig,
@@ -86,6 +88,44 @@ class FrameworkContext {
     void setEntryPoint(std::string path);
 
     /**
+     * Configures the mDNS hostname for this device.
+     *
+     * @param prefix  Base name, e.g. "van-monitor".
+     * @param suffix  SuffixPolicy controlling MAC byte appending:
+     *                  None      — use prefix as-is
+     *                  MacShort  — append last 3 MAC bytes, e.g. "van-monitor-a1b2c3"
+     *                  MacFull   — append all 6 MAC bytes
+     *                Default: MacShort (matches legacy behaviour).
+     *
+     * Must be called before fw_.start().
+     */
+    void setHostnameConfig(std::string prefix,
+                           wifi_manager::SuffixPolicy suffix = wifi_manager::SuffixPolicy::MacShort);
+
+    /**
+     * Configures the Wi-Fi AP SSID for this device.
+     *
+     * @param prefix  Base SSID, e.g. "VanMonitor".
+     * @param suffix  SuffixPolicy controlling MAC byte appending:
+     *                  None      — use prefix as-is (default for ApConfig.ssidSuffix)
+     *                  MacShort  — append last 3 MAC bytes, e.g. "VanMonitor-a1b2c3"
+     *                  MacFull   — append all 6 MAC bytes
+     *                Default: MacShort.
+     *
+     * Only changes the SSID and suffix policy; all other ApConfig fields
+     * (password, channel, etc.) are unchanged.
+     * Must be called before fw_.start().
+     */
+    void setApSsidConfig(std::string prefix,
+                         wifi_manager::SuffixPolicy suffix = wifi_manager::SuffixPolicy::MacShort);
+
+    /**
+     * Sets the Wi-Fi AP password.  Pass an empty string for an open (no-password) AP.
+     * Must be called before fw_.start().
+     */
+    void setApPassword(std::string password);
+
+    /**
      * Register an app static-file handler for the given URL prefix.
      */
     void addFileHandler(std::string prefix, http::HttpHandler* handler);
@@ -113,10 +153,15 @@ class FrameworkContext {
     wifi_manager::ApConfig apConfig = {
         .ssid = "ESP32 FW Test", .password = "password",
         .channel = 1, .maxConnections = 4};
-    std::string      rootUri_    = "/framework";
-    std::string      mdnsPrefix_ = "esp32";
+    std::string               rootUri_         = "/framework";
+    std::string               hostnamePrefix_  = "esp32";
+    wifi_manager::SuffixPolicy hostnameSuffix_ = wifi_manager::SuffixPolicy::MacShort;
     auth::AuthConfig authConfig_ = auth::AuthConfig::withPassword("esp32admin")
                                                     .restrictIfDefault();
+
+    // MAC address read once in initialize() — used in start() to build hostname
+    // and effective AP SSID.
+    uint8_t mac_[6] = {};
 
     // Per-device TLS cert (generated on first boot, persisted in NVS)
     device_cert::DeviceCertInterface* deviceCert_ = nullptr;

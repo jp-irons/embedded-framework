@@ -16,13 +16,22 @@ struct WiFiAp {
     int channel; // Primary channel
 };
 
+/**
+ * Controls whether a MAC-derived suffix is appended to a hostname or SSID.
+ *   None      — use the prefix string as-is
+ *   MacShort  — append last 3 MAC bytes as 6 lowercase hex chars, e.g. "name-a1b2c3"
+ *   MacFull   — append all 6 MAC bytes as 12 lowercase hex chars, e.g. "name-0011a1b2c3"
+ */
+enum class SuffixPolicy { None, MacShort, MacFull };
+
 struct ApConfig {
     std::string ssid;
-    std::string password; // empty = open AP
-    uint8_t channel = 1;
-    uint8_t maxConnections = 4;
-    bool hidden = false;
-	WiFiAuthMode auth = WiFiAuthMode::WPA2_PSK;
+    std::string password;                        // empty = open AP
+    uint8_t     channel        = 1;
+    uint8_t     maxConnections = 4;
+    bool        hidden         = false;
+    WiFiAuthMode auth          = WiFiAuthMode::WPA2_PSK;
+    SuffixPolicy ssidSuffix    = SuffixPolicy::None; // MAC suffix appended to ssid at start()
 };
 
 struct StaIpInfo {

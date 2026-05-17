@@ -58,23 +58,17 @@ void ApplicationContext::start() {
         .uiSettable        = true,
     });
 
-	// TODO hostname and AP name config
-    //  FrameworkContext should expose configuration for:
+    // ── Device identity ───────────────────────────────────────────────────────
+    // By default both setters append the last 3 MAC bytes (MacShort) to the
+    // supplied prefix, e.g. "van-monitor-a1b2c3" / "VanMonitor-a1b2c3".
+    // This ensures uniqueness when multiple units share a location.
     //
-    //   Hostname (mDNS / device identity)
-    //     - Fixed string               e.g. setHostname("my-van")
-    //     - String + MAC suffix        e.g. setHostname("van", HostnameSuffix::Mac)
-    //     - Runtime-configurable       persisted to NVS; changeable via UI / API
-    //       (follows the same pattern as auto-update: app sets default + uiSettable)
-    //
-    //   Wi-Fi AP name
-    //     - Fixed string               e.g. apConfig.ssid = "VanMonitor"
-    //     - String + MAC suffix        e.g. setApSsid("VanMonitor", SsidSuffix::Mac)
-    //       (useful when deploying multiple units — avoids SSID collisions)
-    //
-    //   Both hostname and AP SSID suffix options should share a common
-    //   SuffixPolicy enum (None | MacFull | MacShort) to keep the API
-    //   consistent across settings.
+    // To suppress the suffix pass wifi_manager::SuffixPolicy::None, or to use
+    // all 6 MAC bytes pass wifi_manager::SuffixPolicy::MacFull — both require
+    // #include "wifi_manager/WiFiTypes.hpp".
+    fw_.setHostnameConfig("esp-fw");
+    fw_.setApSsidConfig("EspFramework");
+    fw_.setApPassword("espframework");
 
     // ── Start the framework (WiFi, server, OTA, …) ────────────────────────
     fw_.start();

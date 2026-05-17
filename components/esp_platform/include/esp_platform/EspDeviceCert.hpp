@@ -15,9 +15,11 @@ namespace esp_platform {
  *   DNS:<hostname>
  *   IP:192.168.4.1   (AP-mode captive portal address)
  *
- * The cert and private key are stored in NVS so subsequent boots load them
- * instantly without regenerating.  The cert is stable for the lifetime of the
- * device (10 years validity), so browsers only need to accept it once.
+ * The cert, private key, and hostname are stored in NVS.  On subsequent boots
+ * the cert is loaded instantly.  If the hostname has changed since the cert was
+ * generated (e.g. the app prefix was renamed), ensure() detects the mismatch
+ * and regenerates automatically.  The cert is otherwise stable for 10 years,
+ * so browsers only need to accept it once per hostname.
  *
  * All ESP-IDF types are confined to this header and its .cpp.
  * Nothing outside esp_platform needs to include this file — consumers
@@ -38,6 +40,7 @@ class EspDeviceCert : public device_cert::DeviceCertInterface {
   private:
     std::string cert_;
     std::string key_;
+    std::string storedHostname_; // hostname recorded in NVS when the cert was generated
 
     esp_err_t loadFromNvs();
     esp_err_t generateAndStore(const std::string &hostname);

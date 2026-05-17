@@ -30,6 +30,37 @@ namespace framework {
 static logger::Logger log{FrameworkContext::TAG};
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Applies a SuffixPolicy to a base string using the supplied MAC bytes.
+ *   None      → returns base unchanged
+ *   MacShort  → appends "-" + last 3 MAC bytes as 6 lowercase hex chars
+ *   MacFull   → appends "-" + all 6 MAC bytes as 12 lowercase hex chars
+ */
+static std::string applySuffix(const std::string& base,
+                                wifi_manager::SuffixPolicy policy,
+                                const uint8_t* mac) {
+    switch (policy) {
+        case wifi_manager::SuffixPolicy::None:
+            return base;
+        case wifi_manager::SuffixPolicy::MacShort: {
+            char buf[8]; // "-" + 6 hex + NUL
+            snprintf(buf, sizeof(buf), "%02x%02x%02x", mac[3], mac[4], mac[5]);
+            return base + "-" + buf;
+        }
+        case wifi_manager::SuffixPolicy::MacFull: {
+            char buf[14]; // "-" + 12 hex + NUL
+            snprintf(buf, sizeof(buf), "%02x%02x%02x%02x%02x%02x",
+                     mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+            return base + "-" + buf;
+        }
+    }
+    return base; // unreachable, but keeps the compiler happy
+}
+
+// ---------------------------------------------------------------------------
 // Constructors
 // ---------------------------------------------------------------------------
 
@@ -44,7 +75,7 @@ FrameworkContext::FrameworkContext(const wifi_manager::ApConfig& apConfig,
                                    std::string mdnsPrefix)
     : apConfig(apConfig)
     , rootUri_(std::move(rootUri))
-    , mdnsPrefix_(std::move(mdnsPrefix))
+    , hostnamePrefix_(std::move(mdnsPrefix))
     , authConfig_(std::move(authConfig)) {
     log.debug("constructor");
     initialize();
@@ -84,25 +115,13 @@ void FrameworkContext::initialize() {
     wifiCtx.mdnsInterface = mdnsInterface_;
 
     // Read device info once — MAC drives both the mDNS hostname and AuthStore.
+    // Stored in mac_[] so start() can apply suffix policies without re-reading.
     const device::DeviceInfo devInfo = deviceInterface_->info();
-    uint8_t mac[6] = {};
     sscanf(devInfo.mac.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
-           &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
-
-    // Build per-device hostname: prefix + last 3 MAC bytes, e.g. "esp32-a1b2c3"
-    char macSuffix[8];
-    snprintf(macSuffix, sizeof(macSuffix), "%02x%02x%02x", mac[3], mac[4], mac[5]);
-    const std::string hostname = mdnsPrefix_ + "-" + macSuffix;
-    log.info("Device hostname: %s.local", hostname.c_str());
-
-    // Ensure a per-device TLS cert exists (generates + stores on first boot)
-    common::Result certErr = deviceCert_->ensure(hostname);
-    if (certErr != common::Result::Ok) {
-        log.warn("DeviceCert::ensure failed — falling back to embedded cert");
-    }
+           &mac_[0], &mac_[1], &mac_[2], &mac_[3], &mac_[4], &mac_[5]);
 
     // Initialise auth — derives/loads password according to AuthConfig policy
-    common::Result authResult = authStore.init(authConfig_, mac, *nvsAuth_, *randomInterface_);
+    common::Result authResult = authStore.init(authConfig_, mac_, *nvsAuth_, *randomInterface_);
     if (authResult != common::Result::Ok) {
         log.warn("AuthStore::init failed (%s) — auth will not be enforced",
                  common::toString(authResult));
@@ -116,11 +135,9 @@ void FrameworkContext::initialize() {
                  common::toString(apiKeyResult));
     }
 
-    // Populate WiFi context
-    log.debug("AP SSID %s", apConfig.ssid.c_str());
-    wifiCtx.apConfig     = apConfig;
+    // Populate WiFi context — hostname and effective SSID are finalised in start()
+    // once the app has had a chance to call setHostnameConfig().
     wifiCtx.rootUri      = rootUri_;
-    wifiCtx.mdnsHostname = hostname;
     wifiCtx.networkStore = &networkStore;
     wifiCtx.onDriverFatal = [this]() { deviceInterface_->reboot(); };
 
@@ -138,9 +155,8 @@ void FrameworkContext::initialize() {
     httpServer_ = new esp_platform::EspHttpServer();
     embeddedServer = new wifi_manager::EmbeddedServer(
         wifiCtx, *httpServer_, *wifiApi, *networkApi, *deviceApi, *otaApi);
-    if (deviceCert_->isLoaded()) {
-        embeddedServer->setCert(deviceCert_->certPem(), deviceCert_->keyPem());
-    }
+    // NOTE: embeddedServer->setCert() is called in start(), after deviceCert_->ensure()
+    // has been called with the finalised hostname.
     embeddedServer->setAuth(authStore, authConfig_, authApi, sessionStore,
                             apiKeyStore);
     wifiCtx.embeddedServer = embeddedServer;
@@ -205,8 +221,51 @@ void FrameworkContext::setOtaPullConfig(ota::OtaPullConfig config) {
 // Lifecycle
 // ---------------------------------------------------------------------------
 
+void FrameworkContext::setHostnameConfig(std::string prefix,
+                                         wifi_manager::SuffixPolicy suffix) {
+    hostnamePrefix_ = std::move(prefix);
+    hostnameSuffix_ = suffix;
+}
+
+void FrameworkContext::setApSsidConfig(std::string prefix,
+                                       wifi_manager::SuffixPolicy suffix) {
+    apConfig.ssid       = std::move(prefix);
+    apConfig.ssidSuffix = suffix;
+}
+
+void FrameworkContext::setApPassword(std::string password) {
+    apConfig.password = std::move(password);
+    apConfig.auth     = password.empty() ? wifi_manager::WiFiAuthMode::Open
+                                         : wifi_manager::WiFiAuthMode::WPA2_PSK;
+}
+
 void FrameworkContext::start() {
     log.debug("start");
+
+    // Build the effective hostname from the configured prefix + suffix policy.
+    const std::string hostname = applySuffix(hostnamePrefix_, hostnameSuffix_, mac_);
+    log.info("Device hostname: %s.local", hostname.c_str());
+
+    // Ensure a per-device TLS cert exists (generates + stores on first boot).
+    // Done here (not in initialize()) so the app can call setHostnameConfig()
+    // between construction and start().
+    common::Result certErr = deviceCert_->ensure(hostname);
+    if (certErr != common::Result::Ok) {
+        log.warn("DeviceCert::ensure failed — falling back to embedded cert");
+    }
+    if (deviceCert_->isLoaded()) {
+        embeddedServer->setCert(deviceCert_->certPem(), deviceCert_->keyPem());
+    }
+
+    // Build the effective AP SSID — apply MAC suffix if configured.
+    wifi_manager::ApConfig effectiveApConfig = apConfig;
+    effectiveApConfig.ssid = applySuffix(apConfig.ssid, apConfig.ssidSuffix, mac_);
+    log.info("AP SSID: %s", effectiveApConfig.ssid.c_str());
+
+    // Populate the remaining WiFi context fields that depend on the above.
+    wifiCtx.apConfig     = effectiveApConfig;
+    wifiCtx.mdnsHostname = hostname;
+
     ota::OtaPuller::init(otaPullConfig_);
     ota::OtaPuller::start();
     wifiManager->start();

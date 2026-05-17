@@ -20,9 +20,10 @@ namespace esp_platform {
 
 static logger::Logger log{"EspDeviceCert"};
 
-static constexpr const char *NVS_NAMESPACE = "device_cert";
-static constexpr const char *NVS_KEY_CERT  = "cert_pem";
-static constexpr const char *NVS_KEY_KEY   = "key_pem";
+static constexpr const char *NVS_NAMESPACE    = "device_cert";
+static constexpr const char *NVS_KEY_CERT     = "cert_pem";
+static constexpr const char *NVS_KEY_KEY      = "key_pem";
+static constexpr const char *NVS_KEY_HOSTNAME = "hostname";
 
 // ---------------------------------------------------------------------------
 // ASN.1 SAN extension builder
@@ -167,12 +168,19 @@ esp_err_t EspDeviceCert::loadFromNvs() {
 
     err = readStr(NVS_KEY_CERT, cert_);
     if (err == ESP_OK) err = readStr(NVS_KEY_KEY, key_);
+    if (err == ESP_OK) {
+        // hostname key was added later — tolerate its absence so old devices
+        // regenerate cleanly on first boot after upgrading firmware.
+        esp_err_t hn = readStr(NVS_KEY_HOSTNAME, storedHostname_);
+        if (hn != ESP_OK) storedHostname_.clear();
+    }
 
     nvs_close(h);
 
     if (err != ESP_OK) {
         cert_.clear();
         key_.clear();
+        storedHostname_.clear();
     }
     return err;
 }
@@ -184,6 +192,7 @@ esp_err_t EspDeviceCert::storeToNvs() const {
 
     err = nvs_set_str(h, NVS_KEY_CERT, cert_.c_str());
     if (err == ESP_OK) err = nvs_set_str(h, NVS_KEY_KEY, key_.c_str());
+    if (err == ESP_OK) err = nvs_set_str(h, NVS_KEY_HOSTNAME, storedHostname_.c_str());
     if (err == ESP_OK) err = nvs_commit(h);
 
     nvs_close(h);
@@ -360,6 +369,7 @@ esp_err_t EspDeviceCert::generateAndStore(const std::string &hostname) {
         cert_ = std::string(reinterpret_cast<char *>(crtBuf.get()));
     }
 
+    storedHostname_ = hostname;
     log.info("Certificate generated (%zu bytes cert, %zu bytes key)",
              cert_.size(), key_.size());
 
@@ -394,8 +404,15 @@ cleanup:
 
 common::Result EspDeviceCert::ensure(const std::string &hostname) {
     if (loadFromNvs() == ESP_OK) {
-        log.info("Loaded cert from NVS (hostname in cert may differ if renamed)");
-        return common::Result::Ok;
+        if (storedHostname_ == hostname) {
+            log.info("Loaded cert from NVS for '%s'", hostname.c_str());
+            return common::Result::Ok;
+        }
+        log.info("Hostname changed ('%s' → '%s') — regenerating cert",
+                 storedHostname_.c_str(), hostname.c_str());
+        cert_.clear();
+        key_.clear();
+        storedHostname_.clear();
     }
     return toResult(generateAndStore(hostname));
 }
