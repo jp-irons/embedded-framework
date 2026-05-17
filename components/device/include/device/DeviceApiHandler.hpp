@@ -24,9 +24,11 @@ class DeviceApiHandler : public http::HttpHandler {
 
     common::Result handleGet    (http::HttpRequest& req, http::HttpResponse& res);
     common::Result handlePost   (http::HttpRequest& req, http::HttpResponse& res);
-    common::Result handleClearNvs(http::HttpRequest& req, http::HttpResponse& res);
-    common::Result handleReboot  (http::HttpRequest& req, http::HttpResponse& res);
-    common::Result handleInfo    (http::HttpRequest& req, http::HttpResponse& res);
+    common::Result handleClearNvs          (http::HttpRequest& req, http::HttpResponse& res);
+    common::Result handleReboot            (http::HttpRequest& req, http::HttpResponse& res);
+    common::Result handleInfo              (http::HttpRequest& req, http::HttpResponse& res);
+    common::Result handleHostnameConfigGet (http::HttpRequest& req, http::HttpResponse& res);
+    common::Result handleHostnameConfigPost(http::HttpRequest& req, http::HttpResponse& res);
 };
 
 } // namespace device

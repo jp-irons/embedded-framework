@@ -526,6 +526,43 @@ document.addEventListener("DOMContentLoaded", () => {
                 app.innerHTML = `
                     <h1 class="text-2xl font-semibold mb-4">Device</h1>
 
+                    <!-- Device Identity — shown first so it's always visible -->
+                    <div class="border rounded p-4 bg-gray-50 mb-6">
+                        <div class="text-sm">
+                            <h2 class="font-medium mb-1">Identity</h2>
+                            <p class="text-gray-500 mb-3" style="font-size:0.75rem;">
+                                Changes take effect after reboot.
+                                Leave a field blank to revert to the firmware default
+                                (MAC suffix re-applied automatically).
+                            </p>
+                            <div style="display:grid; grid-template-columns:4.5rem 1fr auto;
+                                        gap:0.5rem 0.75rem; align-items:center;">
+                                <label class="font-medium" style="text-align:right;">Hostname</label>
+                                <input id="input-hostname-prefix" type="text"
+                                       style="min-width:0;"
+                                       class="px-3 py-1.5 border rounded"
+                                       placeholder="Leave blank to use firmware default" />
+                                <span id="hostname-effective"
+                                      style="font-family:monospace; font-size:0.72rem; color:#9ca3af; white-space:nowrap;"></span>
+
+                                <label class="font-medium" style="text-align:right;">AP SSID</label>
+                                <input id="input-ap-ssid-prefix" type="text"
+                                       style="min-width:0;"
+                                       class="px-3 py-1.5 border rounded"
+                                       placeholder="Leave blank to use firmware default" />
+                                <span id="ap-ssid-effective"
+                                      style="font-family:monospace; font-size:0.72rem; color:#9ca3af; white-space:nowrap;"></span>
+                            </div>
+                        </div>
+                        <div class="flex justify-end mt-3">
+                            <button id="btn-save-identity"
+                                    class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+                                Save &amp; Reboot
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Device info card -->
                     <div id="device-info-container"
                          class="border rounded p-4 bg-white shadow-sm text-sm">
                         Loading…

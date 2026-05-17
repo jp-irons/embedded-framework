@@ -10,9 +10,11 @@
 //
 
 import {
-    loadDeviceInfo as apiLoadDeviceInfo,
+    loadDeviceInfo    as apiLoadDeviceInfo,
     rebootDevice,
-    clearNvs      as apiClearNvs,
+    clearNvs          as apiClearNvs,
+    loadHostnameConfig as apiLoadHostnameConfig,
+    saveHostnameConfig as apiSaveHostnameConfig,
     isAuthenticated,
     forceReauth,
     startReconnectPolling
@@ -33,6 +35,7 @@ import {
  */
 export function initDeviceView() {
     refreshDeviceInfo();
+    loadHostnameConfig();
 
     const btnRefreshInfo = document.getElementById("btn-refresh-device-info");
     if (btnRefreshInfo) btnRefreshInfo.onclick = refreshDeviceInfo;
@@ -42,6 +45,9 @@ export function initDeviceView() {
 
     const btnReboot = document.getElementById("btn-reboot");
     if (btnReboot) btnReboot.onclick = requestReboot;
+
+    const btnSaveIdentity = document.getElementById("btn-save-identity");
+    if (btnSaveIdentity) btnSaveIdentity.onclick = requestSaveIdentity;
 }
 
 
@@ -67,65 +73,112 @@ async function refreshDeviceInfo() {
 
     const fmt  = (v, divisor, dp) =>
         (v != null && isFinite(v)) ? (v / divisor).toFixed(dp) : "—";
-    const flashMB       = fmt(info.flashSize,    1024 * 1024, 0);
-    const freeHeapKB    = fmt(info.freeHeap,     1024,        0);
-    const minFreeHeapKB = fmt(info.minFreeHeap,  1024,        0);
+    const flashMB       = fmt(info.flashSize,    1024 * 1024, 0) + " MB";
+    const psramMB       = info.psramSize ? fmt(info.psramSize, 1024 * 1024, 0) + " MB" : "—";
+    const freeHeapKB    = fmt(info.freeHeap,     1024,        0) + " KB";
+    const minFreeHeapKB = fmt(info.minFreeHeap,  1024,        0) + " KB";
     const tempStr       = (info.temperature != null && isFinite(info.temperature))
         ? info.temperature.toFixed(1) + "°C"
         : "—";
-    const psramRow = info.psramSize
-        ? `<tr><td class="pr-4 font-semibold text-right">PSRAM Size:</td><td>${fmt(info.psramSize, 1024 * 1024, 0)} MB</td></tr>`
-        : "";
 
+    // CSS grid: max-content labels (sized to widest across all rows) + 1fr values.
+    // This gives perfectly aligned columns without any per-row width negotiation.
     container.innerHTML = `
-        <table class="text-sm">
-            <tr>
-                <td class="pr-4 font-semibold text-right">Chip Model:</td>
-                <td>${info.chipModel} rev ${info.revision}</td>
-            </tr>
-            <tr>
-                <td class="pr-4 font-semibold text-right">MAC Address:</td>
-                <td>${info.mac}</td>
-            </tr>
-            <tr>
-                <td class="pr-4 font-semibold text-right">Flash Size:</td>
-                <td>${flashMB} MB</td>
-            </tr>
-            ${psramRow}
-            <tr>
-                <td class="pr-4 font-semibold text-right">Free Heap:</td>
-                <td>${freeHeapKB} KB</td>
-            </tr>
-            <tr>
-                <td class="pr-4 font-semibold text-right">Min Free Heap:</td>
-                <td>${minFreeHeapKB} KB</td>
-            </tr>
-            <tr>
-                <td class="pr-4 font-semibold text-right">CPU Frequency:</td>
-                <td>${info.cpuFreqMhz} MHz</td>
-            </tr>
-            <tr>
-                <td class="pr-4 font-semibold text-right">ESP-IDF Version:</td>
-                <td>${info.idfVersion}</td>
-            </tr>
-            <tr>
-                <td class="pr-4 font-semibold text-right">Last Reset:</td>
-                <td>${info.lastReset}</td>
-            </tr>
-            <tr>
-                <td class="pr-4 font-semibold text-right">Temperature:</td>
-                <td>${tempStr}</td>
-            </tr>
-            <tr>
-                <td class="pr-4 font-semibold text-right">Uptime:</td>
-                <td>${info.uptime}</td>
-            </tr>
-            <tr>
-                <td class="pr-4 font-semibold text-right">OTA Partition:</td>
-                <td>${info.otaPartition}</td>
-            </tr>
-        </table>
+        <div style="display:grid; grid-template-columns:max-content 1fr max-content 1fr;
+                    gap:0.3rem 0.75rem; align-items:baseline;">
+            <span style="font-weight:600; white-space:nowrap;">Chip Model:</span>
+            <span>${info.chipModel} rev ${info.revision}</span>
+            <span style="font-weight:600; white-space:nowrap;">MAC Address:</span>
+            <span>${info.mac}</span>
+
+            <span style="font-weight:600; white-space:nowrap;">Flash Size:</span>
+            <span>${flashMB}</span>
+            <span style="font-weight:600; white-space:nowrap;">PSRAM Size:</span>
+            <span>${psramMB}</span>
+
+            <span style="font-weight:600; white-space:nowrap;">Free Heap:</span>
+            <span>${freeHeapKB}</span>
+            <span style="font-weight:600; white-space:nowrap;">Min Free Heap:</span>
+            <span>${minFreeHeapKB}</span>
+
+            <span style="font-weight:600; white-space:nowrap;">CPU Frequency:</span>
+            <span>${info.cpuFreqMhz} MHz</span>
+            <span style="font-weight:600; white-space:nowrap;">ESP-IDF Version:</span>
+            <span>${info.idfVersion}</span>
+
+            <span style="font-weight:600; white-space:nowrap;">Uptime:</span>
+            <span>${info.uptime}</span>
+            <span style="font-weight:600; white-space:nowrap;">Temperature:</span>
+            <span>${tempStr}</span>
+
+            <span style="font-weight:600; white-space:nowrap;">Last Reset:</span>
+            <span>${info.lastReset}</span>
+            <span style="font-weight:600; white-space:nowrap;">OTA Partition:</span>
+            <span>${info.otaPartition}</span>
+        </div>
     `;
+}
+
+
+// ============================================================
+// Device identity (hostname / AP SSID prefix)
+// ============================================================
+
+async function loadHostnameConfig() {
+    const inputHostname = document.getElementById("input-hostname-prefix");
+    const inputApSsid   = document.getElementById("input-ap-ssid-prefix");
+    const spanHostname  = document.getElementById("hostname-effective");
+    const spanApSsid    = document.getElementById("ap-ssid-effective");
+
+    try {
+        const data = await apiLoadHostnameConfig();
+        if (inputHostname) inputHostname.value       = data.hostnamePrefix  || "";
+        if (inputApSsid)   inputApSsid.value         = data.apSsidPrefix    || "";
+        if (spanHostname)  spanHostname.textContent   = data.effectiveHostname
+                                                          ? "→ " + data.effectiveHostname + ".local"
+                                                          : "";
+        if (spanApSsid)    spanApSsid.textContent     = data.effectiveApSsid
+                                                          ? "→ " + data.effectiveApSsid
+                                                          : "";
+    } catch (err) {
+        if (err.message === "network") return;
+        console.warn("Hostname config load failed:", err);
+    }
+}
+
+function requestSaveIdentity() {
+    const inputHostname  = document.getElementById("input-hostname-prefix");
+    const inputApSsid    = document.getElementById("input-ap-ssid-prefix");
+    const hostnamePrefix = inputHostname?.value.trim() ?? "";
+    const apSsidPrefix   = inputApSsid?.value.trim()   ?? "";
+    // Empty string is valid — it signals "clear this override and revert to default".
+
+    showConfirm(
+        "danger",
+        "Save & Reboot",
+        "Save device identity and reboot? The device will reconnect automatically " +
+        "and you will be prompted to log in again.",
+        () => handleSaveIdentity(hostnamePrefix, apSsidPrefix)
+    );
+}
+
+async function handleSaveIdentity(hostnamePrefix, apSsidPrefix) {
+    const btn = document.getElementById("btn-save-identity");
+    if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+
+    try {
+        await apiSaveHostnameConfig(hostnamePrefix, apSsidPrefix);
+        await rebootDevice();
+        showMessage("success", "Saved — Rebooting",
+                    "Device identity saved. Device is rebooting. " +
+                    "Reconnecting automatically — you will be prompted to log in again shortly.");
+        startReconnectPolling();
+    } catch (err) {
+        if (btn) { btn.disabled = false; btn.textContent = "Save & Reboot"; }
+        if (!isAuthenticated() || err.message === "network") return;
+        console.error(err);
+        showMessage("error", "Save Failed", err.message || "Unable to save device identity.");
+    }
 }
 
 

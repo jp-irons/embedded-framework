@@ -371,6 +371,15 @@ export function loadDeviceInfo() {
 }
 
 
+export function loadHostnameConfig() {
+    return get(`/framework/api/device/hostnameConfig?ts=${Date.now()}`);
+}
+
+export function saveHostnameConfig(hostnamePrefix, apSsidPrefix) {
+    return post("/framework/api/device/hostnameConfig", { hostnamePrefix, apSsidPrefix });
+}
+
+
 // ---------- Reconnect polling ----------
 //
 // After an intentional reboot (user clicked Reboot / Rollback / Factory Reset)

@@ -1,10 +1,12 @@
 idf_component_register(
     SRCS
         DeviceApiHandler.cpp
+        DeviceConfigStore.cpp
     INCLUDE_DIRS
         include
     REQUIRES
         common
         http
         logger
+        nvs_flash
 )

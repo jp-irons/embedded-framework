@@ -2,6 +2,7 @@
 
 #include "network_store/NetworkApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
+#include "device/DeviceConfigStore.hpp"
 #include "esp_platform/EspClockInterface.hpp"
 #include "esp_platform/EspDeviceCert.hpp"
 #include "esp_platform/EspHttpServer.hpp"
@@ -242,8 +243,16 @@ void FrameworkContext::setApPassword(std::string password) {
 void FrameworkContext::start() {
     log.debug("start");
 
-    // Build the effective hostname from the configured prefix + suffix policy.
-    const std::string hostname = applySuffix(hostnamePrefix_, hostnameSuffix_, mac_);
+    // Load any NVS-persisted prefix overrides; fall back to app-set defaults.
+    device::DeviceConfigStore::init(hostnamePrefix_, apConfig.ssid);
+
+    // Build the effective hostname — suppress the MAC suffix when the user has
+    // explicitly set a name via the UI (NVS override), since they are specifying
+    // the complete intended name rather than a generic prefix.
+    const auto& dcfg = device::DeviceConfigStore::config();
+    const wifi_manager::SuffixPolicy hostnameSuffixToUse =
+        dcfg.hostnameFromNvs ? wifi_manager::SuffixPolicy::None : hostnameSuffix_;
+    const std::string hostname = applySuffix(dcfg.hostnamePrefix, hostnameSuffixToUse, mac_);
     log.info("Device hostname: %s.local", hostname.c_str());
 
     // Ensure a per-device TLS cert exists (generates + stores on first boot).
@@ -257,10 +266,15 @@ void FrameworkContext::start() {
         embeddedServer->setCert(deviceCert_->certPem(), deviceCert_->keyPem());
     }
 
-    // Build the effective AP SSID — apply MAC suffix if configured.
+    // Build the effective AP SSID — same rule: suppress suffix for user-set names.
     wifi_manager::ApConfig effectiveApConfig = apConfig;
-    effectiveApConfig.ssid = applySuffix(apConfig.ssid, apConfig.ssidSuffix, mac_);
+    const wifi_manager::SuffixPolicy apSuffixToUse =
+        dcfg.apSsidFromNvs ? wifi_manager::SuffixPolicy::None : apConfig.ssidSuffix;
+    effectiveApConfig.ssid = applySuffix(dcfg.apSsidPrefix, apSuffixToUse, mac_);
     log.info("AP SSID: %s", effectiveApConfig.ssid.c_str());
+
+    // Store effective names so DeviceApiHandler can report them on GET.
+    device::DeviceConfigStore::setEffectiveNames(hostname, effectiveApConfig.ssid);
 
     // Populate the remaining WiFi context fields that depend on the above.
     wifiCtx.apConfig     = effectiveApConfig;
