@@ -69,7 +69,7 @@ void ApplicationContext::start() {
     fw_.setHostnameConfig("esp-fw");
     fw_.setApSsidConfig("EspFramework");
     fw_.setApPassword("espframework");
-
+	
     // ── Start the framework (WiFi, server, OTA, …) ────────────────────────
     fw_.start();
 }
