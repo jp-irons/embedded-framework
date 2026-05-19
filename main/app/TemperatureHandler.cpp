@@ -8,6 +8,8 @@
 
 static logger::Logger log{"TemperatureHandler"};
 
+namespace app {
+
 // Sensor lifecycle is owned by EspDeviceInterface::readTemperature().
 // Having two owners caused "Already installed" errors from the ESP-IDF driver.
 TemperatureHandler::TemperatureHandler(device::DeviceInterface& device)
@@ -25,3 +27,5 @@ common::Result TemperatureHandler::handle(http::HttpRequest& /*req*/,
 
     return res.sendJson(body);
 }
+
+} // namespace app

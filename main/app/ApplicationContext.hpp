@@ -5,6 +5,8 @@
 #include "TemperatureHandler.hpp"
 #include "framework/FrameworkContext.hpp"
 
+namespace app {
+
 /**
  * ApplicationContext — the app-side counterpart to FrameworkContext.
  *
@@ -40,3 +42,5 @@ class ApplicationContext {
     // valid when the initialiser list runs.
     TemperatureHandler temperatureHandler_;
 };
+
+} // namespace app

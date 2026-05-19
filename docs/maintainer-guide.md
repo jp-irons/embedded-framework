@@ -30,6 +30,16 @@ The workflow validates that the tag version matches `version.txt` before buildin
 
 > **Do not push a tag until `version.txt` has been committed and pushed.**
 
+## Delete a release
+
+In GitHub delete the release, then delete the tags
+```bash
+git tag -d <tagname>  
+git push origin --delete <tagname>
+```
+
+
+
 ## Template repository
 
 The [embedded-app-template](https://github.com/jp-irons/embedded-app-template) repository is a GitHub template that gives app developers a ready-to-build starting point. Its submodule is pinned to a specific framework release, so new apps always start from a known-good baseline.

@@ -4,14 +4,12 @@
 #include "ApplicationContext.hpp"
 #include "auth/AuthApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
-#include "device/DeviceInterface.hpp"
 #include "esp_platform/EspDeviceInterface.hpp"
 #include "esp_platform/EspHttpServer.hpp"
 #include "esp_platform/EspWiFiInterface.hpp"
 #include "framework/FrameworkContext.hpp"
 #include "framework_files/EmbeddedFileHandler.hpp"
 #include "framework_files/EmbeddedFileTable.hpp"
-#include "http/HttpServer.hpp"
 #include "logger/EspIdfLogSink.hpp"
 #include "logger/LogSinkRegistry.hpp"
 #include "network_store/NetworkApiHandler.hpp"
@@ -19,7 +17,6 @@
 #include "ota/OtaApiHandler.hpp"
 #include "wifi_manager/EmbeddedServer.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
-#include "wifi_manager/WiFiInterface.hpp"
 #include "wifi_manager/WiFiManager.hpp"
 #include "wifi_manager/WiFiStateMachine.hpp"
 
@@ -31,7 +28,7 @@ void setupLogging() {
 
     LogSinkRegistry::setDefaultLevel(LogLevel::Info);
     LogSinkRegistry::setLevelForTag("app_main", LogLevel::Debug);
-    LogSinkRegistry::setLevelForTag(ApplicationContext::TAG, LogLevel::Debug);
+    LogSinkRegistry::setLevelForTag(app::ApplicationContext::TAG, LogLevel::Debug);
     // API handlers
     LogSinkRegistry::setLevelForTag(auth::AuthApiHandler::TAG, LogLevel::Debug);
     LogSinkRegistry::setLevelForTag(device::DeviceApiHandler::TAG, LogLevel::Debug);

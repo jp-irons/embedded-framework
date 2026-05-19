@@ -1,4 +1,4 @@
-#include "ApplicationContext.hpp"
+#include "app/ApplicationContext.hpp"
 #include "LoggingConfig.hpp"
 #include "logger/Logger.hpp"
 #include "ota/OtaManager.hpp"
@@ -38,13 +38,13 @@ extern "C" void app_main(void) {
 	//
 	framework::FrameworkContext fw{};
 
-	ApplicationContext app{fw};
-	app.start();
+	app::ApplicationContext appCtx{fw};
+	appCtx.start();
     log.info("System initialised");
 
     // Main loop
     while (true) {
-        app.loop();
+        appCtx.loop();
         vTaskDelay(pdMS_TO_TICKS(50));
     }
 }

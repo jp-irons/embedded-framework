@@ -3,7 +3,9 @@
 #include "http_types/HttpTypes.hpp"
 #include "logger/Logger.hpp"
 
-static logger::Logger log{ApplicationContext::TAG};
+static logger::Logger log{app::ApplicationContext::TAG};
+
+namespace app {
 
 ApplicationContext::ApplicationContext(framework::FrameworkContext& fw)
     : fw_(fw)
@@ -82,3 +84,5 @@ void ApplicationContext::start() {
 void ApplicationContext::loop() {
     // Optional per-tick work.  The main loop calls this every 50 ms.
 }
+
+} // namespace app
