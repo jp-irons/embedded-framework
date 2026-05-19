@@ -3,6 +3,7 @@
 #include "http/HttpServer.hpp"
 #include "esp_http_server.h"
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,8 @@ class EspHttpServer : public http::HttpServer {
 
     void setCert(std::string certPem, std::string keyPem) override;
 
+    void setOnRequestCallback(std::function<void()> cb) override;
+
     void start() override;
     void stop()  override;
 
@@ -43,6 +46,9 @@ class EspHttpServer : public http::HttpServer {
     // Runtime cert (set via setCert()). Empty = use embedded fallback.
     std::string runtimeCertPem_;
     std::string runtimeKeyPem_;
+
+    // Optional pre-dispatch hook — called on every request before the handler.
+    std::function<void()> onRequest_;
 
     void startRedirectServer();
     void stopRedirectServer();

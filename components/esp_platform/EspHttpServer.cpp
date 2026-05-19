@@ -44,6 +44,10 @@ void EspHttpServer::setCert(std::string certPem, std::string keyPem) {
     runtimeKeyPem_  = std::move(keyPem);
 }
 
+void EspHttpServer::setOnRequestCallback(std::function<void()> cb) {
+    onRequest_ = std::move(cb);
+}
+
 void EspHttpServer::start() {
     if (server_) {
         return;
@@ -52,6 +56,7 @@ void EspHttpServer::start() {
     httpd_ssl_config_t conf = HTTPD_SSL_CONFIG_DEFAULT();
     conf.httpd.uri_match_fn     = httpd_uri_match_wildcard;
     conf.httpd.lru_purge_enable = true;
+    conf.httpd.global_user_ctx  = this;  // lets handlerAdapter() reach onRequest_
     // Socket budget (must satisfy: HTTPS + redirect < CONFIG_LWIP_MAX_SOCKETS):
     //   HTTPS server:    13  (parallel ES-module fetches at page load)
     //   Redirect server:  4  (instantaneous redirects, low concurrency)
@@ -194,6 +199,10 @@ void EspHttpServer::addRoute(http::HttpMethod method, const std::string &path,
 
 esp_err_t EspHttpServer::handlerAdapter(httpd_req_t *req) {
     log.debug("handlerAdapter '%s'", req->uri);
+    auto *self = static_cast<EspHttpServer *>(httpd_get_global_user_ctx(req->handle));
+    if (self && self->onRequest_) {
+        self->onRequest_();
+    }
     auto *handler = static_cast<http::HttpHandler *>(req->user_ctx);
     EspHttpRequest  request(req);
     EspHttpResponse response(req);

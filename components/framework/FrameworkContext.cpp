@@ -214,6 +214,10 @@ void FrameworkContext::addRoute(http::HttpMethod method, std::string prefix,
     embeddedServer->addAppRoute(method, std::move(prefix), handler);
 }
 
+void FrameworkContext::setOnRequestCallback(std::function<void()> cb) {
+    httpServer_->setOnRequestCallback(std::move(cb));
+}
+
 void FrameworkContext::setOtaPullConfig(ota::OtaPullConfig config) {
     otaPullConfig_ = std::move(config);
 }

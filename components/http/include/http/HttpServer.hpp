@@ -1,6 +1,7 @@
 #pragma once
 
 #include "http/HttpHandler.hpp"
+#include <functional>
 #include <string>
 
 namespace http {
@@ -22,6 +23,15 @@ class HttpServer {
      * If not called, the cert embedded via EMBED_TXTFILES is used as a fallback.
      */
     virtual void setCert(std::string certPem, std::string keyPem) = 0;
+
+    /**
+     * Register a callback invoked on every incoming request, before the
+     * request is dispatched to any handler.  Intended for cross-cutting
+     * concerns such as activity tracking.  Pass an empty std::function to
+     * clear a previously set callback.
+     * Must be called before start().
+     */
+    virtual void setOnRequestCallback(std::function<void()> cb) = 0;
 
     /** Starts the HTTPS server on port 443 and an HTTP→HTTPS redirector on port 80. */
     virtual void start() = 0;

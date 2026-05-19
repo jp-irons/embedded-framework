@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "auth/ApiKeyStore.hpp"
 #include "auth/AuthApiHandler.hpp"
 #include "auth/AuthConfig.hpp"
@@ -124,6 +126,14 @@ class FrameworkContext {
      * Must be called before fw_.start().
      */
     void setApPassword(std::string password);
+
+    /**
+     * Register a callback invoked on every incoming HTTPS request before it
+     * is dispatched to any handler.  Useful for cross-cutting concerns such as
+     * resetting an activity / idle timer.
+     * Must be called before start().
+     */
+    void setOnRequestCallback(std::function<void()> cb);
 
     /**
      * Register an app static-file handler for the given URL prefix.

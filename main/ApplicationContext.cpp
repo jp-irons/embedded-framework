@@ -70,6 +70,11 @@ void ApplicationContext::start() {
     fw_.setApSsidConfig("EspFramework");
     fw_.setApPassword("espframework");
 	
+    // ── Request activity hook (demo) ──────────────────────────────────────
+    // Fired on every incoming HTTPS request before handler dispatch.
+    // Replace this lambda with e.g. activityManager_.poke() in a real app.
+    fw_.setOnRequestCallback([](){ log.info("HTTP request received"); });
+
     // ── Start the framework (WiFi, server, OTA, …) ────────────────────────
     fw_.start();
 }
