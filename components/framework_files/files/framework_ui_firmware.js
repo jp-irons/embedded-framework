@@ -16,6 +16,8 @@ import {
     loadPullStatus       as apiLoadPullStatus,
     getPullCheckStatus   as apiGetPullCheckStatus,
     checkUpdate          as apiCheckUpdate,
+    applyUpdate          as apiApplyUpdate,
+    cancelUpdate         as apiCancelUpdate,
     savePullConfig       as apiSavePullConfig,
     setAutoUpdateEnabled as apiSetAutoUpdateEnabled,
     isAuthenticated,
@@ -25,7 +27,8 @@ import {
 
 import {
     showConfirm,
-    showMessage
+    showMessage,
+    hideConfirmModal
 } from "./modal.js";
 
 // ── Module state ─────────────────────────────────────────────────────────────
@@ -541,15 +544,18 @@ function applyCheckStatus(state, message, downloaded = 0, total = 0) {
         : "";
 
     const map = {
-        idle:        null,
-        checking:    { bg: "#eff6ff", color: "#1e40af", txt: "Checking for updates…" },
-        up_to_date:  { bg: "#f0fdf4", color: "#166534",
-                       txt: message ? `Already up to date (${message})` : "Already up to date" },
-        downloading: { bg: "#fffbeb", color: "#92400e",
-                       txt: (message ? `Update found (${message}) — downloading` : "Update found — downloading") + progress + "…" },
-        rebooting:   { bg: "#fffbeb", color: "#92400e",
-                       txt: "Update downloaded — device is rebooting…" },
-        error:       { bg: "#fef2f2", color: "#991b1b", txt: message || "Check failed" },
+        idle:             null,
+        checking:         { bg: "#eff6ff", color: "#1e40af",
+                            txt: "Checking for updates…" },
+        up_to_date:       { bg: "#f0fdf4", color: "#166534",
+                            txt: message ? `Already up to date (${message})` : "Already up to date" },
+        update_available: { bg: "#eff6ff", color: "#1e40af",
+                            txt: message ? `Update ${message} available` : "Update available" },
+        downloading:      { bg: "#fffbeb", color: "#92400e",
+                            txt: (message ? `Downloading ${message}` : "Downloading") + progress + "…" },
+        rebooting:        { bg: "#fffbeb", color: "#92400e",
+                            txt: "Update downloaded — device is rebooting…" },
+        error:            { bg: "#fef2f2", color: "#991b1b", txt: message || "Check failed" },
     };
 
     const cfg = map[state];
@@ -562,6 +568,40 @@ function applyCheckStatus(state, message, downloaded = 0, total = 0) {
     strip.style.color      = cfg.color;
     text.textContent       = cfg.txt;
     strip.classList.remove("hidden");
+
+    // update_available: stop polling and ask the user to confirm
+    if (state === "update_available") {
+        stopCheckPolling();
+        const versionLabel = message ? `version ${message}` : "a new version";
+        showConfirm(
+            "warning",
+            "Firmware Update Available",
+            `${versionLabel.charAt(0).toUpperCase() + versionLabel.slice(1)} is available. Download and install now? The device will reboot when complete.`,
+            // onConfirm
+            async () => {
+                const gen = _fwViewGeneration;
+                try {
+                    await apiApplyUpdate();
+                    if (_fwViewGeneration !== gen) return;
+                    startCheckPolling();
+                } catch (err) {
+                    if (_fwViewGeneration !== gen) return;
+                    if (!isAuthenticated() || err.message === "network") return;
+                    applyCheckStatus("error", err.message || "Could not start download");
+                }
+            },
+            // onCancel
+            async () => {
+                const gen = _fwViewGeneration;
+                try { await apiCancelUpdate(); } catch {}
+                if (_fwViewGeneration !== gen) return;
+                strip.classList.add("hidden");
+                const btn = document.getElementById("btn-fw-check-update");
+                if (btn) { btn.disabled = false; btn.textContent = "Check Now"; }
+            }
+        );
+        return;
+    }
 
     // Terminal states: re-enable the button and auto-hide the strip after a delay
     if (state === "up_to_date" || state === "error") {

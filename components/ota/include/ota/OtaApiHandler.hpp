@@ -49,6 +49,14 @@ class OtaApiHandler : public http::HttpHandler {
     ///                                Returns immediately; check runs in background.
     common::Result handleCheckUpdate (http::HttpRequest& req, http::HttpResponse& res);
 
+    /// POST /firmware/applyUpdate  -- download and flash the pending update found
+    ///                                by checkUpdate.  Only valid when pull-check
+    ///                                state is UpdateAvailable.
+    common::Result handleApplyUpdate (http::HttpRequest& req, http::HttpResponse& res);
+
+    /// POST /firmware/cancelUpdate -- cancel a pending update (UpdateAvailable → Idle).
+    common::Result handleCancelUpdate(http::HttpRequest& req, http::HttpResponse& res);
+
     /// POST /firmware/pullConfig   -- update the pull base URL (plain-text body).
     ///                                Persists to NVS.
     common::Result handlePullConfig  (http::HttpRequest& req, http::HttpResponse& res);
