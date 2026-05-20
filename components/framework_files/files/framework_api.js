@@ -277,6 +277,14 @@ export function checkUpdate() {
     return post("/framework/api/firmware/checkUpdate");
 }
 
+export function applyUpdate() {
+    return post("/framework/api/firmware/applyUpdate");
+}
+
+export function cancelUpdate() {
+    return post("/framework/api/firmware/cancelUpdate");
+}
+
 export function savePullConfig(url) {
     return postText("/framework/api/firmware/pullConfig", url);
 }

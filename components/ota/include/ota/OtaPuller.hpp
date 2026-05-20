@@ -39,11 +39,12 @@ struct OtaPullConfig {
  * Values are sequential so they can be indexed into a string table.
  */
 enum class PullCheckState : int {
-    Idle        = 0,  // no check in progress
-    Checking    = 1,  // fetching version.txt
-    UpToDate    = 2,  // version matched, nothing to do
-    Downloading = 3,  // new version found, esp_https_ota() in progress
-    Error       = 4,  // any failure
+    Idle            = 0,  // no check in progress
+    Checking        = 1,  // fetching version.txt
+    UpToDate        = 2,  // version matched, nothing to do
+    Downloading     = 3,  // user confirmed; esp_https_ota() in progress
+    Error           = 4,  // any failure
+    UpdateAvailable = 5,  // newer version found; awaiting user confirmation
 };
 
 /**
@@ -80,16 +81,31 @@ class OtaPuller {
     static void start();
 
     /**
-     * Perform an immediate version check and update if a newer build exists.
+     * Perform an immediate version check.
      *
      * - Fetches {baseUrl}/version.txt over HTTPS.
      * - Compares with the running firmware version.
-     * - If different: fetches and flashes {baseUrl}/firmware.bin, then reboots.
-     *   Does not return on a successful update.
-     * - If up to date: logs and returns true.
-     * - On any network or flash error: logs and returns false.
+     * - If up to date: sets state to UpToDate and returns true.
+     * - If newer: sets state to UpdateAvailable (message = remote version)
+     *   and returns true.  The download does NOT start automatically —
+     *   call applyUpdate() after the user confirms.
+     * - On any network or flash error: sets state to Error and returns false.
      */
     static bool checkNow();
+
+    /**
+     * Download and flash the pending update found by checkNow().
+     * Must only be called when checkState() == UpdateAvailable.
+     * Reboots the device on success.  Does not return on success.
+     * Sets state to Error and returns false on failure.
+     */
+    static bool applyUpdate();
+
+    /**
+     * Cancel a pending update (UpdateAvailable → Idle).
+     * No-op if the current state is not UpdateAvailable.
+     */
+    static void cancelUpdate();
 
     /**
      * Persist a new base URL to NVS, replacing the compiled-in default.

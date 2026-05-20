@@ -382,9 +382,22 @@ bool OtaPuller::checkNow() {
         return true;
     }
 
-    // ── Step 2: download and flash ────────────────────────────────────────
-    log.info("checkNow: update available — downloading %s", firmwareUrl.c_str());
-    setCheckState(PullCheckState::Downloading, remote.c_str());
+    // ── Step 2: notify — do NOT download automatically ────────────────────
+    // Set UpdateAvailable and return.  The UI will prompt the user; the
+    // actual download is triggered by applyUpdate() on confirmation.
+    log.info("checkNow: update available (%s) — awaiting user confirmation",
+             remote.c_str());
+    setCheckState(PullCheckState::UpdateAvailable, remote.c_str());
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+// Shared download-and-flash helper
+// ---------------------------------------------------------------------------
+
+static bool doDownloadAndFlash(const std::string& firmwareUrl,
+                               const std::string& remoteVersion) {
+    setCheckState(PullCheckState::Downloading, remoteVersion.c_str());
     s_downloadedBytes.store(0, std::memory_order_release);
     s_totalBytes.store(0, std::memory_order_release);
     s_otaHttpClient = nullptr;
@@ -397,14 +410,13 @@ bool OtaPuller::checkNow() {
     http_cfg.buffer_size_tx    = 2048;
 
     esp_https_ota_config_t ota_cfg = {};
-    ota_cfg.http_config          = &http_cfg;
-    ota_cfg.http_client_init_cb  = otaHttpInitCb;  // saves handle so we can read Content-Length
+    ota_cfg.http_config         = &http_cfg;
+    ota_cfg.http_client_init_cb = otaHttpInitCb;  // saves handle so we can read Content-Length
 
-    // Use the advanced API so we can report download progress via s_downloadedBytes.
     esp_https_ota_handle_t ota_handle = nullptr;
     esp_err_t err = esp_https_ota_begin(&ota_cfg, &ota_handle);
     if (err != ESP_OK) {
-        log.error("checkNow: esp_https_ota_begin failed: %s", esp_err_to_name(err));
+        log.error("doDownloadAndFlash: begin failed: %s", esp_err_to_name(err));
         setCheckState(PullCheckState::Error, "Download failed");
         return false;
     }
@@ -415,7 +427,7 @@ bool OtaPuller::checkNow() {
         const int64_t cl = esp_http_client_get_content_length(s_otaHttpClient);
         if (cl > 0) {
             s_totalBytes.store(static_cast<size_t>(cl), std::memory_order_release);
-            log.info("checkNow: firmware content-length: %lld bytes", cl);
+            log.info("doDownloadAndFlash: firmware content-length: %lld bytes", cl);
         }
     }
 
@@ -428,14 +440,14 @@ bool OtaPuller::checkNow() {
     }
 
     if (err != ESP_OK) {
-        log.error("checkNow: esp_https_ota_perform failed: %s", esp_err_to_name(err));
+        log.error("doDownloadAndFlash: perform failed: %s", esp_err_to_name(err));
         esp_https_ota_abort(ota_handle);
         setCheckState(PullCheckState::Error, "Download failed");
         return false;
     }
 
     if (!esp_https_ota_is_complete_data_received(ota_handle)) {
-        log.error("checkNow: incomplete OTA data received");
+        log.error("doDownloadAndFlash: incomplete data received");
         esp_https_ota_abort(ota_handle);
         setCheckState(PullCheckState::Error, "Incomplete download");
         return false;
@@ -443,15 +455,14 @@ bool OtaPuller::checkNow() {
 
     err = esp_https_ota_finish(ota_handle);
     if (err != ESP_OK) {
-        log.error("checkNow: esp_https_ota_finish failed: %s", esp_err_to_name(err));
+        log.error("doDownloadAndFlash: finish failed: %s", esp_err_to_name(err));
         setCheckState(PullCheckState::Error, "Flash failed");
         return false;
     }
 
-    log.info("checkNow: flash successful — rebooting");
+    log.info("doDownloadAndFlash: flash successful — rebooting");
     vTaskDelay(pdMS_TO_TICKS(500));
     esp_restart();
-
     return true;  // unreachable
 }
 
@@ -479,6 +490,36 @@ bool OtaPuller::setBaseUrl(const std::string& url) {
 
 std::string OtaPuller::getBaseUrl() {
     return s_activeUrl;
+}
+
+bool OtaPuller::applyUpdate() {
+    const CheckGuard guard;
+    if (!guard.acquired) {
+        log.warn("applyUpdate: operation already in progress — skipping");
+        return false;
+    }
+
+    if (s_checkState.load(std::memory_order_acquire) !=
+            static_cast<int>(PullCheckState::UpdateAvailable)) {
+        log.warn("applyUpdate: no pending update to apply");
+        return false;
+    }
+
+    // Reconstruct the firmware URL and capture the remote version string that
+    // checkNow() stored in s_checkMessage when it set UpdateAvailable.
+    const std::string firmwareUrl   = s_activeUrl + "/firmware.bin";
+    const std::string remoteVersion = s_checkMessage;
+
+    log.info("applyUpdate: user confirmed — downloading %s", firmwareUrl.c_str());
+    return doDownloadAndFlash(firmwareUrl, remoteVersion);
+}
+
+void OtaPuller::cancelUpdate() {
+    const int current = s_checkState.load(std::memory_order_acquire);
+    if (current == static_cast<int>(PullCheckState::UpdateAvailable)) {
+        log.info("cancelUpdate: update cancelled by user");
+        setCheckState(PullCheckState::Idle);
+    }
 }
 
 // ---------------------------------------------------------------------------

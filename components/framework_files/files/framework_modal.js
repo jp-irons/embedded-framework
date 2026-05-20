@@ -1,10 +1,19 @@
 // framework_modal.js
 
 let confirmCallback = null;
+let confirmCancelCallback = null;
 
 // ----- Confirm Modal -----
 
-export function showConfirm(type, title, message, onConfirm) {
+/**
+ * Show the confirm modal.
+ * @param {string}        type      - 'danger' | 'warning' | 'info'
+ * @param {string}        title
+ * @param {string}        message
+ * @param {Function}      onConfirm - Called when the user clicks OK.
+ * @param {Function|null} onCancel  - Optional. Called when the user clicks Cancel.
+ */
+export function showConfirm(type, title, message, onConfirm, onCancel = null) {
     const modal = document.getElementById('confirm-modal');
     const titleEl = document.getElementById('confirm-modal-title');
     const msgEl = document.getElementById('confirm-modal-message');
@@ -21,23 +30,28 @@ export function showConfirm(type, title, message, onConfirm) {
         titleEl.style.color = '#111827';
     }
 
-    confirmCallback = onConfirm;
+    confirmCallback       = onConfirm;
+    confirmCancelCallback = onCancel;
     modal.classList.remove('hidden');
 }
 
 export function hideConfirmModal() {
     document.getElementById('confirm-modal').classList.add('hidden');
-    confirmCallback = null;
+    confirmCallback       = null;
+    confirmCancelCallback = null;
 }
 
 export function wireConfirmButtons() {
     document.getElementById('confirm-cancel-btn').onclick = () => {
+        const cb = confirmCancelCallback;
         hideConfirmModal();
+        if (cb) cb();
     };
 
     document.getElementById('confirm-ok-btn').onclick = () => {
-        if (confirmCallback) confirmCallback();
+        const cb = confirmCallback;
         hideConfirmModal();
+        if (cb) cb();
     };
 }
 

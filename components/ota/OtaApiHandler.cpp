@@ -52,12 +52,14 @@ common::Result OtaApiHandler::handleGet(HttpRequest &req, HttpResponse &res) {
 
 common::Result OtaApiHandler::handlePost(HttpRequest &req, HttpResponse &res) {
     const std::string target = HttpHandler::extractTarget(req.path());
-    if (target == "upload")       return handleUpload      (req, res);
-    if (target == "rollback")     return handleRollback    (req, res);
-    if (target == "factoryReset") return handleFactoryReset(req, res);
-    if (target == "checkUpdate")  return handleCheckUpdate (req, res);
-    if (target == "pullConfig")   return handlePullConfig  (req, res);
-    if (target == "autoUpdate")   return handleAutoUpdate  (req, res);
+    if (target == "upload")        return handleUpload      (req, res);
+    if (target == "rollback")      return handleRollback    (req, res);
+    if (target == "factoryReset")  return handleFactoryReset(req, res);
+    if (target == "checkUpdate")   return handleCheckUpdate (req, res);
+    if (target == "applyUpdate")   return handleApplyUpdate (req, res);
+    if (target == "cancelUpdate")  return handleCancelUpdate(req, res);
+    if (target == "pullConfig")    return handlePullConfig  (req, res);
+    if (target == "autoUpdate")    return handleAutoUpdate  (req, res);
 
     res.sendJson(404, "target '" + target + "' not found");
     return Result::Ok;
@@ -333,12 +335,13 @@ common::Result OtaApiHandler::handlePullStatus(HttpRequest& /*req*/, HttpRespons
 
 static const char* pullCheckStateStr(PullCheckState s) {
     switch (s) {
-        case PullCheckState::Idle:        return "idle";
-        case PullCheckState::Checking:    return "checking";
-        case PullCheckState::UpToDate:    return "up_to_date";
-        case PullCheckState::Downloading: return "downloading";
-        case PullCheckState::Error:       return "error";
-        default:                          return "idle";
+        case PullCheckState::Idle:            return "idle";
+        case PullCheckState::Checking:        return "checking";
+        case PullCheckState::UpToDate:        return "up_to_date";
+        case PullCheckState::Downloading:     return "downloading";
+        case PullCheckState::Error:           return "error";
+        case PullCheckState::UpdateAvailable: return "update_available";
+        default:                              return "idle";
     }
 }
 
@@ -382,6 +385,34 @@ common::Result OtaApiHandler::handleCheckUpdate(HttpRequest& /*req*/, HttpRespon
     res.sendJson("{\"status\":\"ok\",\"message\":\"OTA check initiated\"}");
     xTaskCreate(checkUpdateTask, "ota_check", 8192, nullptr,
                 tskIDLE_PRIORITY + 1, nullptr);
+    return Result::Ok;
+}
+
+// ---------------------------------------------------------------------------
+// POST /framework/api/firmware/applyUpdate
+// ---------------------------------------------------------------------------
+
+static void applyUpdateTask(void* /*arg*/) {
+    OtaPuller::applyUpdate();
+    vTaskDelete(nullptr);
+}
+
+common::Result OtaApiHandler::handleApplyUpdate(HttpRequest& /*req*/, HttpResponse& res) {
+    log.info("handleApplyUpdate(): user confirmed — spawning download task");
+    res.sendJson("{\"status\":\"ok\",\"message\":\"Downloading update\"}");
+    xTaskCreate(applyUpdateTask, "ota_apply", 8192, nullptr,
+                tskIDLE_PRIORITY + 1, nullptr);
+    return Result::Ok;
+}
+
+// ---------------------------------------------------------------------------
+// POST /framework/api/firmware/cancelUpdate
+// ---------------------------------------------------------------------------
+
+common::Result OtaApiHandler::handleCancelUpdate(HttpRequest& /*req*/, HttpResponse& res) {
+    log.info("handleCancelUpdate(): user cancelled update");
+    OtaPuller::cancelUpdate();
+    res.sendJson("{\"status\":\"ok\"}");
     return Result::Ok;
 }
 
