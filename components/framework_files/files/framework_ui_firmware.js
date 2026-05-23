@@ -495,25 +495,32 @@ function updateAutoUpdateButton(enabled, label, btn) {
     btn.className     = "px-3 py-1 rounded whitespace-nowrap text-white bg-blue-600 hover:bg-blue-700";
 }
 
-async function requestToggleAutoUpdate(label, btn) {
+function requestToggleAutoUpdate(label, btn) {
     const currentlyEnabled = btn.textContent === "Disable";
     const newEnabled       = !currentlyEnabled;
 
-    btn.disabled    = true;
-    btn.textContent = "Saving…";
+    const title   = newEnabled ? "Enable Automatic Updates" : "Disable Automatic Updates";
+    const message = newEnabled
+        ? "Automatic updates will be enabled. The device may reboot without warning when a new version is found. Continue?"
+        : "Automatic updates will be disabled. New firmware will not be installed without manual confirmation. Continue?";
 
-    try {
-        await apiSetAutoUpdateEnabled(newEnabled);
-        updateAutoUpdateButton(newEnabled, label, btn);
-    } catch (err) {
-        if (!isAuthenticated() || err.message === "network") return;
-        console.error("Auto-update toggle failed:", err);
-        showMessage("error", "Save Failed", err.message || "Could not update auto-update setting.");
-        // Restore previous button state
-        updateAutoUpdateButton(currentlyEnabled, label, btn);
-    } finally {
-        btn.disabled = false;
-    }
+    showConfirm("warning", title, message, async () => {
+        btn.disabled    = true;
+        btn.textContent = "Saving…";
+
+        try {
+            await apiSetAutoUpdateEnabled(newEnabled);
+            updateAutoUpdateButton(newEnabled, label, btn);
+        } catch (err) {
+            if (!isAuthenticated() || err.message === "network") return;
+            console.error("Auto-update toggle failed:", err);
+            showMessage("error", "Save Failed", err.message || "Could not update auto-update setting.");
+            // Restore previous button state
+            updateAutoUpdateButton(currentlyEnabled, label, btn);
+        } finally {
+            btn.disabled = false;
+        }
+    });
 }
 
 // ── Pull-check status polling ─────────────────────────────────────────────
