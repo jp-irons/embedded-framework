@@ -106,6 +106,13 @@ struct CheckGuard {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
+// Forward declarations
+// ---------------------------------------------------------------------------
+
+static bool doDownloadAndFlash(const std::string& firmwareUrl,
+                                const std::string& remoteVersion);
+
+// ---------------------------------------------------------------------------
 // Semantic version helpers
 // ---------------------------------------------------------------------------
 
@@ -382,9 +389,16 @@ bool OtaPuller::checkNow() {
         return true;
     }
 
-    // ── Step 2: notify — do NOT download automatically ────────────────────
-    // Set UpdateAvailable and return.  The UI will prompt the user; the
-    // actual download is triggered by applyUpdate() on confirmation.
+    // ── Step 2: download or await confirmation ────────────────────────────
+    // Auto-update on  → download and flash immediately (no UI needed).
+    // Auto-update off → set UpdateAvailable; the UI calls applyUpdate().
+    if (s_autoUpdateEnabled.load(std::memory_order_acquire)) {
+        log.info("checkNow: update available (%s) — auto-update enabled, downloading now",
+                 remote.c_str());
+        const std::string firmwareUrl = s_activeUrl + "/firmware.bin";
+        return doDownloadAndFlash(firmwareUrl, remote);
+    }
+
     log.info("checkNow: update available (%s) — awaiting user confirmation",
              remote.c_str());
     setCheckState(PullCheckState::UpdateAvailable, remote.c_str());
