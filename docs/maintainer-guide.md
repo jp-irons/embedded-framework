@@ -23,7 +23,10 @@ Releases are built and published automatically by GitHub Actions when a version 
 ```bash
 git push origin development:main    # bring main up to date without switching branches
 git tag v0.0.3                      # tag must match version.txt exactly (without the v prefix)
+# If annotation is required tag like this:
+git tag -a v0.0.3 -m "brief release note"
 git push origin v0.0.3              # triggers the Actions build and release
+
 ```
 
 The workflow validates that the tag version matches `version.txt` before building — if they are out of sync it fails immediately.
