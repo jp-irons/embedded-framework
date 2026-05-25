@@ -85,6 +85,24 @@ git push
 
 Do not update `version.txt` in the template to match the framework version — it is an app version placeholder and should stay at a generic starting value (e.g. `0.1.0`).
 
+Updating a project that uses the framework submodule:
+
+# From the project root, checkout vx.y.z in the submodule
+
+```bash
+cd framework
+git fetch --tags origin
+git checkout vx.y.z
+cd ..
+
+# Stage and commit
+git add framework
+git commit -m "update framework submodule to vx.y.z"
+git push
+```
+consider whether this needs to be merged with the main branch.
+git push origin development:main    # bring main up to date without switching branches
+
 ### What the template must always contain
 
 - `framework/` — submodule pinned to the latest release
