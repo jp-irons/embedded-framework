@@ -153,6 +153,11 @@ class FrameworkContext {
      * @param config  baseUrl — GitHub Releases download directory, e.g.
      *                  "https://github.com/user/repo/releases/latest/download"
      *                checkIntervalS — seconds between background checks (0 = disabled).
+     *
+     * Important: if checkIntervalS is 0, no background task is started.
+     * autoUpdateEnabled and any runtime calls to setAutoUpdateEnabled() have
+     * no effect — there is no task running to honour the setting.  Manual
+     * checks via the firmware UI or OtaPuller::checkNow() still work.
      */
     void setOtaPullConfig(ota::OtaPullConfig config);
 

@@ -15,6 +15,9 @@ namespace ota {
  * checkIntervalS     — Seconds between automatic background checks.
  *                      Set to 0 to disable the periodic task (manual / MQTT
  *                      triggered checks via checkNow() still work).
+ *                      When 0, autoUpdateEnabled and setAutoUpdateEnabled()
+ *                      have no effect — there is no task running to honour
+ *                      the setting.
  *
  * autoUpdateEnabled  — Default auto-update state on first boot (or when
  *                      uiSettable is false).  When uiSettable is true, a
