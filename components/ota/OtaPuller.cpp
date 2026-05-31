@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Jon Irons <jon@irons.ws>
+// SPDX-License-Identifier: MIT
+
 #include "ota/OtaPuller.hpp"
 
 // TODO: OtaPuller currently calls ESP-IDF APIs directly (esp_http_client,

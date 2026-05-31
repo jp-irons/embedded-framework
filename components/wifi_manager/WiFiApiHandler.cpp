@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Jon Irons <jon@irons.ws>
+// SPDX-License-Identifier: MIT
+
 #include "wifi_manager/WiFiApiHandler.hpp"
 
 #include "cJSON.h"

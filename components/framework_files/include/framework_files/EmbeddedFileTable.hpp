@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Jon Irons <jon@irons.ws>
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include <string_view>

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Jon Irons <jon@irons.ws>
+// SPDX-License-Identifier: MIT
+
 #include "network_store/NetworkStore.hpp"
 
 #include "common/Result.hpp"

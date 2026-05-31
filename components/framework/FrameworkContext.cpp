@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Jon Irons <jon@irons.ws>
+// SPDX-License-Identifier: MIT
+
 #include "framework/FrameworkContext.hpp"
 
 #include "network_store/NetworkApiHandler.hpp"
