@@ -56,12 +56,14 @@ Once the framework release is published and verified:
 all this from directory above where embedded-app-template should go.
 
 ```bash
-git clone <repo-url> embedded-app-template
+git clone --recurse-submodules https://github.com/jp-irons/embedded-app-template.git
 cd embedded-app-template
 git submodule update --init --recursive
 
-cd <submodule-path>
+git -C framework describe --tags
+cd framework
 git fetch --tags
+git -C . describe --tags
 git checkout <tagname>       # e.g. v1.2.0
 cd ..
 
@@ -69,7 +71,7 @@ cd ..
 cp framework/sdkconfig sdkconfig
 cp framework/sdkconfig.defaults sdkconfig.defaults
 cp framework/partitions.csv partitions.csv
-
+cp framework/main .
 # Update the version placeholder
 echo "0.1.0" > version.txt           # reset to a generic app starting point — not the framework version
 ```
