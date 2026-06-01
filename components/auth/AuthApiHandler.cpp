@@ -16,12 +16,14 @@ using namespace http;
 
 static logger::Logger log{AuthApiHandler::TAG};
 
-AuthApiHandler::AuthApiHandler(AuthStore    &store,
-                               SessionStore &sessionStore,
-                               ApiKeyStore  &apiKeyStore)
+AuthApiHandler::AuthApiHandler(AuthStore         &store,
+                               SessionStore      &sessionStore,
+                               ApiKeyStore       &apiKeyStore,
+                               const AuthConfig  &authConfig)
     : store_(store)
     , sessionStore_(sessionStore)
-    , apiKeyStore_(apiKeyStore) {
+    , apiKeyStore_(apiKeyStore)
+    , authConfig_(authConfig) {
     log.debug("constructor");
 }
 
@@ -43,6 +45,9 @@ Result AuthApiHandler::handle(HttpRequest &req, HttpResponse &res) {
 
 Result AuthApiHandler::handleGet(HttpRequest &req, HttpResponse &res) {
     const std::string target = HttpHandler::extractTarget(req.path());
+    if (target == "config") {
+        return handleConfig(req, res);
+    }
     if (target == "status") {
         return handleStatus(req, res);
     }
@@ -83,6 +88,15 @@ Result AuthApiHandler::handleDelete(HttpRequest &req, HttpResponse &res) {
 // ---------------------------------------------------------------------------
 // Individual handlers
 // ---------------------------------------------------------------------------
+
+Result AuthApiHandler::handleConfig(HttpRequest &req, HttpResponse &res) {
+    log.debug("handleConfig");
+    const char *body = authConfig_.isEnabled()
+        ? "{\"authEnabled\":true}"
+        : "{\"authEnabled\":false}";
+    res.sendJson(body);
+    return Result::Ok;
+}
 
 Result AuthApiHandler::handleStatus(HttpRequest &req, HttpResponse &res) {
     log.debug("handleStatus");

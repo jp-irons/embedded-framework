@@ -13,7 +13,8 @@ import {
     getAuthStatus,
     changePassword as apiChangePassword,
     login,
-    isAuthenticated
+    isAuthenticated,
+    isAuthEnabled
 } from "./api.js";
 
 import { showMessage } from "./modal.js";
@@ -29,6 +30,7 @@ import { showMessage } from "./modal.js";
  */
 export async function initHomeView() {
     if (!isAuthenticated()) return;
+    if (!isAuthEnabled()) return; // no auth — no password-change warning needed
     try {
         const status = await getAuthStatus();
         if (!status.passwordChanged) {
@@ -56,6 +58,20 @@ export async function initHomeView() {
  * returns and the login overlay appears.
  */
 export async function initSecurityView() {
+    // ── Auth disabled ─────────────────────────────────────────────────────
+    // When auth is off, show an informational notice and hide the form.
+    if (!isAuthEnabled()) {
+        const statusEl = document.getElementById("auth-status-display");
+        if (statusEl) {
+            statusEl.textContent = "Authentication is disabled for this device. " +
+                "All API endpoints are openly accessible.";
+            statusEl.classList.add("auth-status-warn");
+        }
+        const form = document.getElementById("change-password-form");
+        if (form) form.style.display = "none";
+        return;
+    }
+
     // ── Status display ────────────────────────────────────────────────────
     const statusEl  = document.getElementById("auth-status-display");
     const submitBtn = document.querySelector("#change-password-form button[type='submit']");

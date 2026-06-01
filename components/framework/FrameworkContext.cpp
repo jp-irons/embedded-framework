@@ -73,6 +73,16 @@ FrameworkContext::FrameworkContext() {
     initialize();
 }
 
+FrameworkContext::FrameworkContext(auth::AuthConfig authConfig,
+                                   std::string rootUri,
+                                   std::string mdnsPrefix)
+    : rootUri_(std::move(rootUri))
+    , hostnamePrefix_(std::move(mdnsPrefix))
+    , authConfig_(std::move(authConfig)) {
+    log.debug("constructor (auth-only)");
+    initialize();
+}
+
 FrameworkContext::FrameworkContext(const wifi_manager::ApConfig& apConfig,
                                    auth::AuthConfig authConfig,
                                    std::string rootUri,

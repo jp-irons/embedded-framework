@@ -14,7 +14,8 @@ import { initDeviceView }                          from "./ui_device.js";
 import { initFirmwareView, teardownFirmwareView }  from "./ui_firmware.js";
 import { initHomeView, initSecurityView }          from "./ui_security.js";
 import { login, clearToken, onAuthRequired, getAuthStatus, isAuthenticated,
-         forceReauth, startReconnectPolling, stopReconnectPolling, isUploadActive } from "./api.js";
+         forceReauth, startReconnectPolling, stopReconnectPolling, isUploadActive,
+         getAuthConfig, setAuthEnabled, isAuthEnabled } from "./api.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -641,25 +642,45 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     ];
 
-    // Always start the router immediately — index.html loads without auth.
-    // Protected routes (#wifi, #device, #firmware, #security) enforce auth
-    // themselves via forceReauth(); the home page is freely accessible.
-    appStarted = true;
-    initRouter({ routes, fallback: "#home" });
+    // Fetch auth config before starting the router so we know whether to
+    // show the login overlay.  The /auth/config endpoint is exempt from
+    // Bearer-token auth, so this call always succeeds on a reachable device.
+    // On network error (device still booting) we fall back to auth-enabled
+    // to avoid accidentally opening up the UI before we know it's safe.
+    (async () => {
+        try {
+            const cfg = await getAuthConfig();
+            if (cfg.authEnabled === false) {
+                setAuthEnabled(false);
+            }
+        } catch {
+            // Network error or unexpected response — keep auth-enabled (safe default)
+        }
 
-    if (isAuthenticated()) {
-        // Validate the stored token quietly in the background.  On success,
-        // start the heartbeat.  On failure, show the overlay (stale token)
-        // or start reconnect polling (device mid-reboot at page-load time).
-        getAuthStatus()
-            .then(() => {
-                startAuthHeartbeat();
-            })
-            .catch((err) => {
-                showLoginOverlay();
-                if (err?.message === "network") {
-                    startReconnectPolling();
-                }
-            });
-    }
+        // Always start the router immediately — index.html loads without auth.
+        // Protected routes (#wifi, #device, #firmware, #security) enforce auth
+        // themselves via forceReauth(); the home page is freely accessible.
+        appStarted = true;
+        initRouter({ routes, fallback: "#home" });
+
+        if (isAuthEnabled() && isAuthenticated()) {
+            // Validate the stored token quietly in the background.  On success,
+            // start the heartbeat.  On failure, show the overlay (stale token)
+            // or start reconnect polling (device mid-reboot at page-load time).
+            getAuthStatus()
+                .then(() => {
+                    startAuthHeartbeat();
+                })
+                .catch((err) => {
+                    showLoginOverlay();
+                    if (err?.message === "network") {
+                        startReconnectPolling();
+                    }
+                });
+        }
+        // Auth disabled: no token needed, no overlay shown.
+        // The heartbeat is skipped — getAuthStatus() would work fine without
+        // a token but its only purpose is to detect stale sessions, which
+        // don't apply when auth is off.
+    })();
 });

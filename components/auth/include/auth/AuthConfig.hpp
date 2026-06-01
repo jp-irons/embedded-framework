@@ -15,8 +15,8 @@ namespace auth {
  * ║  immutable thereafter.  It has no public setters by design.              ║
  * ║                                                                          ║
  * ║  Weakening these settings — supplying an empty password, disabling       ║
- * ║  both policy flags, or swapping to a different AuthConfig between        ║
- * ║  boots — removes all API access control.                                 ║
+ * ║  both policy flags, swapping to a different AuthConfig between boots,    ║
+ * ║  or using AuthConfig::none() — removes all API access control.           ║
  * ║                                                                          ║
  * ║  Things may go horribly wrong if you ignore this warning.                ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
@@ -48,6 +48,19 @@ class AuthConfig {
   public:
 
     // ── Factory methods ───────────────────────────────────────────────────
+
+    /**
+     * No authentication — all framework API endpoints are openly accessible.
+     *
+     * Only appropriate for development devices or deployments where the device
+     * is on a fully trusted network with no risk of unauthorised access.
+     * The Security settings page will indicate that authentication is disabled.
+     */
+    static AuthConfig none() {
+        AuthConfig cfg;
+        cfg.enabled_ = false;
+        return cfg;
+    }
 
     /**
      * Fixed password supplied by the app developer.
@@ -124,6 +137,7 @@ class AuthConfig {
         Generated   ///< Random, generated on first boot, stored in NVS
     };
 
+    bool               isEnabled()                  const { return enabled_; }
     Source             source()                     const { return source_; }
     const std::string &fixedPassword()              const { return fixedPassword_; }
     const std::string &macStub()                    const { return macStub_; }
@@ -133,6 +147,7 @@ class AuthConfig {
   private:
     AuthConfig() = default;
 
+    bool        enabled_                   = true;
     Source      source_                    = Source::Generated;
     std::string fixedPassword_;
     std::string macStub_;

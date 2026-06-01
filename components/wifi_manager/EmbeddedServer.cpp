@@ -152,6 +152,11 @@ common::Result EmbeddedServer::checkAuth(http::HttpRequest &req,
         return common::Result::Ok;
     }
 
+    // Auth may be explicitly disabled via AuthConfig::none() — skip if so
+    if (!authConfig_->isEnabled()) {
+        return common::Result::Ok;
+    }
+
     // Only framework API paths require authentication by default — static files
     // and app routes are served freely so the browser can load the UI and the
     // app can implement its own auth on top.
@@ -159,8 +164,14 @@ common::Result EmbeddedServer::checkAuth(http::HttpRequest &req,
         return common::Result::Ok;
     }
 
-    // ── Login is exempt — it handles its own Basic-Auth verification ──────
+    // ── Config and login are exempt ───────────────────────────────────────
+    // config: unauthenticated so the UI can discover whether auth is required.
+    // login:  handles its own Basic-Auth verification.
     // (All other /auth/* endpoints require a valid Bearer token.)
+    const std::string configPath = apiUri_ + AUTH_CONFIG_SUFFIX;
+    if (path == configPath) {
+        return common::Result::Ok;
+    }
     const std::string loginPath = apiUri_ + AUTH_LOGIN_SUFFIX;
     if (path == loginPath) {
         return common::Result::Ok;

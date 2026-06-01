@@ -39,7 +39,19 @@ let _token          = (() => { try { return sessionStorage.getItem(SESSION_KEY);
 let _authRequiredCb = null;
 let _uploadActive   = false; // true while an OTA firmware upload XHR is in flight
 
-export function isUploadActive() { return _uploadActive; }
+// Set to false by setAuthEnabled(false) when the server reports authEnabled:false.
+// When disabled, isAuthenticated() always returns true and 401s are ignored.
+let _authEnabled    = true;
+
+export function isUploadActive()    { return _uploadActive; }
+export function isAuthEnabled()     { return _authEnabled; }
+
+export function setAuthEnabled(enabled) {
+    _authEnabled = enabled;
+    // If auth is disabled, any stored token is irrelevant — clear it so we
+    // don't send unnecessary headers or confuse the heartbeat.
+    if (!enabled) clearToken();
+}
 
 export function setToken(token) {
     _token = token;
@@ -50,7 +62,7 @@ export function clearToken() {
     try { sessionStorage.removeItem(SESSION_KEY); } catch {}
 }
 export function onAuthRequired(fn) { _authRequiredCb = fn; }
-export function isAuthenticated()  { return _token !== null; }
+export function isAuthenticated()  { return !_authEnabled || _token !== null; }
 
 function authHeaders(extra = {}) {
     if (!_token) return extra;
@@ -58,6 +70,7 @@ function authHeaders(extra = {}) {
 }
 
 function handle401() {
+    if (!_authEnabled) return; // auth disabled — 401s should not occur; ignore if they do
     clearToken();
     if (_authRequiredCb) _authRequiredCb();
 }
@@ -303,6 +316,16 @@ export function factoryResetFirmware() {
 
 
 // ---------- Auth ----------
+
+/**
+ * Fetch the device's auth configuration.
+ * This endpoint is exempt from Bearer-token auth so the UI can call it
+ * before knowing whether a login is required.
+ * Returns {"authEnabled": bool}.
+ */
+export function getAuthConfig() {
+    return get(`/framework/api/auth/config?ts=${Date.now()}`);
+}
 
 /**
  * Exchange a password for a session token.

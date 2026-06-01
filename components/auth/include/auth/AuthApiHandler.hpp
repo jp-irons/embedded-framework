@@ -4,6 +4,7 @@
 #pragma once
 
 #include "auth/ApiKeyStore.hpp"
+#include "auth/AuthConfig.hpp"
 #include "auth/AuthStore.hpp"
 #include "auth/SessionStore.hpp"
 #include "common/Result.hpp"
@@ -17,6 +18,10 @@ namespace auth {
  * HTTP handler for authentication management endpoints.
  *
  * Routes (relative to rootUri/auth/):
+ *
+ *   GET  config    — returns {"authEnabled": bool}
+ *                    EXEMPT from Bearer-token auth check (EmbeddedServer).
+ *                    Allows the UI to decide whether to show the login flow.
  *
  *   GET  status    — returns {"passwordChanged": bool}
  *                    Allows the UI to show a "change your password" prompt.
@@ -50,9 +55,10 @@ class AuthApiHandler : public http::HttpHandler {
   public:
     static constexpr const char* TAG = "AuthApiHandler";
 
-    explicit AuthApiHandler(AuthStore    &store,
-                            SessionStore &sessionStore,
-                            ApiKeyStore  &apiKeyStore);
+    explicit AuthApiHandler(AuthStore         &store,
+                            SessionStore      &sessionStore,
+                            ApiKeyStore       &apiKeyStore,
+                            const AuthConfig  &authConfig);
     ~AuthApiHandler() override = default;
 
     common::Result handle(http::HttpRequest &req, http::HttpResponse &res) override;
@@ -65,6 +71,7 @@ class AuthApiHandler : public http::HttpHandler {
     common::Result handlePost  (http::HttpRequest &req, http::HttpResponse &res);
     common::Result handleDelete(http::HttpRequest &req, http::HttpResponse &res);
 
+    common::Result handleConfig        (http::HttpRequest &req, http::HttpResponse &res);
     common::Result handleStatus        (http::HttpRequest &req, http::HttpResponse &res);
     common::Result handleLogin         (http::HttpRequest &req, http::HttpResponse &res);
     common::Result handleLogout        (http::HttpRequest &req, http::HttpResponse &res);
@@ -73,9 +80,10 @@ class AuthApiHandler : public http::HttpHandler {
     common::Result handleApiKeyPost    (http::HttpRequest &req, http::HttpResponse &res);
     common::Result handleApiKeyDelete  (http::HttpRequest &req, http::HttpResponse &res);
 
-    AuthStore    &store_;
-    SessionStore &sessionStore_;
-    ApiKeyStore  &apiKeyStore_;
+    AuthStore         &store_;
+    SessionStore      &sessionStore_;
+    ApiKeyStore       &apiKeyStore_;
+    const AuthConfig  &authConfig_;
 };
 
 } // namespace auth

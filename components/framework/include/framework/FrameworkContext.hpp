@@ -51,6 +51,20 @@ class FrameworkContext {
     explicit FrameworkContext();
 
     /**
+     * Auth-only constructor.  Uses built-in AP config and root URI; lets the
+     * app supply a custom AuthConfig without having to specify an ApConfig.
+     *
+     * @param authConfig    Authentication policy.  See AuthConfig for options.
+     * @param rootUri       Framework root path (default: "/framework").
+     * @param mdnsPrefix    mDNS hostname prefix (default: "esp32").
+     */
+    explicit FrameworkContext(auth::AuthConfig authConfig,
+                              std::string rootUri    = "/framework",
+                              std::string mdnsPrefix = "esp32");
+
+    /**
+     * Full constructor.
+     *
      * @param apConfig      AP-mode configuration (SSID, password, etc.).
      *                      Set apConfig.ssidSuffix to control whether MAC bytes
      *                      are appended to the SSID (default: SuffixPolicy::None).
@@ -192,7 +206,7 @@ class FrameworkContext {
     auth::AuthStore                authStore;
     auth::SessionStore             sessionStore;
     auth::ApiKeyStore              apiKeyStore;
-    auth::AuthApiHandler           authApi{authStore, sessionStore, apiKeyStore};
+    auth::AuthApiHandler           authApi{authStore, sessionStore, apiKeyStore, authConfig_};
 
     // Owned heap objects — abstract pointers; concrete types
     // (EspDeviceInterface, EspWiFiInterface, EspTimerInterface, EspMdnsManager,
