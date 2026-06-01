@@ -56,7 +56,8 @@ export function initWifiView() {
     const btnSave = document.getElementById("btn-save");
     if (btnSave) btnSave.onclick = submitProvisioning;
 
-    // Stop any previous polling cycle (e.g. user navigated away and back)
+    // Reset selection state (e.g. user navigated away and back)
+    selectedNetworkIndex = null;
     stopStatusPolling();
 
     loadScanResults();
@@ -96,15 +97,15 @@ function renderScanList(networks) {
 
     networks.forEach((net, index) => {
         const item = document.createElement("div");
-        item.className = "network-item p-3 border rounded bg-gray-50";
+        item.className = "network-item p-3 border rounded bg-gray-50 cursor-pointer hover:bg-blue-50 transition-colors";
+        item.dataset.index = index;
 
         item.innerHTML = `
-            <label class="flex items-center space-x-2">
-                <input type="checkbox" class="ssid-select" data-index="${index}">
+            <div class="flex items-center justify-between">
                 <span class="font-medium">${net.ssid}</span>
-                <span class="text-sm text-gray-500">(${net.rssi} dBm)</span>
-            </label>
-            <div class="ml-6 mt-1 text-sm text-gray-600">
+                <span class="text-sm text-gray-500">${net.rssi} dBm</span>
+            </div>
+            <div class="bssid-row mt-1 text-sm text-gray-600 hidden">
                 BSSID: ${net.bssid}
                 <label class="ml-3">
                     <input type="checkbox" class="bssid-lock" data-index="${index}">
@@ -113,8 +114,36 @@ function renderScanList(networks) {
             </div>
         `;
 
+        item.addEventListener("click", () => selectNetwork(index));
+
         list.appendChild(item);
     });
+}
+
+let selectedNetworkIndex = null;
+
+function selectNetwork(index) {
+    // Deselect previous
+    if (selectedNetworkIndex !== null) {
+        const prev = document.querySelector(`.network-item[data-index="${selectedNetworkIndex}"]`);
+        if (prev) {
+            prev.classList.remove("ring-2", "ring-blue-500", "bg-blue-50");
+            prev.classList.add("bg-gray-50");
+            prev.querySelector(".bssid-row")?.classList.add("hidden");
+        }
+    }
+
+    selectedNetworkIndex = index;
+    const item = document.querySelector(`.network-item[data-index="${index}"]`);
+    if (item) {
+        item.classList.add("ring-2", "ring-blue-500", "bg-blue-50");
+        item.classList.remove("bg-gray-50");
+        item.querySelector(".bssid-row")?.classList.remove("hidden");
+    }
+
+    // Populate SSID field
+    const ssidInput = document.getElementById("ssid");
+    if (ssidInput) ssidInput.value = scanResults[index].ssid;
 }
 
 
@@ -123,27 +152,28 @@ function renderScanList(networks) {
 // ============================================================
 
 function buildProvisioningPayload() {
-    const checkboxes = document.querySelectorAll(".ssid-select");
-    let selectedIndex = null;
+    const ssid = (document.getElementById("ssid")?.value || "").trim();
 
-    checkboxes.forEach(cb => {
-        if (cb.checked) selectedIndex = parseInt(cb.dataset.index, 10);
-    });
-
-    if (selectedIndex === null) {
-        showMessage("warning", "Selection Required", "Please select a network.");
+    if (!ssid) {
+        showMessage("warning", "SSID Required", "Select a network or enter an SSID.");
         return null;
     }
 
-    const net = scanResults[selectedIndex];
-    const lockBox = document.querySelector(`.bssid-lock[data-index="${selectedIndex}"]`);
-    const bssidLocked = lockBox && lockBox.checked;
+    // If a scanned network is selected and its SSID matches the field, use its BSSID
+    const net = (selectedNetworkIndex !== null && scanResults[selectedNetworkIndex]?.ssid === ssid)
+        ? scanResults[selectedNetworkIndex]
+        : null;
+
+    const lockBox = net
+        ? document.querySelector(`.bssid-lock[data-index="${selectedNetworkIndex}"]`)
+        : null;
+    const bssidLocked = !!(lockBox && lockBox.checked);
 
     return {
-        ssid: net.ssid,
+        ssid,
         password: document.getElementById("password").value,
         priority: 0,
-        bssid: net.bssid || null,
+        bssid: net?.bssid || null,
         bssidLocked
     };
 }
@@ -154,9 +184,18 @@ async function submitProvisioning() {
 
     try {
         await submitNetwork(payload);
+        document.getElementById("ssid").value = "";
         document.getElementById("password").value = "";
-        document.querySelectorAll(".ssid-select").forEach(cb => cb.checked = false);
         document.querySelectorAll(".bssid-lock").forEach(cb => cb.checked = false);
+        if (selectedNetworkIndex !== null) {
+            const prev = document.querySelector(`.network-item[data-index="${selectedNetworkIndex}"]`);
+            if (prev) {
+                prev.classList.remove("ring-2", "ring-blue-500", "bg-blue-50");
+                prev.classList.add("bg-gray-50");
+                prev.querySelector(".bssid-row")?.classList.add("hidden");
+            }
+            selectedNetworkIndex = null;
+        }
         showMessage("success", "Network Saved", `${payload.ssid} added.`);
         await refreshNetworks();
     } catch (err) {

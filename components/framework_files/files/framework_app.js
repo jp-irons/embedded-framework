@@ -378,11 +378,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
 
                     <div class="mt-6 pt-6 border-t border-gray-300">
-                        <div class="flex items-center gap-3">
-                            <label class="font-medium whitespace-nowrap">Password</label>
+                        <div style="display:grid; grid-template-columns:max-content 1fr; column-gap:0.75rem; row-gap:0.75rem; align-items:center;">
+                            <label class="font-medium">SSID</label>
+                            <input id="ssid" type="text"
+                                   class="px-3 py-2 border rounded"
+                                   placeholder="Select a network or type SSID" />
+                            <label class="font-medium">Password</label>
                             <input id="password" type="password"
-                                   class="flex-grow px-3 py-2 border rounded"
+                                   class="px-3 py-2 border rounded"
                                    placeholder="Network password" />
+                        </div>
+                        <div class="flex justify-end mt-3">
                             <button id="btn-save"
                                     class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
                                 Save
