@@ -7,7 +7,7 @@ The framework is aimed at engineers who need predictable behaviour, maintainable
 ## Features
 
 - Wi-Fi provisioning with explicit AP → STA state machine
-- Embedded web UI served from a LittleFS flash partition
+- Embedded web UI assets bundled directly in the firmware binary (atomic OTA updates)
 - Modular, transport-agnostic HTTP API handlers
 - Wi-Fi network storage backed by NVS
 - OTA firmware update with rollback protection and boot-attempt guardian
@@ -48,16 +48,20 @@ The version comes from `version.txt`. Upload this file via the firmware page in 
 
 ## Partition layout
 
+Current Partition
+
 See [docs/flash_layout.md](docs/flash_layout.md) for full details and guidance on changing the layout.
 
 ```
-nvs        data  nvs      0x009000   24 KB     NVS key-value store
-otadata    data  ota      0x00F000    8 KB     OTA boot-slot selection record
-factory    app   factory  0x020000    2 MB     Factory image (USB flash only)
-ota_0      app   ota_0    0x220000    2 MB     OTA slot 0
-ota_1      app   ota_1    0x420000    2 MB     OTA slot 1
-assets_fs  data  littlefs 0x620000    1.875 MB Embedded web UI and static assets
+nvs        data  nvs      0x009000   24 KB    NVS key-value store
+otadata    data  ota      0x00F000    8 KB    OTA boot-slot selection record
+factory    app   factory  0x020000    4 MB    Factory image (USB flash only)
+ota_0      app   ota_0    0x420000    4 MB    OTA slot 0
+ota_1      app   ota_1    0x820000    4 MB    OTA slot 1
+assets_fs  data  littlefs 0xC20000    2 MB    Reserved for downstream app use
 ```
+
+The three-partition layout (factory + ota_0 + ota_1 at 4 MB each) requires at least 8 MB of flash; 16 MB gives comfortable headroom for the `assets_fs` volume and future growth. **4 MB flash devices are not supported.** Adapting the framework for 4 MB flash would require both hardware and software changes: the factory partition would need to be removed (eliminating the factory-reset fallback), OTA slot sizes reduced, and the OTA and factory-reset logic reworked accordingly.
 
 A custom `partitions.csv` is selected via `sdkconfig.defaults`:
 

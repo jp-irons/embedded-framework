@@ -6,17 +6,17 @@ Partition table for the current ESP32-S3 target. Defined in `partitions.csv` and
 |------------|------|----------|------------|------------|------------------------------------|
 | nvs        | data | nvs      | 0x009000   | 24 KB      | NVS key-value store                |
 | otadata    | data | ota      | 0x00F000   |  8 KB      | OTA boot-slot selection record     |
-| factory    | app  | factory  | 0x020000   |  2 MB      | Factory image (USB flash only)     |
-| ota_0      | app  | ota_0    | 0x220000   |  2 MB      | OTA slot 0                         |
-| ota_1      | app  | ota_1    | 0x420000   |  2 MB      | OTA slot 1                         |
-| assets_fs  | data | littlefs | 0x620000   |  1.875 MB  | Embedded web UI and static assets  |
+| factory    | app  | factory  | 0x020000   |  4 MB      | Factory image (USB flash only)     |
+| ota_0      | app  | ota_0    | 0x420000   |  4 MB      | OTA slot 0                         |
+| ota_1      | app  | ota_1    | 0x820000   |  4 MB      | OTA slot 1                         |
+| assets_fs  | data | littlefs | 0xC20000   |  2 MB      | Reserved for downstream app use    |
 
 ## Notes
 
 - **otadata** records which OTA slot to boot. Erasing it (`POST /framework/api/firmware/factoryReset`) causes the bootloader to fall back to the factory partition.
 - **factory** can only be updated by flashing over USB — OTA updates never touch it.
 - **ota_0 / ota_1** are used alternately for OTA updates. The inactive slot receives each new image; on success it becomes the next-boot slot.
-- **assets_fs** is a LittleFS volume flashed separately. It holds the web UI files served by `EmbeddedServer`.
+- **assets_fs** is a LittleFS volume reserved for downstream app use. The framework itself does not use it — web assets are embedded directly in the firmware binary.
 
 ## Changing the partition layout
 
