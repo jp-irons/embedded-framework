@@ -31,35 +31,13 @@ The bash sandbox can show stale cached content for files that have been modified
 
 ## Target hardware
 
-SpotPear ESP32-S3-Touch-LCD-2 (SpotPear/Waveshare product — demos hosted on waveshare.com).
+WaveShare ESP32-S3-Touch-LCD-2 (SpotPear/Waveshare product — demos hosted on waveshare.com).
 - **SoC:** ESP32-S3R8 — 8MB Octal PSRAM embedded (AP Memory, gen 3, 64Mbit, confirmed working). Use `CONFIG_SPIRAM_MODE_OCT`.
 - **Flash:** 16MB external
 - **Display:** ST7789T3, 240×320 IPS, SPI
 - **Touch:** CST816D, I2C
 - **IMU:** QMI8658 6-axis (accelerometer + gyroscope)
 - **Battery management:** onboard lithium charge controller
-
-### GPIO assignments (verify against integrated board schematic before use)
-These are from the SpotPear standalone display wiki and may differ on the integrated board.
-
-| Signal   | GPIO |
-|----------|------|
-| LCD MOSI | 2    |
-| LCD SCLK | 4    |
-| LCD MISO | 42   |
-| LCD_CS   | 39   |
-| LCD_DC   | 41   |
-| LCD_RST  | 40   |
-| LCD_BL   | 6    |
-| TP_SDA   | 15   |
-| TP_SCL   | 7    |
-| TP_INT   | 17   |
-| TP_RST   | 16   |
-| SD_CS    | 38   |
-
-**Note:** Current dev work is on a different board. sdkconfig will need migration
-when moving to the target board. Treat committed sdkconfig as dev-board config
-until that migration is done.
 
 ## Partition layout
 
@@ -129,35 +107,3 @@ Two operating modes:
   infrastructure is already in place (`CONFIG_PM_ENABLE`, light-sleep power-down
   configs in sdkconfig).
 
-LVGL frame buffers should be allocated in PSRAM. DMA transfer buffers must remain
-in internal SRAM.
-
-## Van monitoring — first application
-
-Replaces a Pi Pico (MicroPython) implementation. The ESP32-S3 reads sensors
-directly and drives the 2" touch display as its primary UI.
-
-### Water level sensor
-- Model: 2-wire loop-powered 4-20mA, 0–2m range, 12–32V supply
-- Power: regulated 12V (within sensor range, lower stress than 24V)
-- Shunt: 150Ω in series with loop → 0.6V (empty/4mA) to 3.0V (full/20mA)
-- Add 100nF cap across shunt to filter switching noise from MPPT/inverter
-- Average multiple ADC readings; discard outliers
-- Calibration: 2-point (user presses Empty/Full button at known states)
-
-```c
-float level_m = (voltage - 0.6f) / 2.4f * 2.0f;  // 0.0–2.0m
-```
-
-### Venus OS integration (planned)
-Venus OS runs on RPi in the van. Built-in Mosquitto broker on port 1883 (no auth
-on local network).
-
-- Topic hierarchy: `N/<portal_id>/<service_type>/<device_instance>/<path>`
-- Write topics: `W/<portal_id>/...`
-- **Keepalive required:** publish to `R/<portal_id>/keepalive` every ~60s or Venus
-  stops publishing
-- ESP32 publishes water level on a timer; subscribes to battery SOC and solar yield
-  for display
-- Portal ID visible in Venus → Remote Console → Device List
-- Venus broker also used for OTA trigger topic
