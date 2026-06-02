@@ -2,7 +2,7 @@
 # compress.py lives in the framework_files component and is shared by both
 # the framework and the app.
 idf_build_get_property(python PYTHON)
-set(COMPRESS_SCRIPT "${CMAKE_SOURCE_DIR}/components/framework_files/compress.py")
+set(COMPRESS_SCRIPT "${CMAKE_SOURCE_DIR}/main/app_files/compress.py")
 
 set(GZ_DIR "${CMAKE_CURRENT_BINARY_DIR}/app_files_gz")
 file(GLOB_RECURSE APP_SOURCE_FILES "app_files/files/*")
