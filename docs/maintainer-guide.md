@@ -62,6 +62,7 @@ git submodule update --init --recursive
 
 git -C framework describe --tags
 cd framework
+git -C . describe --tags
 git fetch --tags
 git -C . describe --tags
 git checkout <tagname>       # e.g. v1.2.0
