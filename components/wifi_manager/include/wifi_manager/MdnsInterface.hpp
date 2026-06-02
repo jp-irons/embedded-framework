@@ -29,6 +29,13 @@ class MdnsInterface {
     /** Tear down mDNS.  No-op if not running. */
     virtual void stop() = 0;
 
+    /**
+     * Trigger a fresh mDNS probe/announce cycle without tearing down the
+     * service.  Call a few seconds after start() to recover from dropped
+     * initial multicast packets.  No-op if not running.
+     */
+    virtual void reannounce() = 0;
+
     virtual bool isRunning() const = 0;
     virtual const std::string &hostname() const = 0;
 };

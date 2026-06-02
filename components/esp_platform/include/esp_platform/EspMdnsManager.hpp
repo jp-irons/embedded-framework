@@ -30,6 +30,7 @@ class EspMdnsManager : public wifi_manager::MdnsInterface {
 
     void start(const std::string &hostname) override;
     void stop() override;
+    void reannounce() override;
 
     bool isRunning() const override { return running_; }
     const std::string &hostname() const override { return hostname_; }

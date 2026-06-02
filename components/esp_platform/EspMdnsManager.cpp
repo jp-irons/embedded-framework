@@ -53,6 +53,21 @@ void EspMdnsManager::start(const std::string &hostname) {
     log.info("mDNS started - hostname: %s.local", hostname_.c_str());
 }
 
+void EspMdnsManager::reannounce() {
+    if (!running_) {
+        return;
+    }
+    // Re-setting the hostname triggers a fresh probe/announce cycle without
+    // tearing down the service records.  This recovers from dropped initial
+    // multicast packets — common on Wi-Fi at association time.
+    esp_err_t err = mdns_hostname_set(hostname_.c_str());
+    if (err != ESP_OK) {
+        log.warn("reannounce: mdns_hostname_set failed: %s", esp_err_to_name(err));
+    } else {
+        log.debug("mDNS re-announced hostname: %s.local", hostname_.c_str());
+    }
+}
+
 void EspMdnsManager::stop() {
     if (!running_) {
         return;

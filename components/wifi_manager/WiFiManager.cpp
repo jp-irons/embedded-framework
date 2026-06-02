@@ -58,7 +58,8 @@ void WiFiManager::onStateChanged(WiFiState oldState, WiFiState newState) {
         case WiFiState::AP_Mode:
             retryCount = 0;
             startAP();
-            if (ctx.mdnsInterface) ctx.mdnsInterface->start(ctx.mdnsHostname);
+            // mDNS is started in onApStarted() once WIFI_EVENT_AP_START fires,
+            // ensuring the AP netif is live before we announce.
             if (ctx.embeddedServer)
                 ctx.embeddedServer->startProvisioningMode();
             break;
@@ -244,12 +245,34 @@ void WiFiManager::scheduleRetry() {
     });
 }
 
+void WiFiManager::onApStarted() {
+    log.info("onApStarted() — AP netif is live");
+
+    // Start mDNS now that the AP interface is confirmed up.
+    if (ctx.mdnsInterface) {
+        ctx.mdnsInterface->start(ctx.mdnsHostname);
+        log.info("Device reachable at https://%s.local", ctx.mdnsHostname.c_str());
+
+        // Re-announce after 2 s to recover from any dropped initial multicast.
+        ctx.timer->runAfter(2000, [this]() {
+            if (ctx.mdnsInterface) ctx.mdnsInterface->reannounce();
+        });
+    }
+}
+
 void WiFiManager::onStaGotIp(const StaIpInfo &info) {
     log.info("STA got IP: %s (mask %s, gw %s)", info.ip.c_str(), info.netmask.c_str(), info.gateway.c_str());
 
-    // Advertise via mDNS so the device is reachable by hostname regardless of IP
-    if (ctx.mdnsInterface) ctx.mdnsInterface->start(ctx.mdnsHostname);
-    log.info("Device reachable at https://%s.local", ctx.mdnsHostname.c_str());
+    // Advertise via mDNS now that we have a confirmed IP.
+    if (ctx.mdnsInterface) {
+        ctx.mdnsInterface->start(ctx.mdnsHostname);
+        log.info("Device reachable at https://%s.local", ctx.mdnsHostname.c_str());
+
+        // Re-announce after 2 s to recover from any dropped initial multicast.
+        ctx.timer->runAfter(2000, [this]() {
+            if (ctx.mdnsInterface) ctx.mdnsInterface->reannounce();
+        });
+    }
 
     // Feed the state machine
     sm.onEvent(WiFiEvent::ConnectSuccess);

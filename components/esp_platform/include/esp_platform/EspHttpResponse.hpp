@@ -32,6 +32,7 @@ class EspHttpResponse : public http::HttpResponse {
     common::Result sendJsonError(int code, std::string_view message) override;
     common::Result sendJsonStatus(std::string_view status) override;
     common::Result sendUnauthorized(const char *realm) override;
+    common::Result setHeader(const char *name, const char *value) override;
 
   private:
     httpd_req_t *req_;

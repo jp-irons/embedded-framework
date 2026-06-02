@@ -77,8 +77,8 @@ extern "C" void app_main(void) {
 	//	        		.requireChangeOnFirstBoot()
 	//			};
 	//
-	framework::FrameworkContext fw{auth::AuthConfig::none()};
-	//	framework::FrameworkContext fw{};
+//	framework::FrameworkContext fw{auth::AuthConfig::none()};
+		framework::FrameworkContext fw{};
 
 	app::ApplicationContext appCtx{fw};
 	appCtx.start();

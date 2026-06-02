@@ -50,6 +50,14 @@ class HttpResponse {
      * @param realm  Challenge realm string (e.g. "ESP32").
      */
     virtual common::Result sendUnauthorized(const char *realm) = 0;
+
+    /**
+     * Set a response header.  Must be called before any send() method.
+     *
+     * @param name   Header field name (e.g. "Content-Encoding").
+     * @param value  Header field value (e.g. "gzip").
+     */
+    virtual common::Result setHeader(const char *name, const char *value) = 0;
 };
 
 } // namespace http

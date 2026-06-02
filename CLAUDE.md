@@ -31,14 +31,9 @@ The bash sandbox can show stale cached content for files that have been modified
 
 ## Target hardware
 
-WaveShare ESP32-S3-Touch-LCD-2 (SpotPear/Waveshare product — demos hosted on waveshare.com).
+ESP32-S3
 - **SoC:** ESP32-S3R8 — 8MB Octal PSRAM embedded (AP Memory, gen 3, 64Mbit, confirmed working). Use `CONFIG_SPIRAM_MODE_OCT`.
-- **Flash:** 16MB external
-- **Display:** ST7789T3, 240×320 IPS, SPI
-- **Touch:** CST816D, I2C
-- **IMU:** QMI8658 6-axis (accelerometer + gyroscope)
-- **Battery management:** onboard lithium charge controller
-
+- **Flash:** 8MB or 16MB external
 ## Partition layout
 
 Current layout (partitions.csv):

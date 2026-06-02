@@ -27,6 +27,7 @@ class WiFiManager {
     void onDisconnect();
     void onFatalError();
     void onStaGotIp(const StaIpInfo &info);
+    void onApStarted();
     WiFiStaStatus getStaStatus() const;
 
   private:

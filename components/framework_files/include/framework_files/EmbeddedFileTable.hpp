@@ -11,7 +11,8 @@ namespace framework_files {
 
 struct EmbeddedFile {
     const uint8_t* data;
-    size_t size;
+    size_t         size;
+    bool           compressed = false;  ///< true if the data is gzip-compressed
 };
 
 /**

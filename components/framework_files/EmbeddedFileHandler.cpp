@@ -48,6 +48,9 @@ common::Result EmbeddedFileHandler::handle(http::HttpRequest &request,
     }
 
     const char *type = contentTypeForPath(path);
+    if (file->compressed) {
+        response.setHeader("Content-Encoding", "gzip");
+    }
     return response.send(file->data, file->size, type);
 }
 

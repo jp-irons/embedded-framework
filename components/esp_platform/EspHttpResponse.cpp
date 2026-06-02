@@ -101,6 +101,11 @@ common::Result EspHttpResponse::sendJsonStatus(std::string_view status) {
     return sendJson(body);
 }
 
+common::Result EspHttpResponse::setHeader(const char *name, const char *value) {
+    warnErr(httpd_resp_set_hdr(req_, name, value));
+    return common::Result::Ok;
+}
+
 common::Result EspHttpResponse::sendUnauthorized(const char *realm) {
     // Build:  Bearer realm="<realm>"
     std::string challenge;

@@ -195,6 +195,9 @@ void EspWiFiInterface::handleWiFiEvent(esp_event_base_t base, int32_t id, void* 
         return;
 
     switch (id) {
+        case WIFI_EVENT_AP_START:
+            ctx.wifiManager->onApStarted();
+            break;
         case WIFI_EVENT_STA_CONNECTED:
             ctx.wifiManager->onConnectSuccess();
             break;
@@ -203,9 +206,6 @@ void EspWiFiInterface::handleWiFiEvent(esp_event_base_t base, int32_t id, void* 
             break;
         case WIFI_EVENT_STA_AUTHMODE_CHANGE:
             ctx.wifiManager->onConnectFail();
-            break;
-        case IP_EVENT_STA_GOT_IP:
-            ctx.wifiManager->onConnectSuccess();
             break;
         default:
             break;
