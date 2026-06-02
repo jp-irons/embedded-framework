@@ -254,7 +254,9 @@ void WiFiManager::onApStarted() {
         log.info("Device reachable at https://%s.local", ctx.mdnsHostname.c_str());
 
         // Re-announce after 2 s to recover from any dropped initial multicast.
+        log.debug("mDNS re-announce scheduled in 2000ms");
         ctx.timer->runAfter(2000, [this]() {
+            log.debug("mDNS re-announce timer fired");
             if (ctx.mdnsInterface) ctx.mdnsInterface->reannounce();
         });
     }
@@ -269,7 +271,9 @@ void WiFiManager::onStaGotIp(const StaIpInfo &info) {
         log.info("Device reachable at https://%s.local", ctx.mdnsHostname.c_str());
 
         // Re-announce after 2 s to recover from any dropped initial multicast.
+        log.debug("mDNS re-announce scheduled in 2000ms");
         ctx.timer->runAfter(2000, [this]() {
+            log.debug("mDNS re-announce timer fired");
             if (ctx.mdnsInterface) ctx.mdnsInterface->reannounce();
         });
     }

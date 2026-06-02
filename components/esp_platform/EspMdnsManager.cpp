@@ -32,6 +32,7 @@ void EspMdnsManager::start(const std::string &hostname) {
         mdns_free();
         return;
     }
+    log.debug("mDNS initial probe/announce queued for %s.local", hostname.c_str());
 
     // Human-readable instance name shown in service browsers
     mdns_instance_name_set(hostname.c_str());
@@ -64,7 +65,7 @@ void EspMdnsManager::reannounce() {
     if (err != ESP_OK) {
         log.warn("reannounce: mdns_hostname_set failed: %s", esp_err_to_name(err));
     } else {
-        log.debug("mDNS re-announced hostname: %s.local", hostname_.c_str());
+        log.info("mDNS re-announced hostname: %s.local", hostname_.c_str());
     }
 }
 
