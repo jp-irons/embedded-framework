@@ -37,43 +37,6 @@ void ApplicationContext::start() {
     // ── Register app API routes ────────────────────────────────────────────
     fw_.addRoute(http::HttpMethod::Get, "/app/api/temperature", &temperatureHandler_);
 
-    // ── Configure pull-based OTA ──────────────────────────────────────────
-    // baseUrl            — GitHub Releases download directory for this repo.
-    //                      OtaPuller appends "/version.txt" (checked first)
-    //                      and "/firmware.bin" (downloaded only if newer).
-    // checkIntervalS     — Seconds between background checks; 0 disables the
-    //                      periodic task (manual / MQTT-triggered checks still
-    //                      work via the firmware UI or checkNow()).
-    // autoUpdateEnabled  — Default auto-update state.  true = checks run
-    //                      automatically; false = disabled until toggled on.
-    //                      When uiSettable=true, a user-persisted NVS value
-    //                      overrides this default after the first toggle.
-    //                      Has no effect if checkIntervalS is 0 — no
-    //                      background task runs to honour the setting.
-    // uiSettable         — When true, the firmware UI exposes an enable/disable
-    //                      toggle and the POST /firmware/autoUpdate API is
-    //                      accepted; the user's choice survives reboots via NVS.
-    //                      When false, autoUpdateEnabled is always authoritative
-    //                      and the toggle is hidden.
-    fw_.setOtaPullConfig({
-        .baseUrl           = "https://github.com/jp-irons/embedded-framework/releases/latest/download",
-        .checkIntervalS    = 3600,
-        .autoUpdateEnabled = false,
-        .uiSettable        = true,
-    });
-
-    // ── Device identity ───────────────────────────────────────────────────────
-    // By default both setters append the last 3 MAC bytes (MacShort) to the
-    // supplied prefix, e.g. "van-monitor-a1b2c3" / "VanMonitor-a1b2c3".
-    // This ensures uniqueness when multiple units share a location.
-    //
-    // To suppress the suffix pass wifi_manager::SuffixPolicy::None, or to use
-    // all 6 MAC bytes pass wifi_manager::SuffixPolicy::MacFull — both require
-    // #include "wifi_manager/WiFiTypes.hpp".
-    fw_.setHostnameConfig("esp-fw");
-    fw_.setApSsidConfig("EspFramework");
-    fw_.setApPassword("espframework");
-	
     // ── Request activity hook (demo) ──────────────────────────────────────
     // Fired on every incoming HTTPS request before handler dispatch.
     // Replace this lambda with e.g. activityManager_.poke() in a real app.

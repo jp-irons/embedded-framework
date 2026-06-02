@@ -100,10 +100,20 @@ Result AuthApiHandler::handleConfig(HttpRequest &req, HttpResponse &res) {
 
 Result AuthApiHandler::handleStatus(HttpRequest &req, HttpResponse &res) {
     log.debug("handleStatus");
-    const char *body = store_.isPasswordChanged()
-        ? "{\"passwordChanged\":true}"
-        : "{\"passwordChanged\":false}";
-    res.sendJson(body);
+    if (store_.isPasswordChanged()) {
+        res.sendJson("{\"passwordChanged\":true}");
+    } else {
+        // Include the factory default password so the login overlay can display
+        // it to the user.  Once the operator changes the password, this field
+        // is omitted — the device no longer has a well-known default.
+        cJSON *root = cJSON_CreateObject();
+        cJSON_AddBoolToObject(root, "passwordChanged", false);
+        cJSON_AddStringToObject(root, "defaultPassword", store_.password().c_str());
+        char *json = cJSON_PrintUnformatted(root);
+        res.sendJson(json);
+        cJSON_free(json);
+        cJSON_Delete(root);
+    }
     return Result::Ok;
 }
 

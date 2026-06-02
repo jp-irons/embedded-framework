@@ -78,6 +78,24 @@ document.addEventListener("DOMContentLoaded", () => {
             if (loginError)    loginError.classList.add("hidden");
             // Delay focus so the element is visible before the browser scrolls to it
             setTimeout(() => loginPassword?.focus(), 50);
+
+            // Populate the factory-default-password hint.  auth/status is exempt
+            // from Bearer-token auth so this fetch always succeeds pre-login.
+            // The hint is omitted once the operator has changed the password.
+            const hintEl = document.getElementById("login-default-hint");
+            if (hintEl) {
+                fetch(`/framework/api/auth/status?ts=${Date.now()}`)
+                    .then(r => r.ok ? r.json() : null)
+                    .then(data => {
+                        if (data?.defaultPassword) {
+                            hintEl.innerHTML = `<code>${data.defaultPassword}</code>`;
+                            hintEl.closest("p")?.classList.remove("hidden");
+                        } else {
+                            hintEl.closest("p")?.classList.add("hidden");
+                        }
+                    })
+                    .catch(() => { hintEl.closest("p")?.classList.add("hidden"); });
+            }
         }
     }
 

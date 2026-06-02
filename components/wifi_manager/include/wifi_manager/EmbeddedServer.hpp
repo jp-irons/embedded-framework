@@ -105,6 +105,7 @@ class EmbeddedServer : public http::HttpHandler {
   private:
     // Path suffixes for auth endpoints with special treatment.
     static constexpr const char *AUTH_CONFIG_SUFFIX   = "/auth/config";
+    static constexpr const char *AUTH_STATUS_SUFFIX   = "/auth/status";
     static constexpr const char *AUTH_PASSWORD_SUFFIX = "/auth/password";
     static constexpr const char *AUTH_LOGIN_SUFFIX    = "/auth/login";
 

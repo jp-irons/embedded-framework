@@ -164,16 +164,25 @@ common::Result EmbeddedServer::checkAuth(http::HttpRequest &req,
         return common::Result::Ok;
     }
 
-    // ── Config and login are exempt ───────────────────────────────────────
-    // config: unauthenticated so the UI can discover whether auth is required.
-    // login:  handles its own Basic-Auth verification.
+    // Strip query string (e.g. ?ts=<cache-buster>) before exempt-path matching
+    // so that cache-busted URLs are not blocked by exact-string comparison.
+    const std::string cleanPath = path.substr(0, path.find('?'));
+
+    // ── Config, status, and login are exempt ─────────────────────────────
+    // config:  unauthenticated so the UI can discover whether auth is required.
+    // status:  unauthenticated so the login overlay can display the default password.
+    // login:   handles its own Basic-Auth verification.
     // (All other /auth/* endpoints require a valid Bearer token.)
     const std::string configPath = apiUri_ + AUTH_CONFIG_SUFFIX;
-    if (path == configPath) {
+    if (cleanPath == configPath) {
+        return common::Result::Ok;
+    }
+    const std::string statusPath = apiUri_ + AUTH_STATUS_SUFFIX;
+    if (cleanPath == statusPath) {
         return common::Result::Ok;
     }
     const std::string loginPath = apiUri_ + AUTH_LOGIN_SUFFIX;
-    if (path == loginPath) {
+    if (cleanPath == loginPath) {
         return common::Result::Ok;
     }
 
