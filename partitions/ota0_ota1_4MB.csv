@@ -1,0 +1,10 @@
+# Name,   Type, SubType,  Offset,   Size,     Flags
+# Two-slot OTA layout for 4MB flash — no factory partition, no littlefs.
+# Set in sdkconfig:
+#   CONFIG_PARTITION_TABLE_CUSTOM=y
+#   CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="embedded-framework/partitions/ota0_ota1_4MB.csv"
+#   CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION=n
+nvs,      data, nvs,      0x9000,   0x6000,
+otadata,  data, ota,      0xF000,   0x2000,
+ota_0,    app,  ota_0,    0x20000,  0x1F0000,
+ota_1,    app,  ota_1,    0x210000, 0x1F0000,

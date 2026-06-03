@@ -103,7 +103,9 @@ void OtaManager::checkOnBoot() {
         return; // unreachable
     }
 
-    // Step 2: no valid OTA partition — erase OTA data → reboot to factory
+    // Step 2: no valid OTA partition found.
+#if CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION
+    // Erase OTA data so the bootloader falls back to the factory partition.
     log.warn("checkOnBoot: no valid OTA partition found — erasing otadata → factory");
     const esp_partition_t *otadata = esp_partition_find_first(
         ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_OTA, nullptr);
@@ -111,6 +113,15 @@ void OtaManager::checkOnBoot() {
         esp_partition_erase_range(otadata, 0, otadata->size);
     }
     esp_restart();
+#else
+    // No factory partition — there is nowhere safe to fall back to.
+    // Log the failure and let execution continue; the watchdog will reset the
+    // device if the image truly cannot boot, and repeated resets will exhaust
+    // the boot-attempt counter on the next PENDING_VERIFY image if one is
+    // flashed via OTA.
+    log.error("checkOnBoot: no valid OTA partition found and no factory fallback — "
+              "continuing boot (watchdog will recover if boot fails)");
+#endif
 }
 
 void OtaManager::markValid() {

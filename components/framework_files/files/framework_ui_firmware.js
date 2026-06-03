@@ -106,10 +106,22 @@ async function loadFirmwareStatus() {
         renderSummary(_lastPartitions);
         renderPartitionCards(_lastPartitions);
         updateRollbackButton(_lastPartitions);
+        updateFactoryButton(data.hasFactory !== false);
     } catch (err) {
         if (err.message === "network") return;
         console.warn("Firmware status load failed — triggering re-auth:", err);
         forceReauth();
+    }
+}
+
+/** Show the Factory Reset button only when the firmware includes a factory partition. */
+function updateFactoryButton(hasFactory) {
+    const btn = document.getElementById("btn-fw-factory");
+    if (!btn) return;
+    if (hasFactory) {
+        btn.classList.remove("hidden");
+    } else {
+        btn.classList.add("hidden");
     }
 }
 

@@ -1,0 +1,12 @@
+# Name,   Type, SubType,  Offset,   Size,     Flags
+# Two-slot OTA layout — no factory partition.
+# Consuming apps use this when a factory recovery fallback is not required.
+# Set in sdkconfig:
+#   CONFIG_PARTITION_TABLE_CUSTOM=y
+#   CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions/ota0_ota1.csv"
+#   CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION=n
+nvs,      data, nvs,      0x9000,   0x6000,
+otadata,  data, ota,      0xF000,   0x2000,
+ota_0,    app,  ota_0,    0x20000,  0x400000,
+ota_1,    app,  ota_1,    0x420000, 0x400000,
+assets_fs,data, littlefs, 0x820000, 0x200000,

@@ -188,16 +188,21 @@ common::Result OtaApiHandler::handleStatus(HttpRequest & /*req*/, HttpResponse &
     const esp_partition_t *running  = esp_ota_get_running_partition();
     const esp_partition_t *nextBoot = esp_ota_get_boot_partition();
 
-    const esp_partition_t *parts[] = {
+    const esp_partition_t *factoryPart =
         esp_partition_find_first(ESP_PARTITION_TYPE_APP,
-                                 ESP_PARTITION_SUBTYPE_APP_FACTORY, nullptr),
+                                 ESP_PARTITION_SUBTYPE_APP_FACTORY, nullptr);
+
+    const esp_partition_t *parts[] = {
+        factoryPart,
         esp_partition_find_first(ESP_PARTITION_TYPE_APP,
                                  ESP_PARTITION_SUBTYPE_APP_OTA_0,   nullptr),
         esp_partition_find_first(ESP_PARTITION_TYPE_APP,
                                  ESP_PARTITION_SUBTYPE_APP_OTA_1,   nullptr),
     };
 
-    std::string json = "{\"partitions\":[";
+    std::string json = "{";
+    json += "\"hasFactory\":"; json += factoryPart ? "true" : "false"; json += ",";
+    json += "\"partitions\":[";
     bool first = true;
     for (const esp_partition_t *p : parts) {
         if (!p) continue;
@@ -286,6 +291,11 @@ common::Result OtaApiHandler::handleRollback(HttpRequest & /*req*/, HttpResponse
 // ---------------------------------------------------------------------------
 
 common::Result OtaApiHandler::handleFactoryReset(HttpRequest & /*req*/, HttpResponse &res) {
+#if !CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION
+    log.warn("handleFactoryReset(): no factory partition in this build — rejecting");
+    res.sendJson(501, "Factory reset is not supported: no factory partition");
+    return Result::Ok;
+#else
     log.warn("handleFactoryReset(): erasing OTA data partition");
 
     // Erasing the OTA data partition clears all OTA state; the bootloader will
@@ -310,6 +320,7 @@ common::Result OtaApiHandler::handleFactoryReset(HttpRequest & /*req*/, HttpResp
     device_.reboot();
 
     return Result::Ok; // unreachable
+#endif
 }
 
 // ---------------------------------------------------------------------------
