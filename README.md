@@ -48,9 +48,9 @@ The version comes from `version.txt`. Upload this file via the firmware page in 
 
 ## Partition layout
 
-Current Partition
+Three pre-built layouts are provided in `partitions/`. See [docs/flash_layout.md](docs/flash_layout.md) for full details, layout comparison, and guidance on changing the layout.
 
-See [docs/flash_layout.md](docs/flash_layout.md) for full details and guidance on changing the layout.
+**Default layout — `partitions/factory_ota0_ota1.csv` (16 MB flash)**
 
 ```
 nvs        data  nvs      0x009000   24 KB    NVS key-value store
@@ -61,13 +61,11 @@ ota_1      app   ota_1    0x820000    4 MB    OTA slot 1
 assets_fs  data  littlefs 0xC20000    2 MB    Reserved for downstream app use
 ```
 
-The three-partition layout (factory + ota_0 + ota_1 at 4 MB each) requires at least 8 MB of flash; 16 MB gives comfortable headroom for the `assets_fs` volume and future growth. **4 MB flash devices are not supported.** Adapting the framework for 4 MB flash would require both hardware and software changes: the factory partition would need to be removed (eliminating the factory-reset fallback), OTA slot sizes reduced, and the OTA and factory-reset logic reworked accordingly.
-
-A custom `partitions.csv` is selected via `sdkconfig.defaults`:
+The consuming app selects a layout in `sdkconfig`:
 
 ```
 CONFIG_PARTITION_TABLE_CUSTOM=y
-CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="framework/partitions/factory_ota0_ota1.csv"
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
 ```
 
@@ -90,7 +88,7 @@ The **Rollback** button in the firmware UI is enabled only when a non-running OT
 
 ### Factory reset
 
-`POST /framework/api/firmware/factoryReset` erases the `otadata` partition. With no OTA selection record the bootloader falls back to the factory partition on next boot.
+`POST /framework/api/firmware/factoryReset` erases the `otadata` partition. With no OTA selection record the bootloader falls back to the factory partition on next boot. This endpoint and the Factory Reset button in the web UI are only available when `CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION=y` (the default); on a two-slot layout they return 501 and the button is hidden.
 
 ## Component architecture
 
@@ -141,12 +139,13 @@ See [docs/api-reference.md](docs/api-reference.md) for the full route table, res
 
 ## Configuration
 
-`sdkconfig.defaults` contains the minimum required settings. Key values:
+`sdkconfig` contains the minimum required settings. Key values (paths are relative to the consuming app's project root, assuming the framework is a submodule at `framework/`):
 
 ```
 CONFIG_PARTITION_TABLE_CUSTOM=y
-CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions/factory_ota0_ota1.csv"
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION=y
 ```
 
 Log levels are set at runtime in `app_main.cpp → setupLogging()`. The `logger` component supports per-tag filtering independent of the ESP-IDF log level system.

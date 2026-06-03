@@ -71,16 +71,18 @@ cd ..
 # Copy updated config baselines from the framework
 cp framework/sdkconfig sdkconfig
 cp framework/sdkconfig.defaults sdkconfig.defaults
-cp framework/partitions.csv partitions.csv
 cp framework/main .
 # Update the version placeholder
 echo "0.1.0" > version.txt           # reset to a generic app starting point — not the framework version
+# Note: the template uses framework/partitions/factory_ota0_ota1.csv by default.
+# sdkconfig already contains CONFIG_PARTITION_TABLE_CUSTOM_FILENAME pointing into
+# the framework submodule — no separate partitions.csv copy is needed.
 ```
 
 Review and commit:
 
 ```bash
-git add framework sdkconfig sdkconfig.defaults partitions.csv
+git add framework sdkconfig sdkconfig.defaults
 git commit -m "Update framework submodule to v0.2.0"
 git push
 ```
@@ -109,7 +111,7 @@ git push origin development:main    # bring main up to date without switching br
 ### What the template must always contain
 
 - `framework/` — submodule pinned to the latest release
-- `sdkconfig`, `sdkconfig.defaults`, `partitions.csv` — copied from that release
+- `sdkconfig`, `sdkconfig.defaults` — copied from that release; `sdkconfig` points `CONFIG_PARTITION_TABLE_CUSTOM_FILENAME` at the chosen layout inside the submodule
 - `version.txt` — generic starting version (`0.1.0`)
 - `main/CMakeLists.txt` — with `GLOB_RECURSE` / `EMBED_FILES` wired up
 - `main/idf_component.yml` — managed dependencies matching the framework
@@ -119,12 +121,13 @@ git push origin development:main    # bring main up to date without switching br
 
 ## Partition layout changes
 
-The source of truth is `partitions.csv`. When you modify it, work through this checklist before pushing:
+The pre-built layouts live in `partitions/`. When adding or modifying a layout, work through this checklist before pushing:
 
-1. **Update `docs/flash_layout.md`** — keep the offset/size table in sync with `partitions.csv`.
-2. **Update `README.md`** — if it contains a partition table, update it to match.
+1. **Update `docs/flash_layout.md`** — keep the offset/size table and layout comparison in sync.
+2. **Update `README.md`** — update the default layout table if `factory_ota0_ota1.csv` changed; update the `sdkconfig` snippet if the default filename changed.
 3. **Update `sdkconfig`** — only needed if the path to the custom partition CSV has changed; `sdkconfig` is committed and is the source of truth for build configuration, so do not delete it as a routine step.
-4. **Check `OtaWriter`** — verify there are no hardcoded partition size assumptions (currently none; it reads `OTA_WITH_SEQUENTIAL_WRITES`).
-5. **Fullclean, build and USB-flash** — run `idf.py fullclean && idf.py flash`. OTA updates do not touch the bootloader or partition table; the only way to apply partition changes to a device is over USB.
+4. **Check `CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION`** — if you are adding or removing a factory partition from a layout, ensure the Kconfig value is set accordingly in `sdkconfig`.
+5. **Check `OtaWriter`** — verify there are no hardcoded partition size assumptions (currently none; it uses `OTA_WITH_SEQUENTIAL_WRITES`).
+6. **Fullclean, build and USB-flash** — run `idf.py fullclean && idf.py flash`. OTA updates do not touch the bootloader or partition table; the only way to apply partition changes to a device is over USB.
 
 > Partition table changes are not OTA-compatible. All devices must be reflashed by hand after a layout change.
