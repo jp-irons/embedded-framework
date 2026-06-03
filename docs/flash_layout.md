@@ -29,7 +29,6 @@ Required `sdkconfig` entries:
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions/factory_ota0_ota1.csv"
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
-CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION=y
 ```
 
 ---
@@ -50,7 +49,6 @@ Required `sdkconfig` entries:
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions/ota0_ota1.csv"
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
-CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION=n
 ```
 
 ---
@@ -70,7 +68,6 @@ Required `sdkconfig` entries:
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions/ota0_ota1_4MB.csv"
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
-CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION=n
 ```
 
 ---
@@ -93,7 +90,7 @@ If you switch layouts or modify a CSV:
 
 1. Update this file to match.
 2. Update the partition table in `README.md`.
-3. Update `sdkconfig` — set `CONFIG_PARTITION_TABLE_CUSTOM_FILENAME` to the new path and set `CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION` accordingly.
+3. Update `sdkconfig` — set `CONFIG_PARTITION_TABLE_CUSTOM_FILENAME` to the new path.
 4. Run `idf.py fullclean && idf.py flash` to apply the new table via USB. OTA updates do not update the bootloader or partition table.
 
 For the full checklist (OtaWriter checks, release implications) see [`maintainer-guide.md`](maintainer-guide.md).

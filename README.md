@@ -88,7 +88,7 @@ The **Rollback** button in the firmware UI is enabled only when a non-running OT
 
 ### Factory reset
 
-`POST /framework/api/firmware/factoryReset` erases the `otadata` partition. With no OTA selection record the bootloader falls back to the factory partition on next boot. This endpoint and the Factory Reset button in the web UI are only available when `CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION=y` (the default); on a two-slot layout they return 501 and the button is hidden.
+`POST /framework/api/firmware/factoryReset` erases the `otadata` partition. With no OTA selection record the bootloader falls back to the factory partition on next boot. The endpoint and button are only available when a factory partition is present in the partition table; on two-slot layouts the endpoint returns 501 and the button is hidden.
 
 ## Component architecture
 
@@ -145,7 +145,6 @@ See [docs/api-reference.md](docs/api-reference.md) for the full route table, res
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions/factory_ota0_ota1.csv"
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
-CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION=y
 ```
 
 Log levels are set at runtime in `app_main.cpp → setupLogging()`. The `logger` component supports per-tag filtering independent of the ESP-IDF log level system.

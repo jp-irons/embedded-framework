@@ -291,11 +291,15 @@ common::Result OtaApiHandler::handleRollback(HttpRequest & /*req*/, HttpResponse
 // ---------------------------------------------------------------------------
 
 common::Result OtaApiHandler::handleFactoryReset(HttpRequest & /*req*/, HttpResponse &res) {
-#if !CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION
-    log.warn("handleFactoryReset(): no factory partition in this build — rejecting");
-    res.sendJson(501, "Factory reset is not supported: no factory partition");
-    return Result::Ok;
-#else
+    // Reject if no factory partition exists in the actual partition table.
+    const esp_partition_t *factory = esp_partition_find_first(
+        ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_FACTORY, nullptr);
+    if (!factory) {
+        log.warn("handleFactoryReset(): no factory partition present — rejecting");
+        res.sendJson(501, "Factory reset is not supported: no factory partition");
+        return Result::Ok;
+    }
+
     log.warn("handleFactoryReset(): erasing OTA data partition");
 
     // Erasing the OTA data partition clears all OTA state; the bootloader will
@@ -320,7 +324,6 @@ common::Result OtaApiHandler::handleFactoryReset(HttpRequest & /*req*/, HttpResp
     device_.reboot();
 
     return Result::Ok; // unreachable
-#endif
 }
 
 // ---------------------------------------------------------------------------
