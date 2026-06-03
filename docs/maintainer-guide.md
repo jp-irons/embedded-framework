@@ -126,8 +126,7 @@ The pre-built layouts live in `partitions/`. When adding or modifying a layout, 
 1. **Update `docs/flash_layout.md`** — keep the offset/size table and layout comparison in sync.
 2. **Update `README.md`** — update the default layout table if `factory_ota0_ota1.csv` changed; update the `sdkconfig` snippet if the default filename changed.
 3. **Update `sdkconfig`** — only needed if the path to the custom partition CSV has changed; `sdkconfig` is committed and is the source of truth for build configuration, so do not delete it as a routine step.
-4. **Check `CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION`** — if you are adding or removing a factory partition from a layout, ensure the Kconfig value is set accordingly in `sdkconfig`.
-5. **Check `OtaWriter`** — verify there are no hardcoded partition size assumptions (currently none; it uses `OTA_WITH_SEQUENTIAL_WRITES`).
-6. **Fullclean, build and USB-flash** — run `idf.py fullclean && idf.py flash`. OTA updates do not touch the bootloader or partition table; the only way to apply partition changes to a device is over USB.
+4. **Check `OtaWriter`** — verify there are no hardcoded partition size assumptions (currently none; it uses `OTA_WITH_SEQUENTIAL_WRITES`).
+5. **Fullclean, build and USB-flash** — run `idf.py fullclean && idf.py flash`. OTA updates do not touch the bootloader or partition table; the only way to apply partition changes to a device is over USB.
 
 > Partition table changes are not OTA-compatible. All devices must be reflashed by hand after a layout change.

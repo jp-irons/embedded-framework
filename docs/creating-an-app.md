@@ -175,10 +175,9 @@ Set the following in `sdkconfig` (paths are relative to your project root, with 
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions/factory_ota0_ota1.csv"
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
-CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION=y
 ```
 
-For a two-slot layout, use the appropriate filename and set `CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION=n`. See [docs/flash_layout.md](flash_layout.md) in the framework for full details on each layout.
+For a two-slot layout, use the appropriate filename. See [docs/flash_layout.md](flash_layout.md) in the framework for full details on each layout.
 
 Create a `version.txt` at the repository root with your initial version string. The OTA update system reads this file at build time and embeds the version in the firmware binary:
 
