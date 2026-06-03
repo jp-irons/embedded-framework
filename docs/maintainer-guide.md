@@ -22,8 +22,13 @@ Releases are built and published automatically by GitHub Actions when a version 
 
 ```bash
 git push origin development:main    # bring main up to date without switching branches
+<<<<<<< HEAD
+git tag -a v0.2.1 -m "infer factory partition from layout"
+git push origin v0.2.1              # triggers the Actions build and release
+=======
 git tag -a v0.0.3 -m "note"
 git push origin v0.0.3              # triggers the Actions build and release
+>>>>>>> branch 'development' of https://github.com/jp-irons/embedded-framework
 git tag v0.0.3                      # tag must match version.txt exactly (without the v prefix)
 # If annotation is required tag like this:
 
