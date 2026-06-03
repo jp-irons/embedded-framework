@@ -61,9 +61,10 @@ my_app/                          ← your git repository
     app_main.cpp                 ← calls FrameworkContext + your ApplicationContext
     ApplicationContext.h/.cpp    ← your application logic
   CMakeLists.txt                 ← sets EXTRA_COMPONENT_DIRS, calls project()
+  sdkconfig
   sdkconfig.defaults
-  partitions.csv
   framework/                     ← git submodule (this repo)
+    partitions/                  ← pre-built layout CSVs; sdkconfig points at one
     components/
       auth/
       common/
@@ -147,25 +148,37 @@ Run the component manager to download them:
 idf.py update-dependencies
 ```
 
-## Step 5 — Copy build configuration files and create version.txt
+## Step 5 — Configure build settings and create version.txt
 
-The framework requires specific bootloader and partition settings. Copy all three config files from the framework repository as a starting point:
+The framework requires specific bootloader and partition settings. Copy the framework's `sdkconfig` and `sdkconfig.defaults` as a starting point:
 
 ```bash
 cp framework/sdkconfig .
 cp framework/sdkconfig.defaults .
-cp framework/partitions.csv .
 ```
 
 `sdkconfig` is the live build configuration and the source of truth for your project — it should be committed to your repository and not gitignored. `sdkconfig.defaults` serves as a regeneration baseline if `sdkconfig` is ever recreated from scratch. The framework's copies give you a proven working starting point; use `idf.py menuconfig` to adjust settings for your application.
 
-At minimum, `sdkconfig.defaults` must contain:
+### Choosing a partition layout
+
+The framework provides three pre-built partition layouts in `framework/partitions/`. We recommend you that folder into your own project — you point `sdkconfig` at the one you want or create your own:
+
+| Layout                              | Flash | Factory partition | LittleFS | Use when                              |
+|-------------------------------------|-------|-------------------|----------|---------------------------------------|
+| `factory_ota0_ota1.csv`             | 16 MB | Yes (4 MB)        | 2 MB     | Default — full recovery fallback      |
+| `ota0_ota1.csv`                     |  8 MB | No                | 2 MB     | No factory fallback needed            |
+| `ota0_ota1_4MB.csv`                 |  4 MB | No                | —        | 4 MB flash devices                    |
+
+Set the following in `sdkconfig` (paths are relative to your project root, with the submodule at `framework/`):
 
 ```
 CONFIG_PARTITION_TABLE_CUSTOM=y
-CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions/factory_ota0_ota1.csv"
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION=y
 ```
+
+For a two-slot layout, use the appropriate filename and set `CONFIG_FRAMEWORK_HAS_FACTORY_PARTITION=n`. See [docs/flash_layout.md](flash_layout.md) in the framework for full details on each layout.
 
 Create a `version.txt` at the repository root with your initial version string. The OTA update system reads this file at build time and embeds the version in the firmware binary:
 
@@ -173,10 +186,10 @@ Create a `version.txt` at the repository root with your initial version string. 
 echo "0.1.0" > version.txt
 ```
 
-Commit all four files:
+Commit the configuration files:
 
 ```bash
-git add sdkconfig sdkconfig.defaults partitions.csv version.txt
+git add sdkconfig sdkconfig.defaults version.txt
 git commit -m "Add build configuration"
 ```
 
@@ -328,10 +341,10 @@ diff framework/main/idf_component.yml main/idf_component.yml
 
 Add any new entries to your `main/idf_component.yml` and run `idf.py update-dependencies`.
 
-**4. partitions.csv** — if `framework/partitions.csv` has changed, copy it across and treat this as a partition layout change: fullclean, rebuild, and USB-reflash. OTA cannot apply partition or bootloader changes.
+**4. Partition layout** — check whether any of the layout CSVs in `framework/partitions/` have changed. If the layout you are using has changed, treat this as a partition layout change: fullclean, rebuild, and USB-reflash. OTA cannot apply partition or bootloader changes.
 
 ```bash
-diff framework/partitions.csv partitions.csv
+git -C framework diff HEAD~1 HEAD -- partitions/
 ```
 
 **5. API changes** — build and fix any compile errors. Patch releases (`v0.1.1 → v0.1.2`) should not break the `ApplicationContext` or handler interfaces; minor version bumps (`v0.1.x → v0.2.0`) may do so and will be noted in the release changelog.
@@ -339,7 +352,7 @@ diff framework/partitions.csv partitions.csv
 **6. Commit atomically** — record the submodule move and all accompanying changes together so your app history stays coherent:
 
 ```bash
-git add framework sdkconfig sdkconfig.defaults partitions.csv main/idf_component.yml
+git add framework sdkconfig sdkconfig.defaults main/idf_component.yml
 git commit -m "Update framework to v0.2.0"
 ```
 
