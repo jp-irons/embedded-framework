@@ -8,6 +8,10 @@ extern "C" {
 #include "freertos/task.h"
 }
 
+// TODO update login screen so it doesn't start with wrong screen
+// TODO push hostname to esp_netif_set_hostname() at framework start and mdns
+
+
 using namespace logger;
 
 static Logger log{"app_main"};

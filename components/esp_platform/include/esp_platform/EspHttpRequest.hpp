@@ -40,12 +40,15 @@ class EspHttpRequest : public http::HttpRequest {
 
     std::optional<std::string> extractBearerToken() const override;
 
+    const char *queryParam(const char *name) const override;
+
   private:
     static constexpr size_t MAX_PRELOAD_BYTES = 65536; // 64 KB
 
-    httpd_req_t    *req_;
-    http::HttpMethod method_;
-    std::string      bodyStorage_; // owns the memory; empty when skipped
+    httpd_req_t      *req_;
+    http::HttpMethod  method_;
+    std::string       bodyStorage_;            // owns the memory; empty when skipped
+    mutable std::string queryValueCache_;      // scratch buffer for queryParam() return value
 
     void readBody();
 };

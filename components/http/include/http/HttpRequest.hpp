@@ -72,6 +72,18 @@ class HttpRequest {
      * different scheme, or the token portion is empty.
      */
     virtual std::optional<std::string> extractBearerToken() const = 0;
+
+    /**
+     * Returns the value of a named query parameter, or nullptr if absent.
+     *
+     * e.g. for URI "/audio/sample?seconds=10", queryParam("seconds") returns
+     * a pointer to the string "10".
+     *
+     * The returned pointer is valid only until the next call to queryParam()
+     * on the same request object.  Copy the value immediately if you need
+     * to retain it across multiple lookups.
+     */
+    virtual const char *queryParam(const char *name) const = 0;
 };
 
 } // namespace http

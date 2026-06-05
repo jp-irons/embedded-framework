@@ -142,6 +142,45 @@ std::optional<http::BasicAuth> EspHttpRequest::extractBasicAuth() const {
     return auth;
 }
 
+// ---------------------------------------------------------------------------
+// Query parameter lookup
+// ---------------------------------------------------------------------------
+
+const char *EspHttpRequest::queryParam(const char *name) const {
+    // Locate the query string — everything after '?'
+    const char *uri  = req_->uri;
+    const char *qs   = strchr(uri, '?');
+    if (qs == nullptr) {
+        return nullptr;
+    }
+    qs++; // skip the '?'
+
+    const size_t nameLen = strlen(name);
+
+    // Scan "key=value" segments separated by '&'
+    const char *seg = qs;
+    while (*seg != '\0') {
+        const char *amp = strchr(seg, '&');
+        size_t segLen   = (amp != nullptr) ? static_cast<size_t>(amp - seg)
+                                           : strlen(seg);
+
+        // Does this segment start with name + '='?
+        if (segLen > nameLen && seg[nameLen] == '=' &&
+            strncmp(seg, name, nameLen) == 0) {
+            // Value starts right after '='
+            const char *valStart = seg + nameLen + 1;
+            size_t      valLen   = segLen - nameLen - 1;
+            queryValueCache_.assign(valStart, valLen);
+            return queryValueCache_.c_str();
+        }
+
+        if (amp == nullptr) break;
+        seg = amp + 1;
+    }
+
+    return nullptr;
+}
+
 std::optional<std::string> EspHttpRequest::extractBearerToken() const {
     static constexpr const char *HEADER_NAME      = "Authorization";
     static constexpr const char *BEARER_PREFIX    = "Bearer ";
