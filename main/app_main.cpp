@@ -8,8 +8,6 @@ extern "C" {
 #include "freertos/task.h"
 }
 
-// TODO update login screen so it doesn't start with wrong screen
-
 using namespace logger;
 
 static Logger log{"app_main"};
