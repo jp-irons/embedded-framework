@@ -52,6 +52,15 @@ Result EspWiFiInterface::startDriver() {
         return Result::InternalError;
     }
 
+    // Push hostname to both netifs so the DHCP client advertises it to the
+    // router (STA) and the AP interface is consistent.  Must be done before
+    // esp_wifi_start() so the DHCP client picks it up on first connect.
+    if (!ctx.mdnsHostname.empty()) {
+        esp_netif_set_hostname(staNetif, ctx.mdnsHostname.c_str());
+        esp_netif_set_hostname(apNetif,  ctx.mdnsHostname.c_str());
+        log.debug("netif hostname set to '%s'", ctx.mdnsHostname.c_str());
+    }
+
     // 2. Initialize Wi-Fi driver
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     WIFI_CHECK(esp_wifi_init(&cfg));

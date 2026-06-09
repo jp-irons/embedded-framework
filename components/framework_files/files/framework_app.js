@@ -81,21 +81,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Populate the factory-default-password hint.  auth/status is exempt
             // from Bearer-token auth so this fetch always succeeds pre-login.
-            // The hint is omitted once the operator has changed the password.
-            const hintEl = document.getElementById("login-default-hint");
-            if (hintEl) {
-                fetch(`/framework/api/auth/status?ts=${Date.now()}`)
-                    .then(r => r.ok ? r.json() : null)
-                    .then(data => {
-                        if (data?.defaultPassword) {
-                            hintEl.innerHTML = `<code>${data.defaultPassword}</code>`;
-                            hintEl.closest("p")?.classList.remove("hidden");
-                        } else {
-                            hintEl.closest("p")?.classList.add("hidden");
-                        }
-                    })
-                    .catch(() => { hintEl.closest("p")?.classList.add("hidden"); });
-            }
+            // Both paragraphs start hidden; we reveal exactly one once the fetch
+            // resolves — avoiding any flash of stale or empty content.
+            const hintPara   = document.getElementById("login-default-hint-para");
+            const noHintPara = document.getElementById("login-no-hint-para");
+            const hintEl     = document.getElementById("login-default-hint");
+            if (hintPara)   hintPara.classList.add("hidden");
+            if (noHintPara) noHintPara.classList.add("hidden");
+            fetch(`/framework/api/auth/status?ts=${Date.now()}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (data?.defaultPassword) {
+                        if (hintEl)   hintEl.textContent = data.defaultPassword;
+                        if (hintPara) hintPara.classList.remove("hidden");
+                    } else {
+                        if (noHintPara) noHintPara.classList.remove("hidden");
+                    }
+                })
+                .catch(() => {
+                    if (noHintPara) noHintPara.classList.remove("hidden");
+                });
         }
     }
 

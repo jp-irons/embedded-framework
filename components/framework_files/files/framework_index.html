@@ -45,9 +45,12 @@
   <div id="login-overlay" class="login-overlay hidden">
     <div class="login-card">
       <h2 class="text-lg font-semibold mb-4">Device Login</h2>
-      <p class="text-sm text-gray-600 mb-4">
+      <p id="login-default-hint-para" class="text-sm text-gray-600 mb-4 hidden">
         Enter the <strong>current</strong> API password to continue.
-        The factory default is <span id="login-default-hint"></span>.
+        The factory default is <code id="login-default-hint"></code>.
+      </p>
+      <p id="login-no-hint-para" class="text-sm text-gray-600 mb-4 hidden">
+        Enter the <strong>current</strong> API password to continue.
       </p>
       <!-- action="." is required: browsers only offer to save credentials when
            the form has an action attribute, even when submit is preventDefault()d. -->

@@ -9,8 +9,6 @@ extern "C" {
 }
 
 // TODO update login screen so it doesn't start with wrong screen
-// TODO push hostname to esp_netif_set_hostname() at framework start and mdns
-
 
 using namespace logger;
 
@@ -74,7 +72,7 @@ static Logger log{"app_main"};
 //
 static framework::FrameworkContext setupFramework() {
 //  framework::FrameworkContext fw{auth::AuthConfig::none()};
-    framework::FrameworkContext fw{};
+    framework::FrameworkContext fw{auth::AuthConfig::withPassword("espframework")};
 
     // ── Device identity ───────────────────────────────────────────────────
     // By default both setters append the last 3 MAC bytes (MacShort) to the
