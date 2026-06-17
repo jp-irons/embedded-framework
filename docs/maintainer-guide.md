@@ -22,9 +22,9 @@ Releases are built and published automatically by GitHub Actions when a version 
 
 ```bash
 git push origin development:main    # bring main up to date without switching branches
-git tag -a v0.2.1 -m "infer factory partition from layout"
-git push origin v0.2.1              # triggers the Actions build and release
-git tag v0.0.3                      # tag must match version.txt exactly (without the v prefix)
+git tag -a v0.2.3 -m "instrumented memory and sockets"
+git push origin v0.2.3              # triggers the Actions build and release
+git tag v0.2.3                      # tag must match version.txt exactly (without the v prefix)
 # If annotation is required tag like this:
 
 ```
