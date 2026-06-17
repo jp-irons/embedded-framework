@@ -10,6 +10,8 @@ extern "C" {
 
 using namespace logger;
 
+// TODO display Wi-Fi AP connected to + strength maybe on Device page?
+
 static Logger log{"app_main"};
 
 // ── setupFramework ────────────────────────────────────────────────────────────
