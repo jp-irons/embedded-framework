@@ -34,6 +34,8 @@ class EspHttpServer : public http::HttpServer {
     void start() override;
     void stop()  override;
 
+    int activeSocketCount() const override;
+
     void addRoutes(const std::string &path, http::HttpHandler *handler) override;
     void addPostRoute(const std::string &path, http::HttpHandler *handler) override;
     void addGetRoute(const std::string &path, http::HttpHandler *handler) override;
