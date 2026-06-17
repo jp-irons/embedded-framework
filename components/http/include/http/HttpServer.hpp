@@ -40,6 +40,13 @@ class HttpServer {
     virtual void start() = 0;
     virtual void stop()  = 0;
 
+    /**
+     * Number of currently-open sockets on the HTTPS server (port 443),
+     * out of its configured max_open_sockets budget. Returns -1 if the
+     * server is not running.
+     */
+    virtual int activeSocketCount() const = 0;
+
     /** Register handler for GET, POST and DELETE on the given path pattern. */
     virtual void addRoutes(const std::string &path, HttpHandler *handler) = 0;
 

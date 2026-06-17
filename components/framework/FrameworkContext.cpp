@@ -235,6 +235,10 @@ void FrameworkContext::setOtaPullConfig(ota::OtaPullConfig config) {
     otaPullConfig_ = std::move(config);
 }
 
+int FrameworkContext::getHttpsActiveSocketCount() const {
+    return httpServer_->activeSocketCount();
+}
+
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------

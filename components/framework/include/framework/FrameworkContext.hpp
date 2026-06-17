@@ -178,6 +178,13 @@ class FrameworkContext {
      */
     void setOtaPullConfig(ota::OtaPullConfig config);
 
+    /**
+     * Number of currently-open sockets on the HTTPS server (port 443), out
+     * of its configured budget (see EspHttpServer.cpp). Returns -1 if the
+     * server is not running yet.
+     */
+    int getHttpsActiveSocketCount() const;
+
     void start();
     void stop();
 

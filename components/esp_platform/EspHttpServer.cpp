@@ -29,6 +29,10 @@ static httpd_method_t toEspIdfMethod(http::HttpMethod method) {
 
 static logger::Logger log{EspHttpServer::TAG};
 
+// Must match conf.httpd.max_open_sockets in start() — kept as one constant so
+// activeSocketCount()'s client_fds buffer always matches the real budget.
+static constexpr int kMaxOpenSockets = 13;
+
 // Embedded self-signed cert + key (see components/esp_platform/certs/ and CMakeLists.txt EMBED_TXTFILES)
 extern const uint8_t servercert_pem_start[] asm("_binary_servercert_pem_start");
 extern const uint8_t servercert_pem_end[]   asm("_binary_servercert_pem_end");
@@ -65,7 +69,7 @@ void EspHttpServer::start() {
     //   Redirect server:  4  (instantaneous redirects, low concurrency)
     //   OTA client/mDNS:  7  (reserve)
     //   Total:           24  == CONFIG_LWIP_MAX_SOCKETS
-    conf.httpd.max_open_sockets = 13;
+    conf.httpd.max_open_sockets = kMaxOpenSockets;
 
     if (!runtimeCertPem_.empty()) {
         // Use the per-device cert generated/loaded by DeviceCert
@@ -92,6 +96,20 @@ void EspHttpServer::start() {
     log.info("HTTPS server started on port %d", conf.port_secure);
 
     startRedirectServer();
+}
+
+int EspHttpServer::activeSocketCount() const {
+    if (!server_) {
+        return -1;
+    }
+    size_t fds = kMaxOpenSockets;
+    int client_fds[kMaxOpenSockets];
+    esp_err_t err = httpd_get_client_list(server_, &fds, client_fds);
+    if (err != ESP_OK) {
+        log.warn("activeSocketCount: httpd_get_client_list failed: %s", esp_err_to_name(err));
+        return -1;
+    }
+    return static_cast<int>(fds);
 }
 
 void EspHttpServer::stop() {
