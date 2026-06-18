@@ -64,6 +64,12 @@ void EspHttpServer::start() {
     conf.httpd.uri_match_fn     = httpd_uri_match_wildcard;
     conf.httpd.lru_purge_enable = true;
     conf.httpd.global_user_ctx  = this;  // lets handlerAdapter() reach onRequest_
+    // Pin to core 0 (with WiFi/LWIP). Core 1 is reserved for AudioStore's flush
+    // task, whose blocking multi-second fwrite() calls were landing on the same
+    // core as unaffined httpd instances, starving the watchdog mid-handshake
+    // and causing TLS-RESET (esp_tls -0x7280) — confirmed by timestamp
+    // correlation 2026-06-18.
+    conf.httpd.core_id          = 0;
     // Socket budget (must satisfy: HTTPS + redirect < CONFIG_LWIP_MAX_SOCKETS):
     //   HTTPS server:    13  (parallel ES-module fetches at page load)
     //   Redirect server:  4  (instantaneous redirects, low concurrency)
