@@ -18,6 +18,9 @@ struct DeviceInfo {
     size_t      psramSize;
     size_t      freeHeap;
     size_t      minFreeHeap;
+    size_t      freeInternalHeap;
+    size_t      minFreeInternalHeap;
+    size_t      largestFreeInternalBlock;
     uint32_t    cpuFreqMhz;
     std::string idfVersion;
     std::string lastReset;

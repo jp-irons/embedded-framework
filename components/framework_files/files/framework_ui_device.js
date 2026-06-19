@@ -77,6 +77,9 @@ async function refreshDeviceInfo() {
     const psramMB       = info.psramSize ? fmt(info.psramSize, 1024 * 1024, 0) + " MB" : "—";
     const freeHeapKB    = fmt(info.freeHeap,     1024,        0) + " KB";
     const minFreeHeapKB = fmt(info.minFreeHeap,  1024,        0) + " KB";
+    const freeIntHeapKB    = fmt(info.freeInternalHeap,    1024, 0) + " KB";
+    const minFreeIntHeapKB = fmt(info.minFreeInternalHeap, 1024, 0) + " KB";
+    const largestIntBlockKB = fmt(info.largestFreeInternalBlock, 1024, 0) + " KB";
     const tempStr       = (info.temperature != null && isFinite(info.temperature))
         ? info.temperature.toFixed(1) + "°C"
         : "—";
@@ -88,7 +91,7 @@ async function refreshDeviceInfo() {
                     gap:0.3rem 0.75rem; align-items:baseline;">
             <span style="font-weight:600; white-space:nowrap;">Chip Model:</span>
             <span>${info.chipModel} rev ${info.revision}</span>
-            <span style="font-weight:600; white-space:nowrap;">MAC Address:</span>
+            <span style="font-weight:600; white-space:nowrap;">MAC Addr:</span>
             <span>${info.mac}</span>
 
             <span style="font-weight:600; white-space:nowrap;">Flash Size:</span>
@@ -98,22 +101,30 @@ async function refreshDeviceInfo() {
 
             <span style="font-weight:600; white-space:nowrap;">Free Heap:</span>
             <span>${freeHeapKB}</span>
-            <span style="font-weight:600; white-space:nowrap;">Min Free Heap:</span>
+            <span style="font-weight:600; white-space:nowrap;">Min Heap:</span>
             <span>${minFreeHeapKB}</span>
 
-            <span style="font-weight:600; white-space:nowrap;">CPU Frequency:</span>
+            <span style="font-weight:600; white-space:nowrap;">Free Int Heap:</span>
+            <span>${freeIntHeapKB}</span>
+            <span style="font-weight:600; white-space:nowrap;">Min Int Heap:</span>
+            <span>${minFreeIntHeapKB}</span>
+
+            <span style="font-weight:600; white-space:nowrap;">Max Int Block:</span>
+            <span>${largestIntBlockKB}</span>
+
+            <span style="font-weight:600; white-space:nowrap;">CPU Freq:</span>
             <span>${info.cpuFreqMhz} MHz</span>
-            <span style="font-weight:600; white-space:nowrap;">ESP-IDF Version:</span>
+            <span style="font-weight:600; white-space:nowrap;">IDF Ver:</span>
             <span>${info.idfVersion}</span>
 
             <span style="font-weight:600; white-space:nowrap;">Uptime:</span>
             <span>${info.uptime}</span>
-            <span style="font-weight:600; white-space:nowrap;">Temperature:</span>
+            <span style="font-weight:600; white-space:nowrap;">Temp:</span>
             <span>${tempStr}</span>
 
             <span style="font-weight:600; white-space:nowrap;">Last Reset:</span>
             <span>${info.lastReset}</span>
-            <span style="font-weight:600; white-space:nowrap;">OTA Partition:</span>
+            <span style="font-weight:600; white-space:nowrap;">OTA Part:</span>
             <span>${info.otaPartition}</span>
         </div>
     `;

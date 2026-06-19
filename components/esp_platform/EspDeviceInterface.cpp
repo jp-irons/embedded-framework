@@ -7,6 +7,7 @@
 #include "driver/temperature_sensor.h"
 #include "esp_chip_info.h"
 #include "esp_event.h"
+#include "esp_heap_caps.h"
 #include "esp_pm.h"
 #include "esp_psram.h"
 #include "esp_idf_version.h"
@@ -226,6 +227,20 @@ DeviceInfo EspDeviceInterface::info() {
 
     i.freeHeap    = esp_get_free_heap_size();
     i.minFreeHeap = esp_get_minimum_free_heap_size();
+    // esp_get_free_heap_size() spans all capabilities, including PSRAM — on this
+    // hardware PSRAM dominates the total, so that figure stays "healthy" even
+    // when the small internal/DMA-capable SRAM pool (which mbedtls/TLS and the
+    // RNG/entropy context draw from) is under pressure. Track internal-only
+    // free space separately so a connection-burst TLS failure can be checked
+    // against the pool that actually matters for it.
+    i.freeInternalHeap    = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    i.minFreeInternalHeap = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
+    // Total free bytes can stay nonzero while the heap is too fragmented to
+    // satisfy a given allocation — that's the actual failure mode for a
+    // malloc inside a TLS handshake, not raw exhaustion. Largest contiguous
+    // free block is the metric that can actually confirm or rule out
+    // fragmentation as the cause of the NO_RNG bursts.
+    i.largestFreeInternalBlock = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
     i.cpuFreqMhz  = CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ;
     i.idfVersion  = esp_get_idf_version();
     i.lastReset   = resetReasonStr(esp_reset_reason());
