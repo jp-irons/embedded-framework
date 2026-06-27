@@ -129,6 +129,22 @@ void WiFiManager::onDisconnect() {
     sm.onEvent(WiFiEvent::ConnectFail);
 }
 
+void WiFiManager::onConnectTimeout(uint32_t attemptId) {
+    if (attemptId != connectAttemptId) {
+        return;   // a newer attempt has already superseded this one
+    }
+    if (sm.getState() != WiFiState::STA_Connecting) {
+        return;   // already resolved (connected, failed, or otherwise moved on)
+    }
+
+    log.warn("STA connect attempt timed out after %ums with no driver event — forcing retry",
+              STA_CONNECT_TIMEOUT_MS);
+
+    // Reuse the existing disconnect-handling chain: retry the same network,
+    // then advance through the network list, then fall back to AP mode.
+    onDisconnect();
+}
+
 void WiFiManager::onFatalError() {
 	log.info("onFatalError");
     lastErrorReason = "DriverError";
@@ -187,6 +203,14 @@ void WiFiManager::startSTA() {
 
     currentNetwork = *credOpt;   // store it for UI layers
     ctx.wifiInterface->connectSta(*credOpt);
+
+    // Arm a per-attempt watchdog. If neither onConnectSuccess() nor
+    // onDisconnect()/onConnectFail() fires before this expires, the driver
+    // never resolved the connect attempt one way or the other — force it.
+    uint32_t attempt = ++connectAttemptId;
+    ctx.timer->runAfter(STA_CONNECT_TIMEOUT_MS, [this, attempt]() {
+        onConnectTimeout(attempt);
+    });
 }
 
 void WiFiManager::stopSTA() {

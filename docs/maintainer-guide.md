@@ -23,10 +23,8 @@ Releases are built and published automatically by GitHub Actions when a version 
 ```bash
 git push origin development:main    # bring main up to date without switching branches
 git push origin
-git tag -a v0.2.5 -m "bump version"
-git push origin v0.2.5              # triggers the Actions build and release
-git tag v0.2.3                      # tag must match version.txt exactly (without the v prefix)
-# If annotation is required tag like this:
+git tag -a v0.2.6 -m "watchdog on STA failure"  # tag must match version.txt exactly (without the v prefix)
+git push origin v0.2.6              # triggers the Actions build and release
 
 ```
 

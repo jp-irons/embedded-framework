@@ -43,6 +43,14 @@ class WiFiManager {
     static constexpr uint32_t DRIVER_RETRY_DELAY_MS = 3000;
     std::string lastErrorReason;
 
+    // Watchdog for a single STA connection attempt — covers the case where
+    // esp_wifi_connect() never resolves to either WIFI_EVENT_STA_CONNECTED or
+    // WIFI_EVENT_STA_DISCONNECTED, leaving the state machine wedged in
+    // STA_Connecting indefinitely.
+    static constexpr uint32_t STA_CONNECT_TIMEOUT_MS = 20000;
+    uint32_t connectAttemptId = 0;
+    void onConnectTimeout(uint32_t attemptId);
+
     // Load networks only at boot
     void loadInitialNetwork();
 
