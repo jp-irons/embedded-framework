@@ -598,6 +598,20 @@ document.addEventListener("DOMContentLoaded", () => {
                         Loading…
                     </div>
 
+                    <!-- Diagnostic logs card -->
+                    <div class="border rounded p-4 bg-gray-50 mt-6 text-sm">
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 class="font-medium">Diagnostic Logs</h2>
+                            <button id="btn-load-logs"
+                                    class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                Load Logs
+                            </button>
+                        </div>
+                        <pre id="device-logs-output"
+                             class="text-xs bg-white border rounded p-2"
+                             style="max-height:16rem; overflow:auto; white-space:pre-wrap; word-break:break-all; display:none;"></pre>
+                    </div>
+
                     <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-300">
                         <button id="btn-refresh-device-info"
                                 class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">

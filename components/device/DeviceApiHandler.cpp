@@ -40,6 +40,7 @@ common::Result DeviceApiHandler::handleGet(HttpRequest& req, HttpResponse& res) 
     const std::string target = HttpHandler::extractTarget(req.path());
     if (target == "info")           return handleInfo          (req, res);
     if (target == "hostnameConfig") return handleHostnameConfigGet(req, res);
+    if (target == "logs")           return handleLogs          (req, res);
 
     res.sendJson(404, "target '" + target + "' not found");
     return Result::Ok;
@@ -178,6 +179,17 @@ common::Result DeviceApiHandler::handleHostnameConfigPost(HttpRequest& req,
     }
 
     res.sendJson("{\"rebootRequired\":true}");
+    return Result::Ok;
+}
+
+common::Result DeviceApiHandler::handleLogs(HttpRequest& /*req*/,
+                                             HttpResponse& res) {
+    log.debug("handleLogs()");
+    if (!logSink_) {
+        res.sendJsonError(501, "persistent logging not enabled on this device");
+        return Result::Ok;
+    }
+    res.sendText(logSink_->readActive());
     return Result::Ok;
 }
 

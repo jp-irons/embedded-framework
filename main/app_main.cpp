@@ -74,6 +74,10 @@ static framework::FrameworkContext setupFramework() {
 //  framework::FrameworkContext fw{auth::AuthConfig::none()};
     framework::FrameworkContext fw{auth::AuthConfig::withPassword("espframework")};
 
+    // Hand the persistent log sink (mounted in setupLogging()) to the
+    // Device API handler so GET /framework/api/device/logs can serve it.
+    fw.setLogSink(persistentLogSink());
+
     // ── Device identity ───────────────────────────────────────────────────
     // By default both setters append the last 3 MAC bytes (MacShort) to the
     // supplied prefix, e.g. "esp-fw-a1b2c3" / "EspFramework-a1b2c3".

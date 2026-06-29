@@ -157,6 +157,26 @@ async function post(url, body = null) {
     return res.json().catch(() => ({}));
 }
 
+async function getText(url) {
+    // Like get(), but the success body is plain text rather than JSON.
+    // Used for the device logs endpoint, which streams the active log file
+    // verbatim (text/plain) rather than wrapping it in JSON.
+    const tokenSnapshot = _token;
+    let res;
+    try { res = await fetch(url, { headers: authHeaders() }); }
+    catch { throw new Error("network"); }
+    if (res.status === 401) {
+        if (_token === tokenSnapshot) handle401();
+        throw new Error("unauthorized");
+    }
+    if (!res.ok) {
+        let msg = `HTTP ${res.status}`;
+        try { const d = await res.json(); if (d.error) msg = d.error; } catch {}
+        throw new Error(msg);
+    }
+    return res.text();
+}
+
 async function del(url) {
     const tokenSnapshot = _token;
     let res;
@@ -408,6 +428,15 @@ export function loadHostnameConfig() {
 
 export function saveHostnameConfig(hostnamePrefix, apSsidPrefix) {
     return post("/framework/api/device/hostnameConfig", { hostnamePrefix, apSsidPrefix });
+}
+
+/**
+ * Fetch the active persistent log file as plain text.
+ * Throws with message "persistent logging not enabled on this device"
+ * (the server's 501 error text) if persistent logging isn't configured.
+ */
+export function loadDeviceLogs() {
+    return getText(`/framework/api/device/logs?ts=${Date.now()}`);
 }
 
 

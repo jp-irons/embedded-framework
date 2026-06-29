@@ -15,5 +15,6 @@ idf_component_register(
         logger
         ota
         framework_files
+        persistent_log
         wifi_manager
 )

@@ -85,6 +85,25 @@ Handler: `device::DeviceApiHandler`
 | GET    | `info`      | Chip model, IDF version, uptime, STA IP, free heap, temperature          |
 | POST   | `reboot`    | Restart the device immediately                                           |
 | POST   | `clearNvs`  | Erase all NVS namespaces and reboot                                      |
+| GET    | `logs`      | Return the active persistent log file as plain text (see below)         |
+
+---
+
+#### `GET /framework/api/device/logs` response
+
+Success: `200`, `Content-Type: text/plain`, body is the raw contents of the currently-active
+persisted log file (see "Persistent logging" in `CONTRIBUTING.md` for what gets written and how
+to enable/disable it).
+
+Failure: `501` if no log sink has been wired up —
+
+```json
+{ "error": "persistent logging not enabled on this device" }
+```
+
+This means `FrameworkContext::setLogSink()` was never called for this build — not that logging
+failed at runtime. A mount failure on the LittleFS partition fails differently (an empty `200`
+body), so a `501` always means the sink was never connected, not a flash problem.
 
 ---
 

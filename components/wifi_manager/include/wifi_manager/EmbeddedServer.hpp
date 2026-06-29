@@ -141,10 +141,24 @@ class EmbeddedServer : public http::HttpHandler {
     framework_files::EmbeddedFileHandler frameworkFileHandler_;
 
 
-    // Framework API handlers (value members — constructed from ctor args)
+    // Framework API handlers.
+    //
+    // wifiHandler/networkHandler/otaHandler are value members — copy-
+    // constructed from the ctor args. That's only safe because nothing ever
+    // calls a setter on the *original* handler object after this copy is
+    // made. deviceHandler used to follow the same pattern and broke exactly
+    // that way: FrameworkContext::setLogSink() called setLogSink() on the
+    // original DeviceApiHandler *after* EmbeddedServer had already copied it,
+    // so the copy held a permanently-stale (null) log sink and every
+    // /device/logs request 501'd regardless of how setLogSink() was wired.
+    // Fixed by making deviceHandler a reference instead of a copy.
+    //
+    // If you ever add a post-construction setter to WiFiApiHandler,
+    // NetworkApiHandler, or OtaApiHandler, convert that member to a
+    // reference too — same landmine.
     wifi_manager::WiFiApiHandler                  wifiHandler;
     network_store::NetworkApiHandler              networkHandler;
-    device::DeviceApiHandler                      deviceHandler;
+    device::DeviceApiHandler                      &deviceHandler;
     ota::OtaApiHandler                            otaHandler;
 
     // Framework route table (built once in start())

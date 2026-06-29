@@ -2,6 +2,7 @@
 
 #include "AppFileTable.hpp"
 #include "ApplicationContext.hpp"
+#include "PersistentLogConfig.hpp"
 #include "auth/AuthApiHandler.hpp"
 #include "device/DeviceApiHandler.hpp"
 #include "esp_platform/EspDeviceInterface.hpp"
@@ -10,11 +11,13 @@
 #include "framework/FrameworkContext.hpp"
 #include "framework_files/EmbeddedFileHandler.hpp"
 #include "framework_files/EmbeddedFileTable.hpp"
+#include "logger/CompositeLogSink.hpp"
 #include "logger/EspIdfLogSink.hpp"
 #include "logger/LogSinkRegistry.hpp"
 #include "network_store/NetworkApiHandler.hpp"
 #include "network_store/NetworkStore.hpp"
 #include "ota/OtaApiHandler.hpp"
+#include "persistent_log/PersistentLogSink.hpp"
 #include "wifi_manager/EmbeddedServer.hpp"
 #include "wifi_manager/WiFiApiHandler.hpp"
 #include "wifi_manager/WiFiManager.hpp"
@@ -22,9 +25,20 @@
 
 using namespace logger;
 
+persistent_log::PersistentLogSink& persistentLogSink() {
+    static persistent_log::PersistentLogSink sink;
+    return sink;
+}
+
 void setupLogging() {
     static EspIdfLogSink uartSink;
-    LogSinkRegistry::setSink(&uartSink);
+    static CompositeLogSink composite;
+
+    persistent_log::PersistentLogSink& persistSink = persistentLogSink();
+    persistSink.mount();
+    composite.addSink(&uartSink);
+    composite.addSink(&persistSink);
+    LogSinkRegistry::setSink(&composite);
 
     LogSinkRegistry::setDefaultLevel(LogLevel::Info);
     LogSinkRegistry::setLevelForTag("app_main", LogLevel::Debug);
@@ -52,4 +66,6 @@ void setupLogging() {
     LogSinkRegistry::setLevelForTag(framework_files::EmbeddedFileHandler::TAG, LogLevel::Debug);
     LogSinkRegistry::setLevelForTag(framework_files::EmbeddedFileTable::TAG, LogLevel::Debug);
     LogSinkRegistry::setLevelForTag(AppFileTable::TAG, LogLevel::Debug);
+
+    configurePersistentLog(persistSink);
 }

@@ -82,6 +82,37 @@ LogSinkRegistry::setLevelForTag("MyComponent", LogLevel::Debug);
 
 Use `log.debug()`, `log.info()`, `log.warn()`, `log.error()` throughout. The tag is set in the constructor: `Logger log{"MyComponent"}`.
 
+#### Persistent logging
+
+Persistent logging (survives reboot/connectivity loss, served via `GET /framework/api/device/logs`)
+is a separate, opt-in layer on top of the UART log — it has its own per-tag filter, defaulting to
+`Warn`, configured in `PersistentLogConfig.cpp → configurePersistentLog()`:
+
+```cpp
+sink.setTagLevel(MyComponent::TAG, LogLevel::Debug);
+```
+
+This is independent of `LogSinkRegistry`'s per-tag levels in `LoggingConfig.cpp`, except that the
+registry level is a shared ceiling applied before any sink ever sees a message — raising a tag's
+persistent-log level only takes effect if the registry ceiling for that tag is at least as verbose.
+
+There are two independent ways to disable it, depending on what you want to keep:
+
+- **Disable the HTTP endpoint only** (e.g. for a build where you don't want logs exposed over the
+  network, but still want them on flash for later USB-cable retrieval): in `app_main.cpp`, don't
+  call `fw.setLogSink(persistentLogSink());`. `GET /framework/api/device/logs` then returns `501`.
+  `mount()` and the worker task still run, and entries are still written to LittleFS.
+- **Disable persistence entirely** (no flash writes, no worker task): in `LoggingConfig.cpp →
+  setupLogging()`, don't call `persistSink.mount()` (and skip
+  `composite.addSink(&persistSink)` too — harmless to leave in, since `write()` is a no-op when
+  unmounted, but there's no reason to route messages to a sink that drops them). `readActive()`
+  then always returns an empty string rather than `501`, since the sink object still exists —
+  combine with also skipping `fw.setLogSink()` if you want the `501` behavior instead.
+
+See the `EmbeddedServer.hpp` comment above `deviceHandler` for a wiring gotcha this layer ran into:
+a value-copy member silently held a stale (always-null) log sink because the copy was made before
+`setLogSink()` was ever called on the original object.
+
 ## OTA system
 
 The OTA system has three classes with distinct responsibilities:

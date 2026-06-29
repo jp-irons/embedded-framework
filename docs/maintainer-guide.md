@@ -23,8 +23,8 @@ Releases are built and published automatically by GitHub Actions when a version 
 ```bash
 git push origin development:main    # bring main up to date without switching branches
 git push origin
-git tag -a v0.2.7 -m "recover from IP disconnect"  # tag must match version.txt exactly (without the v prefix)
-git push origin v0.2.7              # triggers the Actions build and release
+git tag -a v0.2.8 -m "persistent logging"  # tag must match version.txt exactly (without the v prefix)
+git push origin v0.2.8              # triggers the Actions build and release
 
 ```
 

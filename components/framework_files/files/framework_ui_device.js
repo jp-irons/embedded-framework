@@ -15,6 +15,7 @@ import {
     clearNvs          as apiClearNvs,
     loadHostnameConfig as apiLoadHostnameConfig,
     saveHostnameConfig as apiSaveHostnameConfig,
+    loadDeviceLogs     as apiLoadDeviceLogs,
     isAuthenticated,
     forceReauth,
     startReconnectPolling
@@ -48,6 +49,9 @@ export function initDeviceView() {
 
     const btnSaveIdentity = document.getElementById("btn-save-identity");
     if (btnSaveIdentity) btnSaveIdentity.onclick = requestSaveIdentity;
+
+    const btnLoadLogs = document.getElementById("btn-load-logs");
+    if (btnLoadLogs) btnLoadLogs.onclick = requestLoadLogs;
 }
 
 
@@ -189,6 +193,40 @@ async function handleSaveIdentity(hostnamePrefix, apSsidPrefix) {
         if (!isAuthenticated() || err.message === "network") return;
         console.error(err);
         showMessage("error", "Save Failed", err.message || "Unable to save device identity.");
+    }
+}
+
+
+// ============================================================
+// Diagnostic logs
+// ============================================================
+
+async function requestLoadLogs() {
+    const btn    = document.getElementById("btn-load-logs");
+    const output = document.getElementById("device-logs-output");
+    if (!output) return;
+
+    output.style.display = "block";
+    output.textContent = "Loading…";
+    if (btn) { btn.disabled = true; btn.textContent = "Loading…"; }
+
+    try {
+        const text = await apiLoadDeviceLogs();
+        output.textContent = text || "(log file is empty)";
+        output.scrollTop = output.scrollHeight;
+    } catch (err) {
+        if (err.message === "network") {
+            output.textContent = "Network error — device unreachable.";
+        } else if (!isAuthenticated()) {
+            output.style.display = "none";
+            return; // forceReauth() already fired via the 401 handler
+        } else if (err.message === "persistent logging not enabled on this device") {
+            output.textContent = "Persistent logging is not enabled on this device.";
+        } else {
+            output.textContent = "Failed to load logs: " + (err.message || "unknown error");
+        }
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "Load Logs"; }
     }
 }
 

@@ -31,6 +31,7 @@ idf_component_register(
         app_main.cpp
         app/ApplicationContext.cpp
         LoggingConfig.cpp
+        PersistentLogConfig.cpp
         app/TemperatureHandler.cpp
         app_files/AppFileTable.cpp
     REQUIRES
@@ -44,6 +45,7 @@ idf_component_register(
         http
         logger
         ota
+        persistent_log
         wifi_manager
     INCLUDE_DIRS
         .

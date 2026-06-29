@@ -9,4 +9,5 @@ idf_component_register(
         http
         logger
         nvs_flash
+        persistent_log
 )

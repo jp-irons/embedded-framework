@@ -1,0 +1,12 @@
+idf_component_register(
+    SRCS
+        "PersistentLogSink.cpp"
+    INCLUDE_DIRS
+        include
+    REQUIRES
+        logger
+        common
+    PRIV_REQUIRES
+        littlefs
+        esp_timer
+)

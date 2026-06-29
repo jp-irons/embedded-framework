@@ -217,6 +217,10 @@ void FrameworkContext::setEntryPoint(std::string path) {
     embeddedServer->setEntryPoint(std::move(path));
 }
 
+void FrameworkContext::setLogSink(persistent_log::PersistentLogSink& sink) {
+    if (deviceApi) deviceApi->setLogSink(&sink);
+}
+
 void FrameworkContext::addFileHandler(std::string prefix,
                                        http::HttpHandler* handler) {
     embeddedServer->addAppFileHandler(std::move(prefix), handler);

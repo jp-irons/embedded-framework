@@ -24,6 +24,7 @@
 #include "http_types/HttpTypes.hpp"
 #include "ota/OtaApiHandler.hpp"
 #include "ota/OtaPuller.hpp"
+#include "persistent_log/PersistentLogSink.hpp"
 #include "wifi_manager/WiFiContext.hpp"
 
 namespace network_store {
@@ -177,6 +178,13 @@ class FrameworkContext {
      * checks via the firmware UI or OtaPuller::checkNow() still work.
      */
     void setOtaPullConfig(ota::OtaPullConfig config);
+
+    /**
+     * Wire a persistent log sink into the framework's /device/logs endpoint.
+     * Optional — if never called, that endpoint returns 501. Can be called
+     * any time after construction (deviceApi already exists by then).
+     */
+    void setLogSink(persistent_log::PersistentLogSink& sink);
 
     /**
      * Number of currently-open sockets on the HTTPS server (port 443), out
