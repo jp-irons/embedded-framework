@@ -70,7 +70,10 @@ Result EspWiFiInterface::startDriver() {
                &EspWiFiInterface::wifiEventHandler, this, nullptr));
 
     // Register IP event handler
-    WIFI_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
+    // ANY_ID so we also catch IP_EVENT_STA_LOST_IP — the radio can stay
+    // associated (no WIFI_EVENT_STA_DISCONNECTED) while DHCP/the netif's
+    // IP silently dies underneath it.
+    WIFI_CHECK(esp_event_handler_instance_register(IP_EVENT, ESP_EVENT_ANY_ID,
                &EspWiFiInterface::ipEventHandler, this, nullptr));
 
     WIFI_CHECK(esp_wifi_set_mode(WIFI_MODE_NULL));
@@ -223,21 +226,38 @@ void EspWiFiInterface::handleWiFiEvent(esp_event_base_t base, int32_t id, void* 
 
 void EspWiFiInterface::handleIPEvent(esp_event_base_t base, int32_t id, void* data) {
     log.debug("handleIPEvent");
-    if (id != IP_EVENT_STA_GOT_IP)
-        return;
 
-    auto* event = static_cast<ip_event_got_ip_t*>(data);
+    switch (id) {
+        case IP_EVENT_STA_GOT_IP: {
+            auto* event = static_cast<ip_event_got_ip_t*>(data);
 
-    char ipStr[16], maskStr[16], gwStr[16];
-    snprintf(ipStr,   sizeof(ipStr),   IPSTR, IP2STR(&event->ip_info.ip));
-    snprintf(maskStr, sizeof(maskStr), IPSTR, IP2STR(&event->ip_info.netmask));
-    snprintf(gwStr,   sizeof(gwStr),   IPSTR, IP2STR(&event->ip_info.gw));
+            char ipStr[16], maskStr[16], gwStr[16];
+            snprintf(ipStr,   sizeof(ipStr),   IPSTR, IP2STR(&event->ip_info.ip));
+            snprintf(maskStr, sizeof(maskStr), IPSTR, IP2STR(&event->ip_info.netmask));
+            snprintf(gwStr,   sizeof(gwStr),   IPSTR, IP2STR(&event->ip_info.gw));
 
-    StaIpInfo info{.ip = ipStr, .netmask = maskStr, .gateway = gwStr};
-    log.info("Got IP: %s", ipStr);
+            StaIpInfo info{.ip = ipStr, .netmask = maskStr, .gateway = gwStr};
+            log.info("Got IP: %s", ipStr);
 
-    if (ctx.wifiManager) {
-        ctx.wifiManager->onStaGotIp(info);
+            if (ctx.wifiManager) {
+                ctx.wifiManager->onStaGotIp(info);
+            }
+            break;
+        }
+
+        case IP_EVENT_STA_LOST_IP:
+            // Radio is still associated — no WIFI_EVENT_STA_DISCONNECTED fired —
+            // but the netif's IP is gone (e.g. DHCP lease failure on the AP/
+            // repeater side). This is WiFiManager's only chance to learn about
+            // it; reuse the same retry/fallback chain a real disconnect would.
+            log.warn("Lost STA IP (radio still associated) — treating as disconnect");
+            if (ctx.wifiManager) {
+                ctx.wifiManager->onDisconnect();
+            }
+            break;
+
+        default:
+            break;
     }
 }
 
