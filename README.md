@@ -14,6 +14,7 @@ The framework is aimed at engineers who need predictable behaviour, maintainable
 - Per-device TLS certificate generated on first boot and persisted in NVS
 - mDNS advertising with MAC-derived hostname
 - Versioned OTA binaries produced automatically at build time
+- Opt-in persistent logging to LittleFS, retrievable over HTTP (`GET /framework/api/device/logs`)
 - Modern C++17 design with clear component boundaries and private internals
 
 ## Hardware targets
@@ -105,6 +106,7 @@ components/
   network_store/        NVS-backed Wi-Fi network store + NetworkApiHandler
   device/               Device info, reboot, NVS clear + DeviceApiHandler
   device_cert/          Per-device TLS cert (generated on first boot, stored in NVS)
+  persistent_log/       Opt-in LittleFS-backed log persistence, queue + worker task
   framework_files/      LittleFS-backed static asset server + EmbeddedAssetTable
   framework/            FrameworkContext: owns and wires all components
   ota/                  OtaManager (boot guardian), OtaWriter (streaming flash), OtaApiHandler
