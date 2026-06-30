@@ -103,6 +103,15 @@ void WiFiManager::onDisconnect() {
     // Stop mDNS — IP is no longer valid
     if (ctx.mdnsInterface) ctx.mdnsInterface->stop();
 
+    // startSTA() is called directly below (not via sm.onEvent(Disconnect))
+    // so the retry/next-network/exhausted branching here can run regardless
+    // of which state we were actually in (STA_Connected, or already
+    // STA_Connecting via onConnectTimeout()). Correct the reported state to
+    // STA_Connecting so getStaStatus() doesn't keep reporting a stale
+    // "STA_Connected" for the whole outage — this was the bug found
+    // 2026-06-30 investigating node 170's overnight drop.
+    sm.markState(WiFiState::STA_Connecting);
+
     // Retry the same network first
     if (retryCount < MAX_RETRIES) {
         retryCount++;

@@ -213,9 +213,13 @@ void EspWiFiInterface::handleWiFiEvent(esp_event_base_t base, int32_t id, void* 
         case WIFI_EVENT_STA_CONNECTED:
             ctx.wifiManager->onConnectSuccess();
             break;
-        case WIFI_EVENT_STA_DISCONNECTED:
+        case WIFI_EVENT_STA_DISCONNECTED: {
+            auto* event = static_cast<wifi_event_sta_disconnected_t*>(data);
+            log.warn("STA disconnected: reason=%d ssid='%.*s' rssi=%d",
+                     event->reason, event->ssid_len, event->ssid, event->rssi);
             ctx.wifiManager->onDisconnect();
             break;
+        }
         case WIFI_EVENT_STA_AUTHMODE_CHANGE:
             ctx.wifiManager->onConnectFail();
             break;
