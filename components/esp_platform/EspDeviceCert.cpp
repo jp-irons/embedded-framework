@@ -16,7 +16,6 @@
 
 #include <vector>
 #include <cstring>
-#include <cstdio>
 #include <memory>
 
 namespace esp_platform {
