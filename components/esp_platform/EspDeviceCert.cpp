@@ -96,58 +96,6 @@ static bool buildSanDer(const std::string &hostname,
 }
 
 // ---------------------------------------------------------------------------
-// SEC1 DER builder for ECDSA P-256 private key
-//
-// mbedtls_pk_setup_opaque() requires MBEDTLS_USE_PSA_CRYPTO which is not
-// enabled in this build.  Instead we export the raw key bytes from PSA and
-// encode them as SEC1 / RFC 5915 DER so mbedtls_pk_parse_key() can load them.
-//
-// SEC1 DER structure for P-256 (total 121 bytes):
-//   SEQUENCE (30 77)
-//     INTEGER 1                       (02 01 01)           version
-//     OCTET STRING [32 bytes]         (04 20 ...)           privateKey
-//     [0] OID prime256v1              (a0 0a 06 08 ...)    parameters
-//     [1] BIT STRING uncompressed pt  (a1 44 03 42 00 ...) publicKey
-// ---------------------------------------------------------------------------
-
-static bool buildSec1Der(const uint8_t *privKey, size_t privLen,
-                         const uint8_t *pubKey,  size_t pubLen,
-                         uint8_t *buf, size_t bufSize, size_t *outLen) {
-    // Only handle P-256: 32-byte scalar + 65-byte uncompressed point
-    if (privLen != 32 || pubLen != 65 || bufSize < 121) {
-        log.error("buildSec1Der: unexpected key sizes priv=%zu pub=%zu", privLen, pubLen);
-        return false;
-    }
-
-    uint8_t *p = buf;
-
-    // SEQUENCE  (content = 119 = 0x77 bytes)
-    *p++ = 0x30; *p++ = 0x77;
-
-    // version = 1
-    *p++ = 0x02; *p++ = 0x01; *p++ = 0x01;
-
-    // privateKey OCTET STRING
-    *p++ = 0x04; *p++ = 0x20;
-    memcpy(p, privKey, 32); p += 32;
-
-    // parameters [0]: OID 1.2.840.10045.3.1.7 (prime256v1)
-    *p++ = 0xa0; *p++ = 0x0a;          // context [0], len 10
-    *p++ = 0x06; *p++ = 0x08;          // OID, len 8
-    *p++ = 0x2a; *p++ = 0x86; *p++ = 0x48; *p++ = 0xce;
-    *p++ = 0x3d; *p++ = 0x03; *p++ = 0x01; *p++ = 0x07;
-
-    // publicKey [1]: BIT STRING wrapping uncompressed EC point (04 || X || Y)
-    *p++ = 0xa1; *p++ = 0x44;          // context [1], len 68
-    *p++ = 0x03; *p++ = 0x42;          // BIT STRING, len 66
-    *p++ = 0x00;                        // 0 unused bits
-    memcpy(p, pubKey, 65); p += 65;    // 04 || X || Y
-
-    *outLen = (size_t)(p - buf);  // must be 121
-    return true;
-}
-
-// ---------------------------------------------------------------------------
 // NVS helpers
 // ---------------------------------------------------------------------------
 
@@ -206,19 +154,38 @@ esp_err_t EspDeviceCert::storeToNvs() const {
 // Certificate generation (ECDSA P-256, self-signed, 10-year validity)
 //
 // mbedTLS 4.x API changes vs 3.x:
-//   - Key generation:    psa_generate_key() + export/parse (no mbedtls_ecp_gen_key)
-//   - pk_setup_opaque:   MBEDTLS_USE_PSA_CRYPTO not enabled → use SEC1 export+parse
+//   - Key generation:    psa_generate_key() (no mbedtls_ecp_gen_key)
+//   - Signing:           done directly against the PSA key via
+//                         mbedtls_pk_wrap_psa() — mbedtls_pk_setup_opaque()
+//                         no longer exists in Mbed TLS 4.x/TF-PSA-Crypto;
+//                         mbedtls_pk_wrap_psa() is its replacement (see
+//                         tf-psa-crypto/include/mbedtls/pk.h). ECDSA always
+//                         routes through PSA internally regardless of
+//                         MBEDTLS_USE_PSA_CRYPTO, so there is no "non-PSA"
+//                         path left to fall back to.
+//   - PEM export:        mbedtls_pk_copy_from_psa() builds an independent,
+//                         serialisable pk context straight from the PSA key
+//                         (replaces manual export + SEC1 DER + pk_parse_key).
 //   - x509write_crt_pem: no RNG callback (PSA handles RNG internally)
+//
+// The PSA key is kept alive (not destroyed) until after signing. Only once
+// the certificate PEM has been produced do we copy the key into a second,
+// independent pk context purely to serialise it to PEM for NVS storage —
+// that copy no longer runs back-to-back with the first-ever PSA sign
+// operation, which is what triggered a PSA key-slot mutex crash
+// (xQueueSemaphoreTake assert) on fresh-NVS first boot.
 // ---------------------------------------------------------------------------
 
 esp_err_t EspDeviceCert::generateAndStore(const std::string &hostname) {
     log.info("Generating device cert for '%s' (first boot) ...", hostname.c_str());
 
     psa_key_id_t           keyId = PSA_KEY_ID_NULL;
-    mbedtls_pk_context     pk;
+    mbedtls_pk_context     pk;        // wraps the PSA key (mbedtls_pk_wrap_psa) — used to sign
+    mbedtls_pk_context     pkExport;  // independent copy (mbedtls_pk_copy_from_psa) — PEM only
     mbedtls_x509write_cert crt;
 
     mbedtls_pk_init(&pk);
+    mbedtls_pk_init(&pkExport);
     mbedtls_x509write_crt_init(&crt);
 
     int          rc    = 0;
@@ -233,12 +200,9 @@ esp_err_t EspDeviceCert::generateAndStore(const std::string &hostname) {
     }
 
     // -----------------------------------------------------------------------
-    // Generate ECDSA P-256 key via PSA, then export into an mbedTLS PK context.
-    //
-    // We cannot use mbedtls_pk_setup_opaque() because MBEDTLS_USE_PSA_CRYPTO is
-    // not enabled in this build.  Instead: export the raw private key scalar and
-    // uncompressed public point from PSA, encode as SEC1 DER, and parse with
-    // mbedtls_pk_parse_key() to get a standard (non-opaque) PK context.
+    // Generate ECDSA P-256 key via PSA and bind it to an opaque pk context.
+    // EXPORT usage is retained because we still need the raw bytes later to
+    // produce a storable PEM copy of the private key.
     // -----------------------------------------------------------------------
     {
         psa_key_attributes_t attrs = PSA_KEY_ATTRIBUTES_INIT;
@@ -259,48 +223,12 @@ esp_err_t EspDeviceCert::generateAndStore(const std::string &hostname) {
         log.debug("PSA key generated (id=%u)", (unsigned)keyId);
     }
 
-    {
-        uint8_t privKey[32], pubKey[65];
-        size_t  privLen = 0,  pubLen  = 0;
-
-        psaSt = psa_export_key(keyId, privKey, sizeof(privKey), &privLen);
-        if (psaSt != PSA_SUCCESS) {
-            log.error("psa_export_key: %d", (int)psaSt);
-            rc = -1;
-            goto cleanup;
-        }
-
-        psaSt = psa_export_public_key(keyId, pubKey, sizeof(pubKey), &pubLen);
-        if (psaSt != PSA_SUCCESS) {
-            log.error("psa_export_public_key: %d", (int)psaSt);
-            rc = -1;
-            goto cleanup;
-        }
-
-        // Build SEC1 DER and parse into a normal (non-opaque) PK context
-        uint8_t sec1[128];
-        size_t  sec1Len = 0;
-        if (!buildSec1Der(privKey, privLen, pubKey, pubLen,
-                          sec1, sizeof(sec1), &sec1Len)) {
-            rc = -1;
-            goto cleanup;
-        }
-
-        rc = mbedtls_pk_parse_key(&pk, sec1, sec1Len, nullptr, 0);
-        if (rc != 0) {
-            log.error("pk_parse_key: -0x%04x", -rc);
-            goto cleanup;
-        }
-
-        // Wipe sensitive key material from the stack
-        memset(privKey, 0, sizeof(privKey));
-        memset(sec1,    0, sec1Len);
+    rc = mbedtls_pk_wrap_psa(&pk, keyId);
+    if (rc != 0) {
+        log.error("pk_wrap_psa: -0x%04x", -rc);
+        goto cleanup;
     }
-    log.debug("PK context loaded");
-
-    // PSA key no longer needed — material is now in the PK context
-    psa_destroy_key(keyId);
-    keyId = PSA_KEY_ID_NULL;
+    log.debug("PK context wrapping PSA key");
 
     // -----------------------------------------------------------------------
     // Build the certificate
@@ -351,25 +279,41 @@ esp_err_t EspDeviceCert::generateAndStore(const std::string &hostname) {
     }
 
     // -----------------------------------------------------------------------
-    // Write private key to PEM  (heap-allocated — 512 B on stack would cascade)
-    // -----------------------------------------------------------------------
-    {
-        auto keyBuf = std::make_unique<uint8_t[]>(512);
-        rc = mbedtls_pk_write_key_pem(&pk, keyBuf.get(), 512);
-        if (rc != 0) { log.error("pk_write_key_pem: -0x%04x", -rc); goto cleanup; }
-        key_ = std::string(reinterpret_cast<char *>(keyBuf.get()));
-    }
-
-    // -----------------------------------------------------------------------
     // Write certificate to PEM  (heap-allocated — 2 KB on stack is fatal)
-    // In mbedTLS 4.x, mbedtls_x509write_crt_pem takes only 3 arguments —
-    // the RNG callback was removed; PSA handles randomness internally.
+    // Signed directly via the opaque PSA key (pk above). In mbedTLS 4.x,
+    // mbedtls_x509write_crt_pem takes only 3 arguments — the RNG callback was
+    // removed; PSA handles randomness internally.
     // -----------------------------------------------------------------------
     {
         auto crtBuf = std::make_unique<uint8_t[]>(2048);
         rc = mbedtls_x509write_crt_pem(&crt, crtBuf.get(), 2048);
         if (rc != 0) { log.error("x509write_crt_pem: -0x%04x", -rc); goto cleanup; }
         cert_ = std::string(reinterpret_cast<char *>(crtBuf.get()));
+    }
+    log.debug("Certificate signed");
+
+    // -----------------------------------------------------------------------
+    // Build an independent, plain pk context straight from the PSA key,
+    // purely so mbedtls_pk_write_key_pem() has something it can serialise —
+    // a wrap_psa() context can't be written out directly. This runs after
+    // signing is already complete, so it no longer races the first PSA sign
+    // operation. Requires PSA_KEY_USAGE_EXPORT on the key (set above).
+    // -----------------------------------------------------------------------
+    rc = mbedtls_pk_copy_from_psa(keyId, &pkExport);
+    if (rc != 0) {
+        log.error("pk_copy_from_psa: -0x%04x", -rc);
+        goto cleanup;
+    }
+    log.debug("Export PK context loaded");
+
+    // -----------------------------------------------------------------------
+    // Write private key to PEM  (heap-allocated — 512 B on stack would cascade)
+    // -----------------------------------------------------------------------
+    {
+        auto keyBuf = std::make_unique<uint8_t[]>(512);
+        rc = mbedtls_pk_write_key_pem(&pkExport, keyBuf.get(), 512);
+        if (rc != 0) { log.error("pk_write_key_pem: -0x%04x", -rc); goto cleanup; }
+        key_ = std::string(reinterpret_cast<char *>(keyBuf.get()));
     }
 
     storedHostname_ = hostname;
@@ -379,6 +323,7 @@ esp_err_t EspDeviceCert::generateAndStore(const std::string &hostname) {
 cleanup:
     mbedtls_x509write_crt_free(&crt);
     mbedtls_pk_free(&pk);
+    mbedtls_pk_free(&pkExport);
     if (keyId != PSA_KEY_ID_NULL) {
         psa_destroy_key(keyId);
     }

@@ -23,19 +23,18 @@ Releases are built and published automatically by GitHub Actions when a version 
 ```bash
 #git push origin development:main    # bring main up to date without switching branches
 git push origin
-git tag -a v0.2.11 -m "load brief persistent log"  # tag must match version.txt exactly (without the v prefix)
-git push origin v0.2.11              # triggers the Actions build and release
+git tag -a v0.2.12 -m "fix initial cert"  # tag must match version.txt exactly (without the v prefix)
+git push origin v0.2.12              # triggers the Actions build and release
 
 # in target repo root
-
 cd framework
 git fetch --tags
 git -C . describe --tags
-git checkout v0.2.11       # e.g. v1.2.0
+git checkout v0.2.12       # e.g. v1.2.0
 
 cd ..
 git add framework
-git commit -m "Update framework submodule to v0.2.11"
+git commit -m "Update framework submodule to v0.2.12"
 git push
 
 ```
