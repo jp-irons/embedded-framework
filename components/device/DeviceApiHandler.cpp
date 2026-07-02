@@ -191,16 +191,16 @@ common::Result DeviceApiHandler::handleLogs(HttpRequest& /*req*/,
     }
 
     res.beginChunked("text/plain");
-    Result result = logSink_->streamActive(
+    Result result = logSink_->streamAll(
         [&res](std::string_view chunk) { return res.sendChunk(chunk); });
     res.endChunked();
 
     if (result == Result::NotFound) {
-        // Nothing was ever written to the response body in this case (the
-        // file couldn't be opened), but beginChunked()/endChunked() already
+        // Nothing was ever written to the response body in this case (no
+        // log file exists yet), but beginChunked()/endChunked() already
         // ran — log it rather than trying to send a second, conflicting
         // response on the same request.
-        log.warn("handleLogs: active log file unavailable");
+        log.warn("handleLogs: no persistent log file available");
     }
     return Result::Ok;
 }

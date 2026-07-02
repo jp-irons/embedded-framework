@@ -82,6 +82,16 @@ class PersistentLogSink : public logger::LogSink {
      *  snapshot, not a hard guarantee). */
     common::Result streamActive(const ChunkSink& sink) const;
 
+    /** Streams both log files out via `sink`: inactive file first (older
+     *  history), then active file (current run) — a complete chronological
+     *  view across reboots and rotations, each file read in bounded chunks
+     *  with no full-file buffer ever held in memory. Returns Result::Ok if
+     *  at least one file was read, NotFound if not mounted or neither file
+     *  exists, whatever `sink` returned if it stopped the read early, or
+     *  InternalError on a read fault. Same best-effort / no-lock caveat as
+     *  streamActive(). */
+    common::Result streamAll(const ChunkSink& sink) const;
+
   private:
     struct LogEntry {
         int64_t timestampMs;
@@ -92,11 +102,15 @@ class PersistentLogSink : public logger::LogSink {
 
     logger::LogLevel levelForTag(std::string_view tag) const;
 
-    // Worker-task-only state (and readActive(), best-effort).
+    // Worker-task-only state (and streamActive()/streamAll(), best-effort).
     void rotateIfNeeded();
     void persistEntry(const LogEntry& entry);
     void runWorker();
     static void workerTaskTrampoline(void* arg);
+
+    /** Reads kFileNames[fileIdx] in bounded chunks via `sink`. NotFound if
+     *  the file can't be opened (e.g. never rotated to yet). */
+    common::Result streamFile(int fileIdx, const ChunkSink& sink) const;
 
     bool mounted_ = false;
     int activeFile_ = 0;        // 0 = log_a.txt, 1 = log_b.txt

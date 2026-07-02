@@ -38,9 +38,17 @@ bool PersistentLogSink::mount() {
         return false;
     }
 
-    struct stat st{};
-    activeFile_ = 0;
-    activeBytes_ = (stat(kFileNames[0], &st) == 0) ? static_cast<size_t>(st.st_size) : 0;
+    // Determine which file was active at the time of the last crash/reboot.
+    // The active file was being appended to, so it's the smaller one; the
+    // inactive file is either full (kMaxFileBytes) or freshly truncated (0).
+    // Always resuming with log_a (the old behaviour) caused a bug: if log_a
+    // was full and the previous run was writing to log_b, the first write
+    // after reboot would truncate log_b and destroy the pre-failure history.
+    struct stat stA{}, stB{};
+    size_t sizeA = (stat(kFileNames[0], &stA) == 0) ? static_cast<size_t>(stA.st_size) : 0;
+    size_t sizeB = (stat(kFileNames[1], &stB) == 0) ? static_cast<size_t>(stB.st_size) : 0;
+    activeFile_  = (sizeA <= sizeB) ? 0 : 1;
+    activeBytes_ = (activeFile_ == 0) ? sizeA : sizeB;
 
     queue_ = xQueueCreate(kQueueDepth, sizeof(LogEntry));
     if (!queue_) {
@@ -130,9 +138,8 @@ void PersistentLogSink::persistEntry(const LogEntry& entry) {
     if (written > 0) activeBytes_ += static_cast<size_t>(written);
 }
 
-common::Result PersistentLogSink::streamActive(const ChunkSink& sink) const {
-    if (!mounted_) return common::Result::NotFound;
-    FILE* f = fopen(kFileNames[activeFile_], "r");
+common::Result PersistentLogSink::streamFile(int fileIdx, const ChunkSink& sink) const {
+    FILE* f = fopen(kFileNames[fileIdx], "r");
     if (!f) return common::Result::NotFound;
 
     char buf[kReadChunkBytes];
@@ -145,6 +152,29 @@ common::Result PersistentLogSink::streamActive(const ChunkSink& sink) const {
     if (ferror(f)) result = common::Result::InternalError;
     fclose(f);
     return result;
+}
+
+common::Result PersistentLogSink::streamActive(const ChunkSink& sink) const {
+    if (!mounted_) return common::Result::NotFound;
+    return streamFile(activeFile_, sink);
+}
+
+common::Result PersistentLogSink::streamAll(const ChunkSink& sink) const {
+    if (!mounted_) return common::Result::NotFound;
+
+    // Inactive file first (older history), then active file (current run),
+    // giving a complete chronological view across reboots and rotations.
+    // A missing individual file (e.g. never rotated to yet) is tolerated —
+    // only a genuine read fault on a file that does exist is an error.
+    const int inactiveFile = 1 - activeFile_;
+    bool anyFound = false;
+    for (int idx : {inactiveFile, activeFile_}) {
+        common::Result r = streamFile(idx, sink);
+        if (r == common::Result::NotFound) continue;   // file doesn't exist yet
+        anyFound = true;
+        if (r != common::Result::Ok) return r;          // real error or early stop
+    }
+    return anyFound ? common::Result::Ok : common::Result::NotFound;
 }
 
 } // namespace persistent_log
