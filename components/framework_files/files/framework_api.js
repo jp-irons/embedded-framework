@@ -431,12 +431,18 @@ export function saveHostnameConfig(hostnamePrefix, apSsidPrefix) {
 }
 
 /**
- * Fetch the active persistent log file as plain text.
+ * Fetch persisted log content as plain text.
+ *
+ * By default returns only the most recent ~16 KB (fast, bounded regardless
+ * of how much history exists). Pass full=true for the complete history
+ * across both rotation files — slower, and unbounded in size.
+ *
  * Throws with message "persistent logging not enabled on this device"
  * (the server's 501 error text) if persistent logging isn't configured.
  */
-export function loadDeviceLogs() {
-    return getText(`/framework/api/device/logs?ts=${Date.now()}`);
+export function loadDeviceLogs(full = false) {
+    const fullParam = full ? "&full=1" : "";
+    return getText(`/framework/api/device/logs?ts=${Date.now()}${fullParam}`);
 }
 
 

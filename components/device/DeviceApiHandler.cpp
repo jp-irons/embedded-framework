@@ -182,7 +182,7 @@ common::Result DeviceApiHandler::handleHostnameConfigPost(HttpRequest& req,
     return Result::Ok;
 }
 
-common::Result DeviceApiHandler::handleLogs(HttpRequest& /*req*/,
+common::Result DeviceApiHandler::handleLogs(HttpRequest& req,
                                              HttpResponse& res) {
     log.debug("handleLogs()");
     if (!logSink_) {
@@ -190,9 +190,17 @@ common::Result DeviceApiHandler::handleLogs(HttpRequest& /*req*/,
         return Result::Ok;
     }
 
+    // Default: fast, bounded tail (most recent activity only) — this is
+    // what most diagnostic checks want and it's cheap regardless of how
+    // much history exists. ?full=1 opts into the complete, slower history
+    // across both rotation files.
+    const bool full = (req.queryParam("full") != nullptr);
+    auto sink = [&res](std::string_view chunk) { return res.sendChunk(chunk); };
+
     res.beginChunked("text/plain");
-    Result result = logSink_->streamAll(
-        [&res](std::string_view chunk) { return res.sendChunk(chunk); });
+    Result result = full
+        ? logSink_->streamAll(sink)
+        : logSink_->streamRecent(persistent_log::PersistentLogSink::kDefaultTailBytes, sink);
     res.endChunked();
 
     if (result == Result::NotFound) {

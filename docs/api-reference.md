@@ -85,16 +85,23 @@ Handler: `device::DeviceApiHandler`
 | GET    | `info`      | Chip model, IDF version, uptime, STA IP, free heap, temperature          |
 | POST   | `reboot`    | Restart the device immediately                                           |
 | POST   | `clearNvs`  | Erase all NVS namespaces and reboot                                      |
-| GET    | `logs`      | Return full persisted log history as plain text (see below)             |
+| GET    | `logs`      | Return persisted log content as plain text (see below)                   |
 
 ---
 
 #### `GET /framework/api/device/logs` response
 
-Success: `200`, `Content-Type: text/plain`, chunked-transfer body containing the full persisted
-log history: the older rotation file followed by the current one, giving a complete chronological
-view across reboots and rotations (see "Persistent logging" in `CONTRIBUTING.md` for what gets
-written and how to enable/disable it).
+Success: `200`, `Content-Type: text/plain`, chunked-transfer body.
+
+- **Default (no query param):** the most recent `kDefaultTailBytes` (16 KB) of log content — fast
+  and bounded regardless of how much history exists. If the current rotation file alone has less
+  than 16 KB, the read overflows backwards into the tail of the previous rotation file so the
+  response is still up to 16 KB, oldest-to-newest.
+- **`?full=1`:** the complete persisted history — the older rotation file in full, followed by the
+  current one — for a full chronological view across reboots. Slower and unbounded in size (up to
+  ~2x `kMaxFileBytes`); use only when the tail isn't enough.
+
+See "Persistent logging" in `CONTRIBUTING.md` for what gets written and how to enable/disable it.
 
 Failure: `501` if no log sink has been wired up —
 

@@ -154,8 +154,69 @@ common::Result PersistentLogSink::streamFile(int fileIdx, const ChunkSink& sink)
     return result;
 }
 
+common::Result PersistentLogSink::streamFileTail(int fileIdx, size_t maxBytes,
+                                                  const ChunkSink& sink) const {
+    FILE* f = fopen(kFileNames[fileIdx], "r");
+    if (!f) return common::Result::NotFound;
+
+    if (fseek(f, 0, SEEK_END) != 0) {
+        fclose(f);
+        return common::Result::InternalError;
+    }
+    long size = ftell(f);
+    if (size < 0) {
+        fclose(f);
+        return common::Result::InternalError;
+    }
+
+    long start = (static_cast<size_t>(size) > maxBytes)
+                     ? (size - static_cast<long>(maxBytes))
+                     : 0;
+    if (fseek(f, start, SEEK_SET) != 0) {
+        fclose(f);
+        return common::Result::InternalError;
+    }
+
+    char buf[kReadChunkBytes];
+    common::Result result = common::Result::Ok;
+    size_t n;
+    while ((n = fread(buf, 1, sizeof(buf), f)) > 0) {
+        result = sink(std::string_view(buf, n));
+        if (result != common::Result::Ok) break;
+    }
+    if (ferror(f)) result = common::Result::InternalError;
+    fclose(f);
+    return result;
+}
+
 common::Result PersistentLogSink::streamActive(const ChunkSink& sink) const {
     if (!mounted_) return common::Result::NotFound;
+    return streamFile(activeFile_, sink);
+}
+
+common::Result PersistentLogSink::streamRecent(size_t maxBytes, const ChunkSink& sink) const {
+    if (!mounted_) return common::Result::NotFound;
+
+    struct stat st{};
+    size_t activeSize = (stat(kFileNames[activeFile_], &st) == 0)
+                             ? static_cast<size_t>(st.st_size)
+                             : 0;
+
+    // If the active file alone already covers the requested budget, its own
+    // tail is the whole answer.
+    if (activeSize >= maxBytes) {
+        return streamFileTail(activeFile_, maxBytes, sink);
+    }
+
+    // Otherwise pull the remainder from the tail of the inactive (older)
+    // file first — so the combined output stays in chronological order —
+    // then the whole active file. A missing/short inactive file just means
+    // less history exists than was asked for; that's fine, not an error.
+    size_t remaining = maxBytes - activeSize;
+    const int inactiveFile = 1 - activeFile_;
+    common::Result r = streamFileTail(inactiveFile, remaining, sink);
+    if (r != common::Result::Ok && r != common::Result::NotFound) return r;
+
     return streamFile(activeFile_, sink);
 }
 

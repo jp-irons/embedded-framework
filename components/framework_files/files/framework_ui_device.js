@@ -50,8 +50,11 @@ export function initDeviceView() {
     const btnSaveIdentity = document.getElementById("btn-save-identity");
     if (btnSaveIdentity) btnSaveIdentity.onclick = requestSaveIdentity;
 
-    const btnLoadLogs = document.getElementById("btn-load-logs");
-    if (btnLoadLogs) btnLoadLogs.onclick = requestLoadLogs;
+    const btnLoadLogsRecent = document.getElementById("btn-load-logs-recent");
+    if (btnLoadLogsRecent) btnLoadLogsRecent.onclick = () => requestLoadLogs(false);
+
+    const btnLoadLogsFull = document.getElementById("btn-load-logs-full");
+    if (btnLoadLogsFull) btnLoadLogsFull.onclick = () => requestLoadLogs(true);
 }
 
 
@@ -201,17 +204,34 @@ async function handleSaveIdentity(hostnamePrefix, apSsidPrefix) {
 // Diagnostic logs
 // ============================================================
 
-async function requestLoadLogs() {
-    const btn    = document.getElementById("btn-load-logs");
-    const output = document.getElementById("device-logs-output");
+async function requestLoadLogs(full) {
+    const btnRecent = document.getElementById("btn-load-logs-recent");
+    const btnFull   = document.getElementById("btn-load-logs-full");
+    const output    = document.getElementById("device-logs-output");
     if (!output) return;
+
+    // Both buttons write into the same output box, so only one request may
+    // be in flight at a time — disable both regardless of which was clicked.
+    const activeBtn = full ? btnFull : btnRecent;
 
     output.style.display = "block";
     output.textContent = "Loading…";
-    if (btn) { btn.disabled = true; btn.textContent = "Loading…"; }
+    if (btnRecent) btnRecent.disabled = true;
+    if (btnFull)   btnFull.disabled = true;
+
+    // Full-history loads can take a while (up to ~1.4 MB over HTTPS) —
+    // show elapsed time on the active button so it doesn't look hung.
+    const startedAt = Date.now();
+    const tick = () => {
+        if (!activeBtn) return;
+        const elapsedS = Math.round((Date.now() - startedAt) / 1000);
+        activeBtn.textContent = elapsedS > 0 ? `Loading… (${elapsedS}s)` : "Loading…";
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
 
     try {
-        const text = await apiLoadDeviceLogs();
+        const text = await apiLoadDeviceLogs(full);
         output.textContent = text || "(log file is empty)";
         output.scrollTop = output.scrollHeight;
     } catch (err) {
@@ -226,7 +246,9 @@ async function requestLoadLogs() {
             output.textContent = "Failed to load logs: " + (err.message || "unknown error");
         }
     } finally {
-        if (btn) { btn.disabled = false; btn.textContent = "Load Logs"; }
+        clearInterval(timer);
+        if (btnRecent) { btnRecent.disabled = false; btnRecent.textContent = "Load Recent"; }
+        if (btnFull)   { btnFull.disabled = false;   btnFull.textContent = "Load Full History"; }
     }
 }
 

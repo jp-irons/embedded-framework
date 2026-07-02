@@ -87,9 +87,13 @@ Use `log.debug()`, `log.info()`, `log.warn()`, `log.error()` throughout. The tag
 Persistent logging (survives reboot/connectivity loss, served via `GET /framework/api/device/logs`)
 is a separate, opt-in layer on top of the UART log — it has its own per-tag filter, defaulting to
 `Warn`, configured in `PersistentLogConfig.cpp → configurePersistentLog()`. The HTTP endpoint
-streams both rotation files out in bounded chunks via `streamAll()` — older file then current
-file, for a complete chronological view across reboots — rather than loading them into a single
-in-RAM buffer, so response size isn't limited by (and doesn't compete with) available heap:
+streams content out in bounded chunks rather than loading it into a single in-RAM buffer, so
+response size isn't limited by (and doesn't compete with) available heap. By default it serves
+just the last `kDefaultTailBytes` (16 KB) via `streamRecent()` — fast, and bounded regardless of
+how much history exists, overflowing into the previous rotation file if the current one is
+smaller than that. `?full=1` opts into `streamAll()` instead: both rotation files in full, older
+then current, for a complete chronological view across reboots — slower, since it's unbounded up
+to ~2x `kMaxFileBytes`.
 
 ```cpp
 sink.setTagLevel(MyComponent::TAG, LogLevel::Debug);
@@ -108,9 +112,10 @@ There are two independent ways to disable it, depending on what you want to keep
 - **Disable persistence entirely** (no flash writes, no worker task): in `LoggingConfig.cpp →
   setupLogging()`, don't call `persistSink.mount()` (and skip
   `composite.addSink(&persistSink)` too — harmless to leave in, since `write()` is a no-op when
-  unmounted, but there's no reason to route messages to a sink that drops them). `streamAll()`
-  then returns `Result::NotFound` (empty body) rather than `501`, since the sink object still
-  exists — combine with also skipping `fw.setLogSink()` if you want the `501` behavior instead.
+  unmounted, but there's no reason to route messages to a sink that drops them). `streamRecent()`
+  / `streamAll()` then return `Result::NotFound` (empty body) rather than `501`, since the sink
+  object still exists — combine with also skipping `fw.setLogSink()` if you want the `501`
+  behavior instead.
 
 See the `EmbeddedServer.hpp` comment above `deviceHandler` for a wiring gotcha this layer ran into:
 a value-copy member silently held a stale (always-null) log sink because the copy was made before

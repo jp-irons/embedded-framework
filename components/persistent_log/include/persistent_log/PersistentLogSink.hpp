@@ -54,6 +54,7 @@ class PersistentLogSink : public logger::LogSink {
     static constexpr size_t kMaxMessageLen = 199;
     static constexpr size_t kQueueDepth = 16;
     static constexpr size_t kReadChunkBytes = 512;
+    static constexpr size_t kDefaultTailBytes = 16 * 1024;
 
     /** Mounts the assets_fs partition and starts the worker task. Safe to
      *  call once at startup. Logs a warning and leaves the sink in no-op
@@ -92,6 +93,18 @@ class PersistentLogSink : public logger::LogSink {
      *  streamActive(). */
     common::Result streamAll(const ChunkSink& sink) const;
 
+    /** Streams the last `maxBytes` of log content out via `sink`, most
+     *  recent activity only, bounded to a fixed cost regardless of how much
+     *  history exists — this is the fast path.  If the active file alone
+     *  has fewer than `maxBytes`, the read overflows backwards into the
+     *  tail of the inactive file first, so the combined output is still
+     *  exactly `maxBytes` (or however much history actually exists) and
+     *  stays in chronological order. Returns Result::Ok, NotFound if not
+     *  mounted / no log file exists, whatever `sink` returned if it stopped
+     *  the read early, or InternalError on a read fault. Same best-effort /
+     *  no-lock caveat as streamActive(). */
+    common::Result streamRecent(size_t maxBytes, const ChunkSink& sink) const;
+
   private:
     struct LogEntry {
         int64_t timestampMs;
@@ -108,9 +121,14 @@ class PersistentLogSink : public logger::LogSink {
     void runWorker();
     static void workerTaskTrampoline(void* arg);
 
-    /** Reads kFileNames[fileIdx] in bounded chunks via `sink`. NotFound if
-     *  the file can't be opened (e.g. never rotated to yet). */
+    /** Reads kFileNames[fileIdx] in bounded chunks via `sink`, start to EOF.
+     *  NotFound if the file can't be opened (e.g. never rotated to yet). */
     common::Result streamFile(int fileIdx, const ChunkSink& sink) const;
+
+    /** Reads at most the last `maxBytes` of kFileNames[fileIdx] in bounded
+     *  chunks via `sink`. NotFound if the file can't be opened. */
+    common::Result streamFileTail(int fileIdx, size_t maxBytes,
+                                   const ChunkSink& sink) const;
 
     bool mounted_ = false;
     int activeFile_ = 0;        // 0 = log_a.txt, 1 = log_b.txt

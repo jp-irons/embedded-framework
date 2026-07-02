@@ -602,10 +602,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="border rounded p-4 bg-gray-50 mt-6 text-sm">
                         <div class="flex justify-between items-center mb-2">
                             <h2 class="font-medium">Diagnostic Logs</h2>
-                            <button id="btn-load-logs"
-                                    class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                Load Logs
-                            </button>
+                            <div class="flex gap-2">
+                                <button id="btn-load-logs-full"
+                                        class="px-3 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                                        title="Loads the complete log history across both rotation files — can take a while">
+                                    Load Full History
+                                </button>
+                                <button id="btn-load-logs-recent"
+                                        class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    Load Recent
+                                </button>
+                            </div>
                         </div>
                         <pre id="device-logs-output"
                              class="text-xs bg-white border rounded p-2"
