@@ -21,12 +21,25 @@ Releases are built and published automatically by GitHub Actions when a version 
 **Tagging and publishing**
 
 ```bash
-git push origin development:main    # bring main up to date without switching branches
+#git push origin development:main    # bring main up to date without switching branches
 git push origin
-git tag -a v0.2.9 -m "debug intermittent sta failure"  # tag must match version.txt exactly (without the v prefix)
-git push origin v0.2.9              # triggers the Actions build and release
+git tag -a v0.2.10 -m "chunked http transfers"  # tag must match version.txt exactly (without the v prefix)
+git push origin v0.2.10              # triggers the Actions build and release
+
+# in target repo root
+
+cd framework
+git fetch --tags
+git -C . describe --tags
+git checkout v0.2.10       # e.g. v1.2.0
+cd ..
+
+git add framework
+git commit -m "Update framework submodule to v0.2.10"
+git push
 
 ```
+
 
 The workflow validates that the tag version matches `version.txt` before building — if they are out of sync it fails immediately.
 

@@ -189,7 +189,19 @@ common::Result DeviceApiHandler::handleLogs(HttpRequest& /*req*/,
         res.sendJsonError(501, "persistent logging not enabled on this device");
         return Result::Ok;
     }
-    res.sendText(logSink_->readActive());
+
+    res.beginChunked("text/plain");
+    Result result = logSink_->streamActive(
+        [&res](std::string_view chunk) { return res.sendChunk(chunk); });
+    res.endChunked();
+
+    if (result == Result::NotFound) {
+        // Nothing was ever written to the response body in this case (the
+        // file couldn't be opened), but beginChunked()/endChunked() already
+        // ran — log it rather than trying to send a second, conflicting
+        // response on the same request.
+        log.warn("handleLogs: active log file unavailable");
+    }
     return Result::Ok;
 }
 

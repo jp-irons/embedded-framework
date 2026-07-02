@@ -36,6 +36,23 @@ class HttpResponse {
 
     virtual common::Result sendText(std::string_view body) = 0;
 
+    /**
+     * Chunked-transfer streaming, for responses too large (or of unknown
+     * size ahead of time) to hold in RAM as a single buffer.
+     *
+     * Usage: beginChunked(type) once, then sendChunk() any number of times,
+     * then endChunked() exactly once to terminate the transfer. No other
+     * send*() method may be called on the same response after beginChunked().
+     */
+    virtual common::Result beginChunked(const char *type) = 0;
+
+    /** Sends one chunk of a chunked response. May be called zero or more
+     *  times between beginChunked() and endChunked(). */
+    virtual common::Result sendChunk(std::string_view data) = 0;
+
+    /** Terminates a chunked response (sends the closing zero-length chunk). */
+    virtual common::Result endChunked() = 0;
+
     virtual common::Result sendJson(std::string_view body) = 0;
 
     virtual common::Result sendJson(int code, std::string_view body) = 0;

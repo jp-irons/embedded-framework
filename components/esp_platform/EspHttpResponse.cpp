@@ -59,6 +59,28 @@ common::Result EspHttpResponse::sendText(std::string_view body) {
     return common::Result::Ok;
 }
 
+common::Result EspHttpResponse::beginChunked(const char *type) {
+    warnErr(httpd_resp_set_type(req_, type));
+    // No Content-Length is set — leaving it unset is what puts httpd into
+    // chunked mode for the send_chunk calls that follow.
+    return common::Result::Ok;
+}
+
+common::Result EspHttpResponse::sendChunk(std::string_view data) {
+    esp_err_t err = httpd_resp_send_chunk(req_, data.data(), data.size());
+    if (err != ESP_OK) {
+        log.warn(esp_err_to_name(err));
+        return common::Result::InternalError;
+    }
+    return common::Result::Ok;
+}
+
+common::Result EspHttpResponse::endChunked() {
+    // Zero-length chunk terminates the chunked transfer.
+    warnErr(httpd_resp_send_chunk(req_, nullptr, 0));
+    return common::Result::Ok;
+}
+
 common::Result EspHttpResponse::sendJson(std::string_view body) {
     warnErr(httpd_resp_set_type(req_, "application/json"));
     warnErr(httpd_resp_send(req_, body.data(), body.size()));

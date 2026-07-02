@@ -86,7 +86,9 @@ Use `log.debug()`, `log.info()`, `log.warn()`, `log.error()` throughout. The tag
 
 Persistent logging (survives reboot/connectivity loss, served via `GET /framework/api/device/logs`)
 is a separate, opt-in layer on top of the UART log — it has its own per-tag filter, defaulting to
-`Warn`, configured in `PersistentLogConfig.cpp → configurePersistentLog()`:
+`Warn`, configured in `PersistentLogConfig.cpp → configurePersistentLog()`. The HTTP endpoint
+streams the log file out in bounded chunks via `streamActive()` rather than loading it into a
+single in-RAM buffer, so response size isn't limited by (and doesn't compete with) available heap:
 
 ```cpp
 sink.setTagLevel(MyComponent::TAG, LogLevel::Debug);
@@ -105,9 +107,9 @@ There are two independent ways to disable it, depending on what you want to keep
 - **Disable persistence entirely** (no flash writes, no worker task): in `LoggingConfig.cpp →
   setupLogging()`, don't call `persistSink.mount()` (and skip
   `composite.addSink(&persistSink)` too — harmless to leave in, since `write()` is a no-op when
-  unmounted, but there's no reason to route messages to a sink that drops them). `readActive()`
-  then always returns an empty string rather than `501`, since the sink object still exists —
-  combine with also skipping `fw.setLogSink()` if you want the `501` behavior instead.
+  unmounted, but there's no reason to route messages to a sink that drops them). `streamActive()`
+  then returns `Result::NotFound` (empty body) rather than `501`, since the sink object still
+  exists — combine with also skipping `fw.setLogSink()` if you want the `501` behavior instead.
 
 See the `EmbeddedServer.hpp` comment above `deviceHandler` for a wiring gotcha this layer ran into:
 a value-copy member silently held a stale (always-null) log sink because the copy was made before

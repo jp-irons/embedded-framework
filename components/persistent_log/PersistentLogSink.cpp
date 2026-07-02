@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
-#include <sstream>
 #include <sys/stat.h>
 
 namespace persistent_log {
@@ -131,16 +130,21 @@ void PersistentLogSink::persistEntry(const LogEntry& entry) {
     if (written > 0) activeBytes_ += static_cast<size_t>(written);
 }
 
-std::string PersistentLogSink::readActive() const {
-    if (!mounted_) return {};
+common::Result PersistentLogSink::streamActive(const ChunkSink& sink) const {
+    if (!mounted_) return common::Result::NotFound;
     FILE* f = fopen(kFileNames[activeFile_], "r");
-    if (!f) return {};
-    std::ostringstream out;
-    char buf[256];
+    if (!f) return common::Result::NotFound;
+
+    char buf[kReadChunkBytes];
+    common::Result result = common::Result::Ok;
     size_t n;
-    while ((n = fread(buf, 1, sizeof(buf), f)) > 0) out.write(buf, n);
+    while ((n = fread(buf, 1, sizeof(buf), f)) > 0) {
+        result = sink(std::string_view(buf, n));
+        if (result != common::Result::Ok) break;
+    }
+    if (ferror(f)) result = common::Result::InternalError;
     fclose(f);
-    return out.str();
+    return result;
 }
 
 } // namespace persistent_log

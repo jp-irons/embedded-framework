@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "common/Result.hpp"
 #include "logger/LogSink.hpp"
 #include "logger/LogLevel.hpp"
 
@@ -12,6 +13,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -51,6 +53,7 @@ class PersistentLogSink : public logger::LogSink {
     static constexpr size_t kMaxTagLen = 32;
     static constexpr size_t kMaxMessageLen = 199;
     static constexpr size_t kQueueDepth = 16;
+    static constexpr size_t kReadChunkBytes = 512;
 
     /** Mounts the assets_fs partition and starts the worker task. Safe to
      *  call once at startup. Logs a warning and leaves the sink in no-op
@@ -65,10 +68,19 @@ class PersistentLogSink : public logger::LogSink {
     void write(logger::LogLevel level, std::string_view tag,
                std::string_view message) override;
 
-    /** Contents of the currently-active log file (for HTTP retrieval).
-     *  Empty string if not mounted. May race with an in-progress worker
-     *  write/rotation (best-effort snapshot, not a hard guarantee). */
-    std::string readActive() const;
+    /** Callback invoked with successive chunks of file content. Return
+     *  Result::Ok to keep going; anything else aborts the read early and
+     *  that Result is propagated back out of streamActive(). */
+    using ChunkSink = std::function<common::Result(std::string_view)>;
+
+    /** Streams the currently-active log file out via `sink`, one bounded
+     *  chunk (kReadChunkBytes) at a time, without ever holding the whole
+     *  file in memory. Returns Result::Ok on a clean full read, NotFound
+     *  if not mounted / file missing, whatever `sink` returned if it
+     *  stopped the read early, or InternalError on a read fault.
+     *  May race with an in-progress worker write/rotation (best-effort
+     *  snapshot, not a hard guarantee). */
+    common::Result streamActive(const ChunkSink& sink) const;
 
   private:
     struct LogEntry {

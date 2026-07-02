@@ -27,6 +27,9 @@ class EspHttpResponse : public http::HttpResponse {
     common::Result send(const unsigned char *data, unsigned int size, const char *type) override;
     common::Result send(std::string_view body) override;
     common::Result sendText(std::string_view body) override;
+    common::Result beginChunked(const char *type) override;
+    common::Result sendChunk(std::string_view data) override;
+    common::Result endChunked() override;
     common::Result sendJson(std::string_view body) override;
     common::Result sendJson(int code, std::string_view body) override;
     common::Result sendJsonError(int code, std::string_view message) override;
