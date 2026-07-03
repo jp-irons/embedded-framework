@@ -70,6 +70,20 @@ void WiFiManager::onStateChanged(WiFiState oldState, WiFiState newState) {
 
         case WiFiState::STA_Connected:
             retryCount = 0;
+            // A stable connection means whatever index we're on is known-good
+            // right now, but currentNetworkIndex has no other reset path —
+            // onDisconnect() only ever increments it. Left un-reset, a node
+            // that once had to advance past network 0 (e.g. during a
+            // transient outage, or after its stored network list changed
+            // size/order) stays pinned on that higher index for the rest of
+            // the boot. The next disconnect then retries that same index; if
+            // it's no longer valid the manager falls straight to AP mode
+            // with no real connection attempt and no way back to STA short
+            // of a reboot. Resetting here means a fresh disconnect always
+            // starts its retry/advance logic from the current network list's
+            // actual first entry. Found 2026-07-03 — soundcapture160 got
+            // stuck exactly this way after a routine reconnect.
+            currentNetworkIndex = 0;
             break;
         case WiFiState::Idle:
             stopAP();
