@@ -193,6 +193,17 @@ class FrameworkContext {
      */
     int getHttpsActiveSocketCount() const;
 
+    /**
+     * Forces a full WiFi STA disconnect/reconnect cycle. For app-level
+     * self-healing: WiFi/IP can look completely healthy while connectivity
+     * to a specific peer (e.g. the hub) is silently and durably wedged
+     * (stuck mDNS cache, etc.) — nothing in the WiFi layer itself would
+     * ever notice or recover from that on its own. Call this once app code
+     * has independently detected a prolonged failure reaching some peer
+     * despite WiFi/IP appearing fine. See WiFiManager::forceReconnect().
+     */
+    void forceWifiReconnect();
+
     void start();
     void stop();
 

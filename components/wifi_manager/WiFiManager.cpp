@@ -334,6 +334,11 @@ void WiFiManager::onStaGotIp(const StaIpInfo &info) {
     }
 }
 
+void WiFiManager::forceReconnect() {
+    log.warn("forceReconnect(): app-level self-heal — forcing STA disconnect/reconnect");
+    onDisconnect();
+}
+
 WiFiStaStatus WiFiManager::getStaStatus() const {
     WiFiStaStatus st;
 

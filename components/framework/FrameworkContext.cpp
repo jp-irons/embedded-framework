@@ -243,6 +243,12 @@ int FrameworkContext::getHttpsActiveSocketCount() const {
     return httpServer_->activeSocketCount();
 }
 
+void FrameworkContext::forceWifiReconnect() {
+    if (wifiManager) {
+        wifiManager->forceReconnect();
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------

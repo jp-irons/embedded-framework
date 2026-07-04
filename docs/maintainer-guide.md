@@ -23,18 +23,18 @@ Releases are built and published automatically by GitHub Actions when a version 
 ```bash
 #git push origin development:main    # bring main up to date without switching branches
 git push origin
-git tag -a v0.2.13 -m "reconnect Wi-Fi after glitch"  # tag must match version.txt exactly (without the v prefix)
-git push origin v0.2.13              # triggers the Actions build and release
+git tag -a v0.2.14 -m "reheal Wi-Fi after glitch"  # tag must match version.txt exactly (without the v prefix)
+git push origin v0.2.14              # triggers the Actions build and release
 
 # in target repo root
 cd framework
 git fetch --tags
 git -C . describe --tags
-git checkout v0.2.13       # e.g. v1.2.0
+git checkout v0.2.14       # e.g. v1.2.0
 
 cd ..
 git add framework
-git commit -m "Update framework submodule to v0.2.13"
+git commit -m "Update framework submodule to v0.2.14"
 git push
 
 ```

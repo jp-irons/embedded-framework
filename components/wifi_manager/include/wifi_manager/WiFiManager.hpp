@@ -30,6 +30,21 @@ class WiFiManager {
     void onApStarted();
     WiFiStaStatus getStaStatus() const;
 
+    /**
+     * Forces a full STA disconnect/reconnect cycle (radio stop/start,
+     * fresh esp_wifi_connect(), mDNS restart) via the same path a real
+     * WIFI_EVENT_STA_DISCONNECTED would take.
+     *
+     * For app-level self-healing: WiFi/IP can look perfectly healthy
+     * (associated, valid IP) while name resolution or connectivity to a
+     * specific peer is silently wedged (e.g. a stuck mDNS cache) — nothing
+     * in the WiFi event chain itself observes that, so nothing today would
+     * ever trigger a recovery. Call this when app code has independently
+     * detected a prolonged connectivity failure despite WiFi/IP appearing
+     * fine.
+     */
+    void forceReconnect();
+
   private:
     WiFiContext &ctx;
     WiFiStateMachine sm;
