@@ -4,6 +4,7 @@
 #include "esp_platform/EspDeviceInterface.hpp"
 
 #include "esp_platform/EspTypeAdapter.hpp"
+#include "esp_platform/TlsMemPool.hpp"
 #include "driver/temperature_sensor.h"
 #include "esp_chip_info.h"
 #include "esp_event.h"
@@ -145,7 +146,14 @@ Result EspDeviceInterface::init() {
         }
     }
 
-    // 2. Initialize event loop
+    // 2. Install the mbedTLS internal-RAM memory pool. Must run before any
+    //    TLS activity (HTTPS server start, esp_https_ota, TLS client use) —
+    //    placed here, right after NVS and before anything network-related,
+    //    so there's no ordering dependency to maintain as the rest of
+    //    init() evolves. See TlsMemPool.hpp for why this exists.
+    TlsMemPool::install();
+
+    // 3. Initialize event loop
     log.debug("init event loop");
     r = esp_platform::toResult(esp_event_loop_create_default());
     if (r != Result::Ok) {
@@ -153,7 +161,7 @@ Result EspDeviceInterface::init() {
         return r;
     }
 
-    // 3. Initialize netif
+    // 4. Initialize netif
     log.debug("init netif");
     r = esp_platform::toResult(esp_netif_init());
     if (r != Result::Ok) {
@@ -161,7 +169,7 @@ Result EspDeviceInterface::init() {
         return r;
     }
 
-    // 4. Configure power management / DFS: CPU scales between 80–160 MHz based
+    // 5. Configure power management / DFS: CPU scales between 80–160 MHz based
     //    on load.  Must be done before WiFi starts so the driver registers its
     //    PM lock at the correct APB floor frequency.  CONFIG_PM_ENABLE=y in
     //    sdkconfig is the compile-time prerequisite.  light_sleep_enable is

@@ -11,6 +11,7 @@ idf_component_register(
         EspRandomInterface.cpp
         EspTimerInterface.cpp
         EspWiFiInterface.cpp
+        TlsMemPool.cpp
         WiFiHelper.cpp
     INCLUDE_DIRS
         include
