@@ -39,6 +39,19 @@ static constexpr const char *NVS_KEY_HOSTNAME = "hostname";
 //
 // mbedtls_x509write_crt_set_extension wraps this in an OCTET STRING
 // automatically, so we supply the raw SEQUENCE here.
+//
+// TODO(2026-07-12): this SAN list has no entry for a DNS FQDN — only the
+// bare hostname and its `.local` form. Consuming projects have started
+// moving node addressing from mDNS (`<hostname>.local`) to real DNS records
+// (e.g. `<hostname>.int.irons.net.au`); a client doing real hostname
+// verification against that name will see a SAN mismatch on top of the
+// existing self-signed/untrusted-issuer warning, since this cert never
+// claims that name. Harmless today because known consumers connect with
+// certificate verification disabled, but fix this (parameterize the FQDN
+// suffix into buildSanDer()/generateAndStore(), and reconsider the hardcoded
+// 192.168.4.1 placeholder IP while at it) before anything starts verifying
+// certs against these nodes for real. See project memory
+// `project-mdns-to-dns-migration` for the consuming project's context.
 // ---------------------------------------------------------------------------
 
 static bool buildSanDer(const std::string &hostname,
