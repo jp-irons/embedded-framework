@@ -57,6 +57,15 @@ void WiFiManager::onStateChanged(WiFiState oldState, WiFiState newState) {
 
         case WiFiState::AP_Mode:
             retryCount = 0;
+            // Also reset the network index here, not just on STA_Connected —
+            // otherwise a node that exhausts retries and advances past the
+            // end of its network list stays wedged on that invalid index
+            // forever. Every future retry (including HubRegistrar's
+            // app-level self-heal) then fails instantly back to AP_Mode
+            // without ever attempting the real network again. Found
+            // 2026-07-12 investigating soundcapture174's sustained offline
+            // state — this is the other half of the 2026-07-03 fix above.
+            currentNetworkIndex = 0;
             startAP();
             // mDNS is started in onApStarted() once WIFI_EVENT_AP_START fires,
             // ensuring the AP netif is live before we announce.
