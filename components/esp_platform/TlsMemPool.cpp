@@ -7,6 +7,7 @@
 
 extern "C" {
 #include "esp_heap_caps.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"  // IWYU pragma: keep
 #include "freertos/semphr.h"
 #include "mbedtls/platform.h"
@@ -31,6 +32,7 @@ namespace {
 struct BlockHeader {
     size_t       size;  // usable bytes following this header
     bool         free;
+    uint32_t     seq;   // allocation sequence number (used blocks only) — see lifoViolations()
     BlockHeader* next;  // next block in address order; nullptr = last
 };
 
@@ -40,6 +42,25 @@ constexpr size_t kMinSplitRemainder  = sizeof(BlockHeader) + kAlignment;
 alignas(kAlignment) uint8_t arena_[TlsMemPool::kArenaBytes];
 BlockHeader*       freeListHead_ = nullptr;
 SemaphoreHandle_t  mutex_        = nullptr;
+uint32_t           seqCounter_   = 0;
+
+// Timing/pattern diagnostics — see TlsMemPool.hpp doc comment. Plain
+// counters, not mutex-protected on their own; alloc()/release() only touch
+// them while already holding mutex_, so they're safe there. Approximate by
+// design (diagnostic tool, not a correctness-critical path).
+uint32_t allocCount_             = 0;
+uint64_t allocTotalUs_           = 0;
+uint32_t allocMaxUs_             = 0;
+uint64_t allocMutexWaitTotalUs_  = 0;
+uint32_t allocMutexWaitMaxUs_    = 0;
+
+uint32_t freeCount_              = 0;
+uint64_t freeTotalUs_            = 0;
+uint32_t freeMaxUs_              = 0;
+uint64_t freeMutexWaitTotalUs_   = 0;
+uint32_t freeMutexWaitMaxUs_     = 0;
+
+uint32_t lifoViolations_         = 0;
 
 size_t alignUp(size_t n) {
     return (n + (kAlignment - 1)) & ~(kAlignment - 1);
@@ -80,6 +101,7 @@ void TlsMemPool::install() {
     freeListHead_       = reinterpret_cast<BlockHeader*>(arena_);
     freeListHead_->size = kArenaBytes - sizeof(BlockHeader);
     freeListHead_->free = true;
+    freeListHead_->seq  = 0;
     freeListHead_->next = nullptr;
 
     mbedtls_platform_set_calloc_free(&TlsMemPool::alloc, &TlsMemPool::release);
@@ -105,9 +127,12 @@ void* TlsMemPool::alloc(size_t nmemb, size_t size) {
 
     total = alignUp(total);
 
+    const int64_t waitStartUs = esp_timer_get_time();
     if (xSemaphoreTake(mutex_, portMAX_DELAY) != pdTRUE) {
         return nullptr;
     }
+    const uint32_t waitUs = static_cast<uint32_t>(esp_timer_get_time() - waitStartUs);
+    const int64_t  workStartUs = esp_timer_get_time();
 
     void* result = nullptr;
     for (BlockHeader* b = freeListHead_; b; b = b->next) {
@@ -119,15 +144,24 @@ void* TlsMemPool::alloc(size_t nmemb, size_t size) {
                 reinterpret_cast<uint8_t*>(b) + sizeof(BlockHeader) + total);
             remainder->size = b->size - total - sizeof(BlockHeader);
             remainder->free = true;
+            remainder->seq  = 0;
             remainder->next = b->next;
             b->next = remainder;
             b->size = total;
         }
         b->free = false;
+        b->seq  = ++seqCounter_;
         result  = reinterpret_cast<uint8_t*>(b) + sizeof(BlockHeader);
         std::memset(result, 0, total);  // calloc semantics
         break;
     }
+
+    const uint32_t workUs = static_cast<uint32_t>(esp_timer_get_time() - workStartUs);
+    allocCount_++;
+    allocTotalUs_ += workUs;
+    if (workUs > allocMaxUs_) allocMaxUs_ = workUs;
+    allocMutexWaitTotalUs_ += waitUs;
+    if (waitUs > allocMutexWaitMaxUs_) allocMutexWaitMaxUs_ = waitUs;
 
     xSemaphoreGive(mutex_);
 
@@ -157,13 +191,35 @@ void TlsMemPool::release(void* ptr) {
         return;
     }
 
+    const int64_t waitStartUs = esp_timer_get_time();
     if (xSemaphoreTake(mutex_, portMAX_DELAY) != pdTRUE) {
         return;
     }
+    const uint32_t waitUs = static_cast<uint32_t>(esp_timer_get_time() - waitStartUs);
+    const int64_t  workStartUs = esp_timer_get_time();
 
     auto* header = reinterpret_cast<BlockHeader*>(static_cast<uint8_t*>(ptr) - sizeof(BlockHeader));
+
+    // Diagnostic: does this free() reclaim the most-recently-allocated
+    // still-live block (strictly LIFO), or is a block with a later alloc
+    // sequence number still outstanding? See lifoViolations() doc comment —
+    // this determines whether a bump/arena allocator would be safe here.
+    for (BlockHeader* b = freeListHead_; b; b = b->next) {
+        if (b != header && !b->free && b->seq > header->seq) {
+            lifoViolations_++;
+            break;
+        }
+    }
+
     header->free = true;
     coalesce();
+
+    const uint32_t workUs = static_cast<uint32_t>(esp_timer_get_time() - workStartUs);
+    freeCount_++;
+    freeTotalUs_ += workUs;
+    if (workUs > freeMaxUs_) freeMaxUs_ = workUs;
+    freeMutexWaitTotalUs_ += waitUs;
+    if (waitUs > freeMutexWaitMaxUs_) freeMutexWaitMaxUs_ = waitUs;
 
     xSemaphoreGive(mutex_);
 }
@@ -197,5 +253,27 @@ size_t TlsMemPool::largestFreeBlock() {
     xSemaphoreGive(mutex_);
     return largest;
 }
+
+uint32_t TlsMemPool::allocCount() { return allocCount_; }
+uint32_t TlsMemPool::allocAvgUs() {
+    return allocCount_ ? static_cast<uint32_t>(allocTotalUs_ / allocCount_) : 0;
+}
+uint32_t TlsMemPool::allocMaxUs() { return allocMaxUs_; }
+uint32_t TlsMemPool::allocMutexWaitAvgUs() {
+    return allocCount_ ? static_cast<uint32_t>(allocMutexWaitTotalUs_ / allocCount_) : 0;
+}
+uint32_t TlsMemPool::allocMutexWaitMaxUs() { return allocMutexWaitMaxUs_; }
+
+uint32_t TlsMemPool::freeCount() { return freeCount_; }
+uint32_t TlsMemPool::freeAvgUs() {
+    return freeCount_ ? static_cast<uint32_t>(freeTotalUs_ / freeCount_) : 0;
+}
+uint32_t TlsMemPool::freeMaxUs() { return freeMaxUs_; }
+uint32_t TlsMemPool::freeMutexWaitAvgUs() {
+    return freeCount_ ? static_cast<uint32_t>(freeMutexWaitTotalUs_ / freeCount_) : 0;
+}
+uint32_t TlsMemPool::freeMutexWaitMaxUs() { return freeMutexWaitMaxUs_; }
+
+uint32_t TlsMemPool::lifoViolations() { return lifoViolations_; }
 
 } // namespace esp_platform

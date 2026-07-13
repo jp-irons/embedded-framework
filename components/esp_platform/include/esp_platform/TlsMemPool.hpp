@@ -70,6 +70,31 @@ class TlsMemPool {
     static size_t bytesUsed();
     static size_t largestFreeBlock();
 
+    // --- Timing/pattern diagnostics added 2026-07-13, investigating
+    // reported UI/firmware-upload sluggishness since this pool took over
+    // mbedTLS's small allocations from the OS heap. Two questions:
+    // (1) Is the first-fit scan itself slow (allocAvgUs/allocMaxUs,
+    //     freeAvgUs/freeMaxUs — time spent holding the mutex doing actual
+    //     work), or is it lock contention from a second concurrent TLS user
+    //     like an OTA client handshake overlapping a browser session
+    //     (allocMutexWaitAvgUs/MaxUs, freeMutexWaitAvgUs/MaxUs — time spent
+    //     waiting to acquire the mutex before that work even starts)?
+    // (2) Is mbedTLS's alloc/free pattern strictly LIFO (lifoViolations()
+    //     staying at 0)? If so, a much cheaper bump/arena allocator
+    //     (O(1) alloc, checkpoint-based free, no scan, no coalescing) would
+    //     be safe to switch to instead of this first-fit design.
+    static uint32_t allocCount();
+    static uint32_t allocAvgUs();
+    static uint32_t allocMaxUs();
+    static uint32_t allocMutexWaitAvgUs();
+    static uint32_t allocMutexWaitMaxUs();
+    static uint32_t freeCount();
+    static uint32_t freeAvgUs();
+    static uint32_t freeMaxUs();
+    static uint32_t freeMutexWaitAvgUs();
+    static uint32_t freeMutexWaitMaxUs();
+    static uint32_t lifoViolations();
+
   private:
     static void* alloc(size_t nmemb, size_t size);
     static void  release(void* ptr);
