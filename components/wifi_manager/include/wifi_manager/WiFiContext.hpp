@@ -39,6 +39,12 @@ struct WiFiContext {
     // Must be set before WiFiManager::start().
     device::TimerInterface* timer = nullptr;
 
+    // Wi-Fi radio power-save mode. No working default -- Unset is rejected
+    // at driver-start time. Consuming apps set this via
+    // FrameworkContext::setWifiPowerSaveMode(), not directly here.
+    // See WiFiPowerSaveMode's doc comment in WiFiTypes.hpp for why.
+    WiFiPowerSaveMode psMode = WiFiPowerSaveMode::Unset;
+
     // Called by WiFiManager when the WiFi driver fails and all retries are
     // exhausted.  Typically wired to device::reboot() by FrameworkContext so
     // the OTA boot counter increments and rollback can fire.  May be left null

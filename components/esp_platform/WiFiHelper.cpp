@@ -68,6 +68,20 @@ wifi_auth_mode_t toEspAuth(WiFiAuthMode mode) {
     }
 }
 
+wifi_ps_type_t toEspPs(WiFiPowerSaveMode mode) {
+    switch (mode) {
+        case WiFiPowerSaveMode::None:
+            return WIFI_PS_NONE;
+        case WiFiPowerSaveMode::MinModem:
+            return WIFI_PS_MIN_MODEM;
+        case WiFiPowerSaveMode::MaxModem:
+            return WIFI_PS_MAX_MODEM;
+        case WiFiPowerSaveMode::Unset:
+            return WIFI_PS_NONE;
+    }
+    return WIFI_PS_NONE;
+}
+
 std::string toString(uint8_t reason) {
     return toString(toWiFiError(reason));
 }

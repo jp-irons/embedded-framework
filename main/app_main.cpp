@@ -2,6 +2,7 @@
 #include "LoggingConfig.hpp"
 #include "logger/Logger.hpp"
 #include "ota/OtaManager.hpp"
+#include "wifi_manager/WiFiTypes.hpp"
 
 extern "C" {
 #include "freertos/FreeRTOS.h"	// IWYU pragma: keep — must precede task.h
@@ -89,6 +90,17 @@ static framework::FrameworkContext setupFramework() {
     fw.setHostnameConfig("esp-fw");
     fw.setApSsidConfig("EspFramework");
     fw.setApPassword("espframework");
+
+    // ── Wi-Fi power-save mode ─────────────────────────────────────────────
+    // Required — no working default (see WiFiPowerSaveMode's doc comment in
+    // WiFiTypes.hpp). MinModem here reflects what the van-monitor app
+    // currently needs (idle/battery-sensitive). This demo app's setting is
+    // NOT a recommendation for every consumer — it exists so a real
+    // consuming app copying this file notices the call and has to make its
+    // own deliberate choice (e.g. WiFiPowerSaveMode::None for a
+    // reconnect-reliability-sensitive, mains-powered device — see
+    // sound-capture-node's 2026-07-15 WiFi investigation for why).
+    fw.setWifiPowerSaveMode(wifi_manager::WiFiPowerSaveMode::MinModem);
 
     // ── Pull-based OTA ────────────────────────────────────────────────────
     // baseUrl            — GitHub Releases download directory for this repo.

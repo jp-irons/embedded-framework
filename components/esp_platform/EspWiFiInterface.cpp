@@ -61,6 +61,16 @@ Result EspWiFiInterface::startDriver() {
         log.debug("netif hostname set to '%s'", ctx.mdnsHostname.c_str());
     }
 
+    // Power-save mode has no working default (see WiFiPowerSaveMode's doc
+    // comment in WiFiTypes.hpp) -- fail loud here rather than silently
+    // falling back to any particular ESP-IDF mode. The consuming app must
+    // call FrameworkContext::setWifiPowerSaveMode() before start().
+    if (ctx.psMode == WiFiPowerSaveMode::Unset) {
+        log.error("startDriver: WiFiContext::psMode is Unset -- app must call "
+                  "FrameworkContext::setWifiPowerSaveMode() before start()");
+        return Result::InternalError;
+    }
+
     // 2. Initialize Wi-Fi driver
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     WIFI_CHECK(esp_wifi_init(&cfg));
@@ -78,7 +88,7 @@ Result EspWiFiInterface::startDriver() {
 
     WIFI_CHECK(esp_wifi_set_mode(WIFI_MODE_NULL));
     WIFI_CHECK(esp_wifi_start());
-    WIFI_CHECK(esp_wifi_set_ps(WIFI_PS_MIN_MODEM));   // DTIM-based modem sleep — saves power while keeping association
+    WIFI_CHECK(esp_wifi_set_ps(toEspPs(ctx.psMode)));
 
     driverStarted = true;
     currentMode   = WIFI_MODE_NULL;
@@ -156,7 +166,7 @@ WiFiStatus EspWiFiInterface::connectSta(const network_store::WiFiNetwork& cred) 
     if (esp_wifi_start() != ESP_OK) {
         return WiFiStatus::DriverError;
     }
-    esp_wifi_set_ps(WIFI_PS_MIN_MODEM);   // Re-apply after stop/start — PS mode can reset to default
+    esp_wifi_set_ps(toEspPs(ctx.psMode));   // Re-apply after stop/start — PS mode can reset to default
     if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK) {
         return WiFiStatus::DriverError;
     }

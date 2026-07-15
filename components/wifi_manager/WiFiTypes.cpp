@@ -25,6 +25,20 @@ const char *toString(WiFiAuthMode auth) {
     return "UNKNOWN";
 }
 
+const char *toString(WiFiPowerSaveMode mode) {
+    switch (mode) {
+        case WiFiPowerSaveMode::Unset:
+            return "Unset";
+        case WiFiPowerSaveMode::None:
+            return "None";
+        case WiFiPowerSaveMode::MinModem:
+            return "MinModem";
+        case WiFiPowerSaveMode::MaxModem:
+            return "MaxModem";
+    }
+    return "UNKNOWN";
+}
+
 const char *toString(WiFiError err) {
     switch (err) {
         case WiFiError::NONE:

@@ -146,6 +146,22 @@ class FrameworkContext {
     void setApPassword(std::string password);
 
     /**
+     * Configures the Wi-Fi radio power-save mode. Required -- there is no
+     * working default (see wifi_manager::WiFiPowerSaveMode's doc comment in
+     * WiFiTypes.hpp). start() fails loudly (logs an error and aborts driver
+     * startup) if this is never called.
+     *
+     * Guidance: WiFiPowerSaveMode::None trades higher radio power draw for
+     * reconnect reliability -- prefer it for mains-powered devices, or any
+     * device where WiFi reconnect stability over a marginal RF link matters
+     * more than idle current draw. MinModem/MaxModem trade some reconnect
+     * robustness for lower power on battery/idle-sensitive devices.
+     *
+     * Must be called before start().
+     */
+    void setWifiPowerSaveMode(wifi_manager::WiFiPowerSaveMode mode);
+
+    /**
      * Register a callback invoked on every incoming HTTPS request before it
      * is dispatched to any handler.  Useful for cross-cutting concerns such as
      * resetting an activity / idle timer.
@@ -216,6 +232,7 @@ class FrameworkContext {
     wifi_manager::SuffixPolicy hostnameSuffix_ = wifi_manager::SuffixPolicy::MacShort;
     auth::AuthConfig authConfig_ = auth::AuthConfig::withPassword("esp32admin")
                                                     .restrictIfDefault();
+    wifi_manager::WiFiPowerSaveMode wifiPowerSaveMode_ = wifi_manager::WiFiPowerSaveMode::Unset;
 
     // MAC address read once in initialize() — used in start() to build hostname
     // and effective AP SSID.

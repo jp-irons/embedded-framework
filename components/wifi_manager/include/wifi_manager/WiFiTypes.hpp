@@ -70,6 +70,28 @@ enum class WiFiStatus {
     ConnectError
 };
 
+/**
+ * Wi-Fi radio power-save mode, applied by the platform layer on driver start
+ * and re-applied on every STA reconnect. Mirrors ESP-IDF's wifi_ps_type_t.
+ *
+ * Unset is the zero value deliberately -- there is no working default here.
+ * Different consuming apps have genuinely different right answers (an
+ * idle-battery device wants MinModem/MaxModem; a mains-powered device
+ * fighting reconnect reliability over a marginal RF link may want None), so
+ * a silently-applied default would just be a trap for whichever app didn't
+ * think about it. The platform layer rejects Unset at driver-start time
+ * instead of falling back to any particular mode -- every consuming app
+ * must call FrameworkContext::setWifiPowerSaveMode() explicitly. See the
+ * 2026-07-15 WiFi reconnect reliability investigation (sound-capture-node)
+ * for the motivating incident.
+ */
+enum class WiFiPowerSaveMode {
+    Unset = 0,
+    None,
+    MinModem,
+    MaxModem,
+};
+
 struct WiFiStaStatus {
     std::string state;            // stringified WiFiState
     std::string ssid;             // current or last attempted SSID
@@ -88,5 +110,7 @@ const char *toString(WiFiError err);
 const char *toString(WiFiAuthMode auth);
 
 const char* toString(WiFiStatus status);
+
+const char* toString(WiFiPowerSaveMode mode);
 
 } // namespace wifi_types

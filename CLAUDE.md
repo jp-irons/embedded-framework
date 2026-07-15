@@ -89,10 +89,28 @@ as step 4 of device init, after NVS, event loop, and netif. The CPU scales
 between 80 and 160 MHz based on load. `light_sleep_enable` is `false` —
 automatic light sleep is reserved for the idle-mode hook below.
 
-Wi-Fi uses `WIFI_PS_MIN_MODEM` (DTIM-based modem sleep). This is set in
-`EspWiFiInterface::startDriver()` and re-applied after every stop/start cycle
-in `connectSta()`. Persistent MQTT requires periodic keepalive; duty-cycling
-Wi-Fi off is not appropriate once Venus integration is active.
+Wi-Fi power-save mode is app-configurable, not fixed by the framework — see
+`wifi_manager::WiFiPowerSaveMode` (`WiFiTypes.hpp`) and
+`FrameworkContext::setWifiPowerSaveMode()`. There is deliberately no working
+default: `WiFiContext::psMode` defaults to `Unset`, and
+`EspWiFiInterface::startDriver()` refuses to bring the driver up (logs an
+error, returns early) if the consuming app never called
+`setWifiPowerSaveMode()`. The chosen mode is applied in `startDriver()` and
+re-applied after every stop/start cycle in `connectSta()` (PS mode resets to
+ESP-IDF's own default across a driver restart).
+
+This was previously hardcoded to `WIFI_PS_MIN_MODEM` (DTIM-based modem
+sleep) for this demo app's own idle/battery use case — the reference app
+(`main/app_main.cpp`) still requests `MinModem` for that reason, and its
+"Persistent MQTT requires periodic keepalive" reasoning below applies to
+*that* choice specifically, not to every consumer. `WIFI_PS_MIN_MODEM`
+duty-cycles the radio and was found (2026-07-15, sound-capture-node) to be a
+real contributor to STA reconnect instability (handshake-timeout-class
+disconnects that resisted ordinary retry logic) on a device fighting a
+marginal RF link — that project now requests `WiFiPowerSaveMode::None`
+instead, trading idle power for reconnect reliability. Any new consuming app
+must pick deliberately based on its own power budget and reconnect-
+sensitivity, not copy either existing choice by default.
 
 Two operating modes:
 - **Active:** display on, fast sensor polling, Wi-Fi awake

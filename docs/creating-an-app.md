@@ -234,11 +234,25 @@ void ApplicationContext::loop() {
 
 ```cpp
 #include "framework/FrameworkContext.h"
+#include "wifi_manager/WiFiTypes.h"
 #include "ApplicationContext.h"
 
 extern "C" void app_main() {
     // Boot guardian must run before anything else
     framework::FrameworkContext fw{};
+
+    // Required — no working default. startDriver() refuses to bring the
+    // Wi-Fi driver up (logs an error, returns early) if this is never
+    // called. Choose based on your device's power/reliability trade-off:
+    //   WiFiPowerSaveMode::None      — no modem sleep; best reconnect
+    //                                  reliability, highest idle power draw.
+    //                                  Prefer for mains-powered devices or
+    //                                  ones fighting a marginal RF link.
+    //   WiFiPowerSaveMode::MinModem  — DTIM-based modem sleep; saves power,
+    //                                  can worsen reconnect behaviour on some
+    //                                  APs/RF environments.
+    //   WiFiPowerSaveMode::MaxModem  — more aggressive sleep, higher latency.
+    fw.setWifiPowerSaveMode(wifi_manager::WiFiPowerSaveMode::None);
 
     app::ApplicationContext app{};
     app.start();
@@ -347,6 +361,8 @@ git -C framework diff HEAD~1 HEAD -- partitions/
 ```
 
 **5. API changes** — build and fix any compile errors. Patch releases (`v0.1.1 → v0.1.2`) should not break the `ApplicationContext` or handler interfaces; minor version bumps (`v0.1.x → v0.2.0`) may do so and will be noted in the release changelog.
+
+**5a. New required runtime configuration** — not every breaking change shows up as a compile error. Some new `FrameworkContext` setters are required but have no default, and only fail at boot (a logged error, driver refuses to start) rather than at build time — check the release changelog for these, not just your build output. Example: as of the release introducing `WiFiPowerSaveMode`, every app must call `fw.setWifiPowerSaveMode(...)` before `start()`; there is no default, by design (see `WiFiTypes.hpp`'s doc comment on `WiFiPowerSaveMode` for why).
 
 **6. Commit atomically** — record the submodule move and all accompanying changes together so your app history stays coherent:
 

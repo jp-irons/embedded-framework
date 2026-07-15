@@ -1,10 +1,18 @@
 # Power Management / Dynamic Frequency Scaling — Notes
 
+> **Update (2026-07-15):** the Wi-Fi power-save line below reflects this
+> demo app's own historical choice, not a fixed framework behaviour. As of
+> `wifi_manager::WiFiPowerSaveMode`, the mode is app-configurable via
+> `FrameworkContext::setWifiPowerSaveMode()` with no working default — see
+> the "Power management" section of the framework's `CLAUDE.md`. This demo
+> app (`main/app_main.cpp`) still requests `MinModem`, matching the state
+> described here; other consuming apps may choose differently.
+
 ## Current state (as of May 2026)
 
 - `CONFIG_PM_ENABLE=y` — ESP-IDF PM framework is **active**
 - DFS running: CPU scales between **80 and 160 MHz** based on load
-- `WIFI_PS_MIN_MODEM` active — DTIM-based modem sleep enabled
+- `WIFI_PS_MIN_MODEM` active — DTIM-based modem sleep enabled (this app's choice; app-configurable since 2026-07-15, see note above)
 - `light_sleep_enable = false` — automatic light sleep **not yet wired up**
 
 ## What was done

@@ -60,6 +60,20 @@ class EspHttpServer : public http::HttpServer {
 
     static esp_err_t handlerAdapter(httpd_req_t *req);
     static esp_err_t redirectHandler(httpd_req_t *req);
+
+    // Diagnostic only — logs the peer IP:port of a session. Added 2026-07-13
+    // investigating esp_tls_create_server_session 0xffff7ff7 (handshake
+    // timeout) failures. IMPORTANT (corrected after reading esp_https_server's
+    // actual source): for the SSL server, httpd_ssl_start() reassigns
+    // conf.httpd.open_fn to its own httpd_ssl_open() internally, and only
+    // calls *our* callback (saved as ssl_ctx->open_fn) AFTER
+    // esp_tls_server_session_create() has already SUCCEEDED — this fires on
+    // successful handshakes only, not on raw TCP accept, and NOT for failed/
+    // timed-out handshake attempts. It cannot identify who is behind a
+    // -0x7280/-0x7780/0xffff7ff7 failure. It's still useful for confirming
+    // who successfully connects and how long that took.
+    // Always returns ESP_OK (never rejects the connection based on this).
+    static esp_err_t logPeerOnOpen(httpd_handle_t hd, int sockfd);
 };
 
 } // namespace esp_platform

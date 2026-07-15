@@ -10,6 +10,11 @@
 #include "esp_err.h"
 #include "esp_https_server.h"
 
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+#include <cerrno>
+#include <cstdio>
 #include <cstring>
 
 namespace esp_platform {
@@ -64,18 +69,45 @@ void EspHttpServer::start() {
     conf.httpd.uri_match_fn     = httpd_uri_match_wildcard;
     conf.httpd.lru_purge_enable = true;
     conf.httpd.global_user_ctx  = this;  // lets handlerAdapter() reach onRequest_
+    // Diagnostic — logs peer IP:port on every accepted socket, before TLS
+    // negotiation starts. See logPeerOnOpen()'s doc comment (declaration).
+    conf.httpd.open_fn          = &EspHttpServer::logPeerOnOpen;
     // Pin to core 0 (with WiFi/LWIP). Core 1 is reserved for AudioStore's flush
     // task, whose blocking multi-second fwrite() calls were landing on the same
     // core as unaffined httpd instances, starving the watchdog mid-handshake
     // and causing TLS-RESET (esp_tls -0x7280) — confirmed by timestamp
     // correlation 2026-06-18.
     conf.httpd.core_id          = 0;
-    // Socket budget (must satisfy: HTTPS + redirect < CONFIG_LWIP_MAX_SOCKETS):
-    //   HTTPS server:    13  (parallel ES-module fetches at page load)
-    //   Redirect server:  4  (instantaneous redirects, low concurrency)
-    //   OTA client/mDNS:  7  (reserve)
-    //   Total:           24  == CONFIG_LWIP_MAX_SOCKETS
+    // Socket budget (must satisfy: HTTPS + redirect + reserve <=
+    // CONFIG_LWIP_MAX_SOCKETS). This is a device-wide budget, not just this
+    // server's — a downstream app may run its own additional httpd_handle_t
+    // instance(s) outside this repo (e.g. a dedicated plain-HTTP endpoint
+    // kept off the HTTPS server) and any such sockets draw from the same
+    // CONFIG_LWIP_MAX_SOCKETS pool. The reserve line below exists to cover
+    // that alongside OTA/mDNS — if you're adding an app-level httpd
+    // instance, check actual remaining headroom against the app's own
+    // socket usage rather than assuming this reserve is untouched.
+    //   HTTPS server:          13  (parallel ES-module fetches at page load)
+    //   Redirect server:        4  (instantaneous redirects, low concurrency)
+    //   OTA/mDNS/app reserve:   7  (shared headroom — OTA client, mDNS, and
+    //                               any app-level httpd instance(s))
+    //   Total:                 24  == CONFIG_LWIP_MAX_SOCKETS
     conf.httpd.max_open_sockets = kMaxOpenSockets;
+
+    // Session resumption — tried 2026-07-14, REVERTED same day: setting
+    // conf.session_tickets = true made esp_tls_cfg_server_session_tickets_init()
+    // return ESP_ERR_NOT_SUPPORTED on real hardware, which makes
+    // httpd_ssl_start() fail outright — and start() below returns on that
+    // failure *before* reaching startRedirectServer(), so the failure took
+    // down port 80 as well as 443, leaving only the app-level
+    // AudioPullServer (8080) reachable. CONFIG_MBEDTLS_SERVER_SSL_SESSION_TICKETS
+    // being enabled in sdkconfig is not sufficient on its own — something
+    // else session tickets need (likely MBEDTLS_SSL_TICKET_C / the ticket
+    // subsystem's own config, not yet identified) isn't satisfied by this
+    // build. Do not re-enable without figuring out the actual prerequisite
+    // first, and see the separate start()-early-return issue this exposed:
+    // any httpd_ssl_start() failure currently kills the redirect server too,
+    // which is arguably wrong regardless of what causes the failure.
 
     if (!runtimeCertPem_.empty()) {
         // Use the per-device cert generated/loaded by DeviceCert
@@ -222,6 +254,33 @@ void EspHttpServer::addRoute(http::HttpMethod method, const std::string &path,
         .user_ctx = handler
     };
     httpd_register_uri_handler(server_, &uri);
+}
+
+esp_err_t EspHttpServer::logPeerOnOpen(httpd_handle_t hd, int sockfd) {
+    (void)hd;
+    struct sockaddr_storage addr {};
+    socklen_t addrLen = sizeof(addr);
+    if (getpeername(sockfd, reinterpret_cast<struct sockaddr *>(&addr), &addrLen) != 0) {
+        log.warn("session open — sockfd=%d, getpeername failed (errno=%d)", sockfd, errno);
+        return ESP_OK;
+    }
+
+    char ipStr[INET6_ADDRSTRLEN] = {0};
+    uint16_t port = 0;
+    if (addr.ss_family == AF_INET) {
+        auto *addr4 = reinterpret_cast<struct sockaddr_in *>(&addr);
+        inet_ntop(AF_INET, &addr4->sin_addr, ipStr, sizeof(ipStr));
+        port = ntohs(addr4->sin_port);
+    } else if (addr.ss_family == AF_INET6) {
+        auto *addr6 = reinterpret_cast<struct sockaddr_in6 *>(&addr);
+        inet_ntop(AF_INET6, &addr6->sin6_addr, ipStr, sizeof(ipStr));
+        port = ntohs(addr6->sin6_port);
+    } else {
+        snprintf(ipStr, sizeof(ipStr), "?");
+    }
+
+    log.info("session open — peer=%s:%u sockfd=%d", ipStr, port, sockfd);
+    return ESP_OK;  // never reject the connection based on this hook
 }
 
 esp_err_t EspHttpServer::handlerAdapter(httpd_req_t *req) {

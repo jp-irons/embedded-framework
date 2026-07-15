@@ -24,18 +24,18 @@ Releases are built and published automatically by GitHub Actions when a version 
 #git push origin development:main    # bring main up to date without switching branches
 git push origin
 # tag must match version.txt exactly (without the v prefix)
-git tag -a v0.2.19 -m "instrument tls memory"  
-git push origin v0.2.19              # triggers the Actions build and release
+git tag -a v0.2.20 -m "configurable wi-fi power modes"  
+git push origin v0.2.20              # triggers the Actions build and release
 
 # in target repo root
 cd framework
 git fetch --tags
 git -C . describe --tags
-git checkout v0.2.19       # e.g. v1.2.0
+git checkout v0.2.20       # e.g. v1.2.0
 
 cd ..
 git add framework
-git commit -m "framework v0.2.19 instrument tls memory"
+git commit -m "framework v0.2.20 configurable wi-fi power modes"
 git push
 
 ```

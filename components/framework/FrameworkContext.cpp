@@ -271,6 +271,10 @@ void FrameworkContext::setApPassword(std::string password) {
                                          : wifi_manager::WiFiAuthMode::WPA2_PSK;
 }
 
+void FrameworkContext::setWifiPowerSaveMode(wifi_manager::WiFiPowerSaveMode mode) {
+    wifiPowerSaveMode_ = mode;
+}
+
 void FrameworkContext::start() {
     log.debug("start");
 
@@ -310,6 +314,7 @@ void FrameworkContext::start() {
     // Populate the remaining WiFi context fields that depend on the above.
     wifiCtx.apConfig     = effectiveApConfig;
     wifiCtx.mdnsHostname = hostname;
+    wifiCtx.psMode       = wifiPowerSaveMode_;
 
     ota::OtaPuller::init(otaPullConfig_);
     ota::OtaPuller::start();

@@ -11,6 +11,12 @@ namespace esp_platform {
 
 wifi_auth_mode_t        toEspAuth(wifi_manager::WiFiAuthMode mode);
 
+// Translates the app-facing WiFiPowerSaveMode into ESP-IDF's wifi_ps_type_t.
+// Callers must reject WiFiPowerSaveMode::Unset before calling this (see
+// EspWiFiInterface::startDriver()) -- Unset falls back to WIFI_PS_NONE here
+// only as a last-resort safety net, not as a supported default.
+wifi_ps_type_t          toEspPs(wifi_manager::WiFiPowerSaveMode mode);
+
 wifi_config_t           makeStaConfig(const network_store::WiFiNetwork& cred);
 
 wifi_config_t           makeApConfig(const wifi_manager::ApConfig& cfg);
