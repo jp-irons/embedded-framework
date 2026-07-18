@@ -135,8 +135,14 @@ Result EspWiFiInterface::startAp(const ApConfig& config) {
 
     apActive = true;
     wifi_mode_t mode = computeMode();
-    WIFI_CHECK(esp_wifi_set_mode(mode));
+    // Config must be set before the mode change: the driver is already
+    // running continuously (see startDriver()), so switching the mode to
+    // include AP triggers wifi_softap_start() immediately in the driver's
+    // own task. If that fires before a valid AP config is resident, the
+    // WiFi blob null-derefs inside ieee80211_hostap_attach (LoadProhibitedCause,
+    // excvaddr=0x2c) — root-caused 2026-07-18 from a field panic coredump.
     WIFI_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
+    WIFI_CHECK(esp_wifi_set_mode(mode));
     currentMode = mode;
     return Result::Ok;
 }
