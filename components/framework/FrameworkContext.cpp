@@ -249,6 +249,12 @@ void FrameworkContext::forceWifiReconnect() {
     }
 }
 
+void FrameworkContext::reboot() {
+    if (deviceInterface_) {
+        deviceInterface_->reboot();
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------

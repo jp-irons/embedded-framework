@@ -189,6 +189,20 @@ common::Result PersistentLogSink::streamFileTail(int fileIdx, size_t maxBytes,
     return result;
 }
 
+void PersistentLogSink::flush() {
+    if (!mounted_ || !queue_) return;
+
+    for (uint32_t waited = 0; waited < kFlushTimeoutMs; waited += kFlushPollIntervalMs) {
+        if (uxQueueMessagesWaiting(queue_) == 0) return;
+        vTaskDelay(pdMS_TO_TICKS(kFlushPollIntervalMs));
+    }
+    // Timed out — best-effort only, nothing more useful to do from here
+    // (see the flush() doc comment). Deliberately not logging: we're
+    // already in the path of a caller trying to guarantee a log line
+    // survives, logging a failure here would just queue another entry
+    // behind the ones that didn't drain in time.
+}
+
 common::Result PersistentLogSink::streamActive(const ChunkSink& sink) const {
     if (!mounted_) return common::Result::NotFound;
     return streamFile(activeFile_, sink);

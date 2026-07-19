@@ -43,6 +43,12 @@ class CompositeLogSink : public LogSink {
         }
     }
 
+    void flush() override {
+        for (auto* sink : sinks_) {
+            if (sink) sink->flush();
+        }
+    }
+
   private:
     std::array<LogSink*, kMaxSinks> sinks_{};
 };

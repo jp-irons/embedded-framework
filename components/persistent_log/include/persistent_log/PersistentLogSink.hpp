@@ -55,6 +55,8 @@ class PersistentLogSink : public logger::LogSink {
     static constexpr size_t kQueueDepth = 16;
     static constexpr size_t kReadChunkBytes = 512;
     static constexpr size_t kDefaultTailBytes = 16 * 1024;
+    static constexpr uint32_t kFlushTimeoutMs = 500;
+    static constexpr uint32_t kFlushPollIntervalMs = 10;
 
     /** Mounts the assets_fs partition and starts the worker task. Safe to
      *  call once at startup. Logs a warning and leaves the sink in no-op
@@ -68,6 +70,17 @@ class PersistentLogSink : public logger::LogSink {
 
     void write(logger::LogLevel level, std::string_view tag,
                std::string_view message) override;
+
+    /** Blocks until the write queue is empty (i.e. the worker task has
+     *  caught up and every entry accepted by write() so far has been
+     *  fopen/fprintf/fclose'd to LittleFS), or kFlushTimeoutMs elapses,
+     *  whichever comes first. persistEntry() closes the file after every
+     *  single entry (not batched), so "dequeued" and "durably written" are
+     *  effectively the same moment here. Best-effort: a timeout is not
+     *  reported as an error (there's no useful way to escalate it, and the
+     *  caller — about to restart — can't wait indefinitely), it just means
+     *  flush() gave up waiting. No-op if not mounted. */
+    void flush() override;
 
     /** Callback invoked with successive chunks of file content. Return
      *  Result::Ok to keep going; anything else aborts the read early and

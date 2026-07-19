@@ -24,7 +24,18 @@ class WiFiManager {
     // ESP-IDF event callbacks
     void onConnectSuccess();
     void onConnectFail();
-    void onDisconnect();
+
+    /**
+     * @param reason Classified cause of the disconnect, when known (from a
+     *               real WIFI_EVENT_STA_DISCONNECTED). Defaults to
+     *               WiFiError::UNKNOWN for callers that don't have a
+     *               specific reason (IP_EVENT_STA_LOST_IP, onConnectTimeout(),
+     *               forceReconnect()) — those keep today's immediate-retry
+     *               behavior. Only WiFiError::HANDSHAKE_TIMEOUT currently
+     *               changes behavior — see the backoff note on
+     *               retryDelayMsFor() below.
+     */
+    void onDisconnect(WiFiError reason = WiFiError::UNKNOWN);
     void onFatalError();
     void onStaGotIp(const StaIpInfo &info);
     void onApStarted();
@@ -76,7 +87,30 @@ class WiFiManager {
     void stopSTA();
 
     // Retry logic
-    void scheduleRetry();
+
+    /**
+     * Delay before the next same-network STA retry, given the reason for
+     * the disconnect that triggered it and how many retries have already
+     * been made this cycle (1-based — the retry about to be scheduled).
+     * Returns 0 (immediate retry, today's behavior) for every reason except
+     * WiFiError::HANDSHAKE_TIMEOUT.
+     *
+     * 2026-07-19 field investigation (repeated fleet-wide overnight
+     * outages, see project memory) found nodes retrying STA every ~3s with
+     * no backoff, every attempt failing with WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT,
+     * for many hours — and the ESP32/ESP-IDF community's own experience
+     * with this exact reason (github.com/espressif/arduino-esp32#7968) is
+     * that immediate, repeated retry against the same AP after a handshake
+     * timeout is often what sustains the failure: some APs apply their own
+     * deauth/rate-limit protection against a client that keeps retrying
+     * without pausing. Growing delay across the 3 same-network retries
+     * gives that protection window a chance to lapse instead of retriggering
+     * it every ~3 seconds. Other disconnect reasons are untouched — this
+     * isn't a blanket slowdown, it targets the one failure mode with actual
+     * evidence behind it.
+     */
+    static uint32_t retryDelayMsFor(WiFiError reason, int retryAttempt);
+
     void retryDriver();
 };
 

@@ -36,6 +36,14 @@ public:
         defaultLevel_ = level;
     }
 
+    /** Blocks (briefly, best-effort) until the registered sink has
+     *  persisted any queued log entries. Call this before esp_restart()
+     *  or similar irreversible actions where losing the last log line
+     *  would matter. No-op if no sink is registered. */
+    static void flush() {
+        if (sink_) sink_->flush();
+    }
+
 private:
     inline static LogSink* sink_ = nullptr;
     inline static std::unordered_map<std::string, LogLevel> tagLevels_;

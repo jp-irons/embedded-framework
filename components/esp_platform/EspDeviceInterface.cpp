@@ -18,6 +18,7 @@
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "logger/Logger.hpp"
+#include "logger/LogSinkRegistry.hpp"
 #include "nvs_flash.h"
 #include "sdkconfig.h"
 
@@ -189,6 +190,15 @@ Result EspDeviceInterface::init() {
 
 Result EspDeviceInterface::reboot() {
     log.info("reboot() — restarting device");
+    // Flush before restarting, not after — esp_restart() never returns, so
+    // this is the last chance for PersistentLogSink's async worker task to
+    // actually write the "reboot() — restarting device" line (and whatever
+    // the caller logged just before calling reboot()) to flash rather than
+    // losing it in the queue. Single reboot path for the whole app — HTTP
+    // reboot endpoint, HubHeartbeat's self-heal escalation, anything future
+    // — so this guarantee applies everywhere without each caller needing to
+    // remember it.
+    logger::LogSinkRegistry::flush();
     esp_restart();
     return Result::Ok; // unreachable, satisfies return type
 }

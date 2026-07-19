@@ -220,6 +220,16 @@ class FrameworkContext {
      */
     void forceWifiReconnect();
 
+    /**
+     * Reboots the device via the underlying DeviceInterface (EspDeviceInterface::reboot(),
+     * which flushes persistent logs before calling esp_restart() — see its
+     * doc comment). Exposed here, alongside forceWifiReconnect(), so
+     * app-level code that already reaches for FrameworkContext for one
+     * self-heal escalation has the other available the same way, rather
+     * than needing its own direct DeviceInterface reference.
+     */
+    void reboot();
+
     void start();
     void stop();
 

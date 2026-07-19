@@ -92,8 +92,20 @@ WiFiError toWiFiError(uint8_t reason) {
         // -------------------------
         // Authentication failures
         // -------------------------
-        case 2: // WIFI_REASON_AUTH_EXPIRE
-        case 15: // WIFI_REASON_AUTH_FAIL
+        // CORRECTED 2026-07-19: this case previously listed 15 (actually
+        // WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT per IEEE 802.11/ESP-IDF's
+        // wifi_err_reason_t) alongside AUTH_EXPIRE — a real bug, not a
+        // relabeling. Reason 15 is exactly what every affected node in the
+        // 2026-07-19 fleet outage logged ("STA disconnected: reason=15"),
+        // so under the old mapping every one of those disconnects was being
+        // silently classified as AUTH_FAILED, and any reason-specific logic
+        // (e.g. handshake-timeout backoff in WiFiManager::onDisconnect())
+        // would never have actually fired for the failure it was built for.
+        // Reason 14 (WIFI_REASON_MIC_FAILURE — a WPA integrity-check
+        // failure, not a timeout) is grouped here instead, as the closer
+        // analogue of the two.
+        case 2:  // WIFI_REASON_AUTH_EXPIRE
+        case 14: // WIFI_REASON_MIC_FAILURE
         case 202: // WIFI_REASON_CONNECTION_FAIL
             return WiFiError::AUTH_FAILED;
 
@@ -114,7 +126,7 @@ WiFiError toWiFiError(uint8_t reason) {
         // -------------------------
         // Handshake failures
         // -------------------------
-        case 14: // 4WAY_HANDSHAKE_TIMEOUT
+        case 15: // WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT — see note above
         case 204: // WIFI_REASON_HANDSHAKE_TIMEOUT
             return WiFiError::HANDSHAKE_TIMEOUT;
 

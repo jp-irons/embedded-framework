@@ -122,7 +122,7 @@ void WiFiManager::onConnectFail() {
     sm.onEvent(WiFiEvent::ConnectFail);
 }
 
-void WiFiManager::onDisconnect() {
+void WiFiManager::onDisconnect(WiFiError reason) {
     // Stop mDNS — IP is no longer valid
     if (ctx.mdnsInterface) ctx.mdnsInterface->stop();
 
@@ -138,9 +138,17 @@ void WiFiManager::onDisconnect() {
     // Retry the same network first
     if (retryCount < MAX_RETRIES) {
         retryCount++;
-        log.info("Retrying network %d (%d/%d tries)",
-                 currentNetworkIndex, retryCount, MAX_RETRIES);
-        startSTA();
+        uint32_t delayMs = retryDelayMsFor(reason, retryCount);
+        if (delayMs > 0) {
+            log.info("Retrying network %d (%d/%d tries) in %ums (reason=%s)",
+                     currentNetworkIndex, retryCount, MAX_RETRIES,
+                     static_cast<unsigned>(delayMs), toString(reason));
+            ctx.timer->runAfter(delayMs, [this]() { startSTA(); });
+        } else {
+            log.info("Retrying network %d (%d/%d tries)",
+                     currentNetworkIndex, retryCount, MAX_RETRIES);
+            startSTA();
+        }
         return;
     }
 
@@ -286,19 +294,18 @@ void WiFiManager::retryDriver()
     }
 }
 
-void WiFiManager::scheduleRetry() {
-    if (retryCount >= MAX_RETRIES) {
-        log.warn("STA retries exhausted — falling back to AP");
-        sm.onEvent(WiFiEvent::ConnectFail);
-        return;
+uint32_t WiFiManager::retryDelayMsFor(WiFiError reason, int retryAttempt) {
+    if (reason != WiFiError::HANDSHAKE_TIMEOUT) {
+        return 0;
     }
-
-    retryCount++;
-
-    ctx.timer->runAfter(500, [this]() {
-        log.info("Retrying STA connection (%d/%d)", retryCount, MAX_RETRIES);
-        startSTA();
-    });
+    // Growing delay across the 3 same-network retries — see this method's
+    // doc comment in the header for why. retryAttempt is 1-based (the
+    // attempt about to be made), so this is 2s / 5s / 10s.
+    switch (retryAttempt) {
+        case 1:  return 2000;
+        case 2:  return 5000;
+        default: return 10000;  // retryAttempt >= 3
+    }
 }
 
 void WiFiManager::onApStarted() {
