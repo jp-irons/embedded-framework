@@ -48,11 +48,13 @@ class EspWiFiInterface : public wifi_manager::WiFiInterface {
     esp_netif_t* apNetif  = nullptr;
     esp_netif_t* staNetif = nullptr;
 
-    // Captured so stopDriver() can unregister exactly these instances before
-    // a following startDriver() registers fresh ones — without this, a
-    // stop/start cycle (WiFiManager's soft driver-reset escalation) would
-    // leave the old handlers live, and every WiFi/IP event would fire
-    // twice from then on.
+    // Captured so startDriver() can tell (on a soft-reset re-entry via
+    // WiFiManager's driver-reset escalation) whether these are already
+    // registered and skip re-registering — they're tied to the default
+    // event loop, not the WiFi driver's init state, so they stay valid and
+    // correctly registered across a stopDriver()/startDriver() cycle and
+    // must NOT be torn down/recreated each time (see stopDriver()'s comment
+    // for why — a confirmed use-after-free, coredump 2026-07-22).
     esp_event_handler_instance_t wifiEventHandlerInstance_ = nullptr;
     esp_event_handler_instance_t ipEventHandlerInstance_   = nullptr;
 

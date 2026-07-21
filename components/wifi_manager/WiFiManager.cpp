@@ -181,20 +181,28 @@ void WiFiManager::onDisconnect(WiFiError reason) {
         log.warn("All networks failed — soft-resetting WiFi driver (cycle %d/%d) before retrying",
                   driverResetCycleCount, MAX_DRIVER_RESET_CYCLES);
 
-        ctx.wifiInterface->stopDriver();
-        Result r = ctx.wifiInterface->startDriver();
-        if (r != Result::Ok) {
-            // The driver itself won't come back up — that's DriverFailed's
-            // territory (retryDriver()'s own separate retry loop), not
-            // something retried here can fix.
-            log.error("Driver reset failed to restart — escalating to DriverFailed");
-            onFatalError();
-            return;
-        }
+        // Deferred via the timer task rather than run inline: this method
+        // executes on the WiFi event-loop task, and stopDriver()/startDriver()
+        // tear down and rebuild driver state that same task's own event
+        // dispatch depends on. Running it one tick later on EspTimerInterface's
+        // dedicated ESP_TIMER_TASK avoids doing that disruptive work from
+        // inside the event callback's own call stack.
+        ctx.timer->runAfter(0, [this]() {
+            ctx.wifiInterface->stopDriver();
+            Result r = ctx.wifiInterface->startDriver();
+            if (r != Result::Ok) {
+                // The driver itself won't come back up — that's DriverFailed's
+                // territory (retryDriver()'s own separate retry loop), not
+                // something retried here can fix.
+                log.error("Driver reset failed to restart — escalating to DriverFailed");
+                onFatalError();
+                return;
+            }
 
-        currentNetworkIndex = 0;
-        retryCount = 0;
-        startSTA();
+            currentNetworkIndex = 0;
+            retryCount = 0;
+            startSTA();
+        });
         return;
     }
 

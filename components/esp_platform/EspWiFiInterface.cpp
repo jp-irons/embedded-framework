@@ -15,7 +15,6 @@
 #include "esp_event.h"
 #include "esp_event_base.h"
 #include "esp_wifi.h"
-#include "esp_wifi_default.h"
 #include "esp_wifi_types_generic.h"
 #include <cstring>
 
@@ -45,21 +44,34 @@ EspWiFiInterface::EspWiFiInterface(WiFiContext& ctx)
 Result EspWiFiInterface::startDriver() {
     log.info("startDriver");
 
-    // 1. Create default netifs
-    apNetif  = esp_netif_create_default_wifi_ap();
-    staNetif = esp_netif_create_default_wifi_sta();
+    // 1. Create default netifs — only the first time. A soft reset
+    // (WiFiManager's driver-reset escalation calling stopDriver() then
+    // startDriver() again, without a full app restart) reuses the existing
+    // netifs rather than destroying/recreating them. Confirmed via coredump
+    // 2026-07-22 (node170 panic): HubHeartbeat::waitForIp() resolves the STA
+    // netif once by ifkey and holds that pointer across a polling loop that
+    // can run up to 60s (kIpWaitTimeoutMs) — destroying and recreating the
+    // netif out from under that is a genuine use-after-free (crash was
+    // inside esp_netif_get_ip_info() on the stale pointer). See project
+    // memory, project_bird_wifi_reliability_investigation.
     if (!apNetif || !staNetif) {
-        log.error("startDriver: failed to create default netifs");
-        return Result::InternalError;
-    }
+        apNetif  = esp_netif_create_default_wifi_ap();
+        staNetif = esp_netif_create_default_wifi_sta();
+        if (!apNetif || !staNetif) {
+            log.error("startDriver: failed to create default netifs");
+            return Result::InternalError;
+        }
 
-    // Push hostname to both netifs so the DHCP client advertises it to the
-    // router (STA) and the AP interface is consistent.  Must be done before
-    // esp_wifi_start() so the DHCP client picks it up on first connect.
-    if (!ctx.mdnsHostname.empty()) {
-        esp_netif_set_hostname(staNetif, ctx.mdnsHostname.c_str());
-        esp_netif_set_hostname(apNetif,  ctx.mdnsHostname.c_str());
-        log.debug("netif hostname set to '%s'", ctx.mdnsHostname.c_str());
+        // Push hostname to both netifs so the DHCP client advertises it to
+        // the router (STA) and the AP interface is consistent.  Must be
+        // done before esp_wifi_start() so the DHCP client picks it up on
+        // first connect. Only needed once — the netifs (and their hostname)
+        // persist across a soft reset.
+        if (!ctx.mdnsHostname.empty()) {
+            esp_netif_set_hostname(staNetif, ctx.mdnsHostname.c_str());
+            esp_netif_set_hostname(apNetif,  ctx.mdnsHostname.c_str());
+            log.debug("netif hostname set to '%s'", ctx.mdnsHostname.c_str());
+        }
     }
 
     // Power-save mode has no working default (see WiFiPowerSaveMode's doc
@@ -76,19 +88,22 @@ Result EspWiFiInterface::startDriver() {
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     WIFI_CHECK(esp_wifi_init(&cfg));
 
-    // Register WiFi event handler. Instance captured (not nullptr) so
-    // stopDriver() can unregister exactly this registration — needed now
-    // that stop/start is a real repeatable cycle (WiFiManager's soft
-    // driver-reset escalation), not just a one-time boot/shutdown pairing.
-    WIFI_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
-               &EspWiFiInterface::wifiEventHandler, this, &wifiEventHandlerInstance_));
+    // Register WiFi/IP event handlers — only the first time. These are tied
+    // to the default event loop, not the WiFi driver's init state, so they
+    // stay validly registered across a stopDriver()/startDriver() soft-reset
+    // cycle without needing to be torn down and recreated each time.
+    if (!wifiEventHandlerInstance_) {
+        WIFI_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
+                   &EspWiFiInterface::wifiEventHandler, this, &wifiEventHandlerInstance_));
+    }
 
-    // Register IP event handler
     // ANY_ID so we also catch IP_EVENT_STA_LOST_IP — the radio can stay
     // associated (no WIFI_EVENT_STA_DISCONNECTED) while DHCP/the netif's
     // IP silently dies underneath it.
-    WIFI_CHECK(esp_event_handler_instance_register(IP_EVENT, ESP_EVENT_ANY_ID,
-               &EspWiFiInterface::ipEventHandler, this, &ipEventHandlerInstance_));
+    if (!ipEventHandlerInstance_) {
+        WIFI_CHECK(esp_event_handler_instance_register(IP_EVENT, ESP_EVENT_ANY_ID,
+                   &EspWiFiInterface::ipEventHandler, this, &ipEventHandlerInstance_));
+    }
 
     WIFI_CHECK(esp_wifi_set_mode(WIFI_MODE_NULL));
     WIFI_CHECK(esp_wifi_start());
@@ -104,38 +119,16 @@ Result EspWiFiInterface::stopDriver() {
     WIFI_CHECK(esp_wifi_stop());
     WIFI_CHECK(esp_wifi_deinit());
 
-    // Unregister our event handlers before the netifs go away. Previously
-    // this function was only ever called once, at real shutdown, so none
-    // of the following mattered. It's now also called mid-run as part of
-    // WiFiManager's soft driver-reset escalation (retry a stuck node
-    // without a full esp_restart() — see project memory,
-    // project_bird_wifi_reliability_investigation, 2026-07-21), so
-    // startDriver() can genuinely run again afterward and needs a clean
-    // slate: no duplicate handlers, no duplicate netifs.
-    if (wifiEventHandlerInstance_) {
-        esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, wifiEventHandlerInstance_);
-        wifiEventHandlerInstance_ = nullptr;
-    }
-    if (ipEventHandlerInstance_) {
-        esp_event_handler_instance_unregister(IP_EVENT, ESP_EVENT_ANY_ID, ipEventHandlerInstance_);
-        ipEventHandlerInstance_ = nullptr;
-    }
-
-    // esp_netif_destroy_default_wifi() does the required
-    // esp_wifi_clear_default_wifi_driver_and_handlers() + esp_netif_destroy()
-    // in the correct order (IDF v4.4+) for netifs created via
-    // esp_netif_create_default_wifi_ap()/_sta() in startDriver(). Skipping
-    // this and letting a second startDriver() call esp_netif_create_default_wifi_*()
-    // again would create duplicate netifs on top of the old ones.
-    if (staNetif) {
-        esp_netif_destroy_default_wifi(staNetif);
-        staNetif = nullptr;
-    }
-    if (apNetif) {
-        esp_netif_destroy_default_wifi(apNetif);
-        apNetif = nullptr;
-    }
-
+    // Deliberately NOT touching netifs or event handler registrations here.
+    // Confirmed via coredump 2026-07-22 (node170 panic): other components
+    // (HubHeartbeat::waitForIp(), at minimum) resolve the STA netif by ifkey
+    // and hold that pointer across a polling loop that can run up to 60s —
+    // destroying and recreating the netif out from under that is a
+    // use-after-free. Only the WiFi driver's own init/deinit state (where
+    // the actual stuck reason=15 state is believed to live — see project
+    // memory, project_bird_wifi_reliability_investigation) gets torn down
+    // and rebuilt by this stop/start pair; the netifs and our handler
+    // registrations survive the whole app lifetime once created.
     driverStarted = false;
     return Result::Ok;
 }
