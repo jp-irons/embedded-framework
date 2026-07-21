@@ -57,6 +57,7 @@ void WiFiManager::onStateChanged(WiFiState oldState, WiFiState newState) {
 
         case WiFiState::AP_Mode:
             retryCount = 0;
+            driverResetCycleCount = 0;
             // Also reset the network index here, not just on STA_Connected —
             // otherwise a node that exhausts retries and advances past the
             // end of its network list stays wedged on that invalid index
@@ -79,6 +80,7 @@ void WiFiManager::onStateChanged(WiFiState oldState, WiFiState newState) {
 
         case WiFiState::STA_Connected:
             retryCount = 0;
+            driverResetCycleCount = 0;
             // A stable connection means whatever index we're on is known-good
             // right now, but currentNetworkIndex has no other reset path —
             // onDisconnect() only ever increments it. Left un-reset, a node
@@ -164,8 +166,41 @@ void WiFiManager::onDisconnect(WiFiError reason) {
         return;
     }
 
-    // All networks exhausted
-    log.error("All networks failed — falling back to AP");
+    // All networks in the list have now each failed their full 3-retry
+    // backoff cycle. Before falling back to AP_Mode (whose provisioning UI
+    // is currently unreachable anyway — see project_bird_panic_apmode_softap_order
+    // in project memory, a separate still-open bug) or waiting on
+    // HubHeartbeat's much slower checkSelfHeal()/esp_restart() escalation
+    // (10+ minutes per cycle), try a soft WiFi driver reset: a full
+    // stop/deinit + fresh init, not just the disconnect/stop/start
+    // connectSta() already does on every single retry. See
+    // driverResetCycleCount's doc comment in the header for the field
+    // evidence motivating this.
+    if (driverResetCycleCount < MAX_DRIVER_RESET_CYCLES) {
+        driverResetCycleCount++;
+        log.warn("All networks failed — soft-resetting WiFi driver (cycle %d/%d) before retrying",
+                  driverResetCycleCount, MAX_DRIVER_RESET_CYCLES);
+
+        ctx.wifiInterface->stopDriver();
+        Result r = ctx.wifiInterface->startDriver();
+        if (r != Result::Ok) {
+            // The driver itself won't come back up — that's DriverFailed's
+            // territory (retryDriver()'s own separate retry loop), not
+            // something retried here can fix.
+            log.error("Driver reset failed to restart — escalating to DriverFailed");
+            onFatalError();
+            return;
+        }
+
+        currentNetworkIndex = 0;
+        retryCount = 0;
+        startSTA();
+        return;
+    }
+
+    // All networks exhausted and driver reset cycles exhausted too.
+    log.error("All networks failed, %d driver reset cycle(s) also exhausted — falling back to AP",
+               driverResetCycleCount);
     sm.onEvent(WiFiEvent::ConnectFail);
 }
 

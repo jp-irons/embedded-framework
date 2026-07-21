@@ -9,6 +9,12 @@ The framework is designed to be consumed as a git submodule by downstream applic
 
 Always explain what you plan to do and ask for confirmation before editing any file.
 
+## Git operations
+
+**Never run git commands that mutate repository state** — `commit`, `push`, `tag`, `add` (as a prelude to committing), `checkout -- <path>`/`reset`/`merge`/`rebase`, or anything else that writes to `.git` or discards working-tree changes. Doing this from the sandbox has repeatedly left stale `index.lock` files that then block Jon's own local git usage — this has happened on this exact repo and on `sound-capture-node`'s `framework/` submodule checkout.
+
+Read-only git commands (`status`, `log`, `diff`, `show`, `blame`) are fine. For anything that changes repo state — including reverting an edit, or bumping the submodule pin in a consuming project — either use the `Edit`/`Write` tools to restore file contents directly, or ask Jon to run the git command himself.
+
 ## Key facts
 
 - `sdkconfig` is committed and is the source of truth for the build configuration. Do not suggest deleting it as a routine step.

@@ -64,6 +64,26 @@ class WiFiManager {
 	std::optional<network_store::WiFiNetwork> currentNetwork;
 	int retryCount = 0;
     static constexpr int MAX_RETRIES = 3;
+
+    // Soft driver-reset escalation: once every network in the list has
+    // exhausted its own MAX_RETRIES cycle, do a full WiFiInterface
+    // stopDriver()/startDriver() (fresh esp_wifi_init(), fresh netifs) and
+    // retry from network 0, before falling back to AP_Mode. Field evidence
+    // 2026-07-21 (node170, see project memory
+    // project_bird_wifi_reliability_investigation): a full esp_restart()
+    // reliably connects on its very first attempt after this exact retry
+    // loop fails continuously for 20+ minutes, strongly suggesting a fresh
+    // driver init clears some stuck internal state that plain
+    // disconnect()/stop()/start() (already done on every retry via
+    // connectSta()) never touches. This tries for the same effect without
+    // the cost of a full chip reboot — GPS lock, ESP-NOW state, and the
+    // audio ring buffer all survive a driver-only reset. Capped rather than
+    // unconditional so a genuinely dead/absent AP still eventually reaches
+    // AP_Mode and the existing HubHeartbeat esp_restart() safety net,
+    // rather than looping on driver resets forever.
+    int driverResetCycleCount = 0;
+    static constexpr int MAX_DRIVER_RESET_CYCLES = 2;
+
     int driverRetryCount = 0;
     static constexpr int MAX_DRIVER_RETRIES = 3;
     static constexpr uint32_t DRIVER_RETRY_DELAY_MS = 3000;

@@ -4,6 +4,7 @@
 #pragma once
 
 #include "wifi_manager/WiFiInterface.hpp"
+#include "esp_event.h"
 #include "esp_event_base.h"
 #include "esp_netif_types.h"
 #include "esp_wifi_types_generic.h"
@@ -46,6 +47,14 @@ class EspWiFiInterface : public wifi_manager::WiFiInterface {
 
     esp_netif_t* apNetif  = nullptr;
     esp_netif_t* staNetif = nullptr;
+
+    // Captured so stopDriver() can unregister exactly these instances before
+    // a following startDriver() registers fresh ones — without this, a
+    // stop/start cycle (WiFiManager's soft driver-reset escalation) would
+    // leave the old handlers live, and every WiFi/IP event would fire
+    // twice from then on.
+    esp_event_handler_instance_t wifiEventHandlerInstance_ = nullptr;
+    esp_event_handler_instance_t ipEventHandlerInstance_   = nullptr;
 
     bool driverStarted = false;
     bool apActive      = false;
