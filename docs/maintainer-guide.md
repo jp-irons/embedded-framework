@@ -24,18 +24,18 @@ Releases are built and published automatically by GitHub Actions when a version 
 # git push origin development:main    # bring main up to date without switching branches
 # git push origin
 # tag must match version.txt exactly (without the v prefix)
-git tag -a v0.2.24 -m "fix wi-fi reset causes panic"
-git push origin v0.2.24              # triggers the Actions build and release
+git tag -a v0.2.26 -m "fix wi-fi reset causes panic"
+git push origin v0.2.26              # triggers the Actions build and release
 
 # in target repo root
 cd framework
 git fetch --tags
 git -C . describe --tags
-git checkout v0.2.24       # e.g. v1.2.0
+git checkout v0.2.26       # e.g. v1.2.0
 
 cd ..
 git add framework
-git commit -m "framework v0.2.24 fix wi-fi reset causes panic"
+git commit -m "framework v0.2.26 fix wi-fi reset causes panic"
 git push
 
 ```
